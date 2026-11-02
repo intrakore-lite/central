@@ -72,7 +72,6 @@ export function useAddPaymentMethod({
 			const order = setup.data
 			if (!order) throw new Error('Could not start the payment method setup.')
 			const handles = await openRazorpayCheckout(order, {
-				name: 'Frappe Cloud',
 				description: methodType === 'Card' ? 'Save card' : 'Set up UPI Autopay',
 			})
 			await confirm.submit({ payment_method: order.payment_method, ...handles })

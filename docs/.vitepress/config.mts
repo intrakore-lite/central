@@ -6,12 +6,12 @@ import { sidebar } from './sidebar'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const base = process.env.DOCS_BASE || '/'
-// The Frappe Cloud v2 console. The header link to it stays hidden while this is empty.
-const consoleUrl = 'https://dashboard.frappe.io'
+// The Intrakore Cloud console. The header link to it stays hidden while this is empty.
+const consoleUrl = 'https://intrakore.cloud/dashboard'
 
 const config = defineDocsConfig({
 	rootDir,
-	name: 'Frappe Cloud',
+	name: 'Intrakore Cloud',
 	description: 'Run virtual machines and Frappe sites in the region you choose.',
 	logo: '/logo.svg',
 	base,

@@ -34,7 +34,7 @@ class TestTrialSignup(TrialOnAMachine):
 
 		self.assertEqual(summary["site"], self.site().name)
 		self.assertEqual(summary["state"], "Active")
-		self.assertEqual(summary["product_title"], "Frappe Cloud")
+		self.assertEqual(summary["product_title"], "Intrakore Cloud")
 
 	def test_a_member_of_another_team_of_the_owner_does_not_see_the_trial_site(self):
 		member = create_user(f"member-{frappe.generate_hash(length=8)}@example.test")

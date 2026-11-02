@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand'
 import type { WireGuardDevice } from '@/types/wireguard'
 
 const toBase64 = (bytes: ArrayBuffer): string =>
@@ -46,8 +47,7 @@ export const buildConfig = (
 	].join('\n')
 
 /** The customer guide for WireGuard VPN. */
-export const WIREGUARD_DOCS_URL =
-	'https://frappe.github.io/central/servers/wireguard'
+export const WIREGUARD_DOCS_URL = `${brand.docsUrl}/servers/wireguard`
 
 /** Stands in for a private key the browser no longer has. */
 export const PRIVATE_KEY_PLACEHOLDER = '<your private key>'

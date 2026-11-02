@@ -1,6 +1,7 @@
 import { useCall } from 'frappe-ui'
 import { computed, ref } from 'vue'
 import { API, method } from '@/api/methods'
+import { brand } from '@/lib/brand'
 import type { Team } from '@/types/api'
 
 const STORAGE_KEY = 'central.console.activeTeam'
@@ -124,7 +125,7 @@ export function useSession() {
 		activeTeamLabel: computed(
 			() =>
 				(teamsCall.data ?? []).find((t) => t.name === activeTeam.value)
-					?.label ?? 'Frappe Cloud',
+					?.label ?? brand.name,
 		),
 		activeTeamLogo: computed(
 			() =>

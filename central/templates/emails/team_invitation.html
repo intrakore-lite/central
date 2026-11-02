@@ -4,7 +4,7 @@
 {% block content %}
 <tr>
 	<td class="fc-body">
-		{{ ui.heading(_("Join {0} on Frappe Cloud").format(team_name) | e) }}
+		{{ ui.heading(_("Join {0} on {1}").format(team_name, get_brand_name()) | e) }}
 		{{ ui.paragraph(_("{0} invited you to join the {1} team as {2}.").format(invited_by, team_name, role) | e) }}
 
 		{{ ui.button(_("Accept invitation"), invitation_url | e) }}
@@ -21,5 +21,5 @@
 {% endblock %}
 
 {% block footer %}
-<b>{{ _("Note") }}:</b> {{ _("You are receiving this because someone invited this email to a Frappe Cloud team.") }}
+<b>{{ _("Note") }}:</b> {{ _("You are receiving this because someone invited this email to a team on {0}.").format(get_brand_name()) | e }}
 {% endblock %}

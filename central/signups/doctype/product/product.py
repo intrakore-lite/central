@@ -98,7 +98,7 @@ class Product(Document):
 			frappe.throw(_("Add at most one note for each email."))
 
 	def get_email_brand(self) -> dict | None:
-		"""The logo and title for an email header, or None to keep Frappe Cloud's. Both are
+		"""The logo and title for an email header, or None to keep the platform's. Both are
 		escaped, because a Product Operator writes them and Jinja does not escape."""
 		if not self.use_own_email_branding:
 			return None
@@ -201,7 +201,7 @@ class Product(Document):
 
 
 def get_email_product(product_key: str | None) -> Product | None:
-	"""The product whose branding and notes an email uses, or None for Frappe Cloud's own."""
+	"""The product whose branding and notes an email uses, or None for the platform's own."""
 	if not product_key or not frappe.db.exists("Product", product_key):
 		return None
 

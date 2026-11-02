@@ -66,7 +66,7 @@ pilot restart
 
 ## Limits
 
-- Pilot on Frappe Cloud shows one bench for each server. The interface has no action to create, switch, or delete a bench.
+- Pilot on Intrakore Cloud shows one bench for each server. The interface has no action to create, switch, or delete a bench.
 - All sites on a bench use the same version of each app.
 
 ## See also

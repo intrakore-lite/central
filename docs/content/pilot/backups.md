@@ -79,7 +79,7 @@ A restore replaces the data of the target site with the data in the backup. Pilo
 
 ## Restore a site from another source
 
-Use this to move a site to Frappe Cloud, or to copy data between sites.
+Use this to move a site to Intrakore Cloud, or to copy data between sites.
 
 1. Go to the site page. Click **Settings**.
 2. Under **Danger**, click **Restore**.

@@ -31,6 +31,12 @@ interface Window {
 		support_ticket_url?: string | null
 		feedback_url?: string | null
 	}
+	/** Brand from Central Settings. See central/branding.py and lib/brand.ts. */
+	brand?: {
+		title?: string
+		logo_url?: string | null
+		policies_url?: string | null
+	}
 	features?: {
 		addons?: boolean
 		storage?: boolean

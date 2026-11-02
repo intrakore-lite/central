@@ -55,7 +55,7 @@ When the firewall is off, every port is open to the internet. When you turn it o
 | **Ping** from anyone | IPv6 needs ICMP to find neighbours and the path size. |
 | **SSH**, **HTTP**, and **HTTPS** from anyone | Sign in, and serve sites directly. |
 
-You can remove any of these rules. If you remove **Private network**, the web console and your sites stop working through Frappe Cloud. The console warns you before it applies such a change.
+You can remove any of these rules. If you remove **Private network**, the web console and your sites stop working through Intrakore Cloud. The console warns you before it applies such a change.
 
 The firewall also filters [WireGuard VPN devices](/servers/wireguard). To let a device in, add a rule and select the device by its name in **Specific addresses**.
 

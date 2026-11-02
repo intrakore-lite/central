@@ -1,6 +1,6 @@
 # Notifications
 
-Frappe Cloud tells you about events on your team, such as a failed server or an upcoming payment. You get notifications by email and in the console. You choose which categories you get on each channel.
+Intrakore Cloud tells you about events on your team, such as a failed server or an upcoming payment. You get notifications by email and in the console. You choose which categories you get on each channel.
 
 ## Notification categories
 

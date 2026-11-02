@@ -3,7 +3,7 @@ name = "central"
 authors = [
     { name = "frappe", email = "developers@frappe.io"}
 ]
-description = "The one stop console for Frappe Cloud"
+description = "The one stop console for Intrakore Cloud"
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]

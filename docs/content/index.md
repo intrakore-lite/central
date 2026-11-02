@@ -6,19 +6,19 @@ outline: false
 
 <div class="docs-hero">
 
-# Frappe Cloud
+# Intrakore Cloud
 
 Get a server of your own in the region you choose. Run Frappe apps on it with Pilot, or use it as a plain Ubuntu machine.
 
 </div>
 
-<Screenshot name="get-started/console" alt="The Servers page of the Frappe Cloud console. A world map shows 12 servers in Mumbai, and a list shows each server with its CPU, memory, and disk." />
+<Screenshot name="get-started/console" alt="The Servers page of the Intrakore Cloud console. A world map shows 12 servers in Mumbai, and a list shows each server with its CPU, memory, and disk." />
 
 ## Start here
 
 <Cards>
 <Card title="Quick start" link="/get-started/quick-start" icon="lucide-rocket">Create a server and open your first site.</Card>
-<Card title="How Frappe Cloud works" link="/get-started/how-it-works" icon="lucide-layers">Servers, Pilot, benches, and sites in one picture.</Card>
+<Card title="How Intrakore Cloud works" link="/get-started/how-it-works" icon="lucide-layers">Servers, Pilot, benches, and sites in one picture.</Card>
 <Card title="Servers" link="/servers/" icon="lucide-server">Create, connect to, and manage your servers.</Card>
 <Card title="Pilot" link="/pilot/" icon="lucide-plane">Manage benches, sites, and apps inside a server.</Card>
 </Cards>

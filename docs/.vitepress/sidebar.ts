@@ -6,7 +6,7 @@ export const sidebar: SidebarSection[] = [
 		items: [
 			{ text: 'Overview', link: '/' },
 			{ text: 'Quick start', link: '/get-started/quick-start' },
-			{ text: 'How Frappe Cloud works', link: '/get-started/how-it-works' },
+			{ text: 'How Intrakore Cloud works', link: '/get-started/how-it-works' },
 			{ text: 'Tour the console', link: '/get-started/console' },
 		],
 	},

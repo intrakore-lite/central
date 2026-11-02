@@ -91,7 +91,6 @@ export function useTopup({ onDone }: { onDone?: (res: unknown) => void } = {}) {
 			// modal must drop it now so the sheet isn't stuck behind the overlay.
 			onSheet?.()
 			const handles = await openRazorpayCheckout(o, {
-				name: 'Frappe Cloud',
 				description: 'Wallet top-up',
 				displayPayPal: o.display_paypal,
 			})

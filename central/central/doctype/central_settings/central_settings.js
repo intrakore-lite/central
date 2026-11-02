@@ -20,7 +20,7 @@ function create_github_app() {
 				fieldtype: "Data",
 				label: __("App Name"),
 				reqd: 1,
-				default: "Frappe Cloud",
+				default: "Intrakore Cloud",
 				description: __("Must be unique on GitHub."),
 			},
 			{

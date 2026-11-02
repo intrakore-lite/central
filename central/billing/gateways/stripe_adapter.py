@@ -26,6 +26,7 @@ from central.billing.gateways.base import (
 	WebhookNotFound,
 	header_value,
 )
+from central.branding import get_brand_name
 
 # The Stripe API version every request is made with. It matches the stripe-python major
 # pinned in pyproject.toml; move both together, and check webhook payloads when you do.
@@ -278,7 +279,7 @@ class StripeAdapter(GatewayAdapter):
 				"interval": "sporadic",
 				"supported_types": ["india"],
 				"start_date": int(frappe.utils.now_datetime().timestamp()),
-				"description": "Frappe Cloud usage billing",
+				"description": f"{get_brand_name()} usage billing",
 			}
 		}
 

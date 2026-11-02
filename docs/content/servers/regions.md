@@ -5,7 +5,7 @@ description: Where your servers run, and how region codes appear in addresses.
 
 # Regions
 
-A region is a data center location where Frappe Cloud runs servers. Each server runs in one region. You select the region when you [create a server](/servers/create), and you cannot move a server to another region.
+A region is a data center location where Intrakore Cloud runs servers. Each server runs in one region. You select the region when you [create a server](/servers/create), and you cannot move a server to another region.
 
 ## Each region is an Atlas
 

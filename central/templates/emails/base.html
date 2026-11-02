@@ -10,15 +10,16 @@
 							<img src="{{ brand.logo_url }}" height="28" alt="" class="align-middle" border="0" />
 							<span class="fc-wordmark">{{ brand.title }}</span>
 							{% else %}
+							{% set platform = get_email_brand() %}
 							<img
-								src="https://cloud.frappe.io/files/cloud9c3ae6.png"
+								src="{{ platform.logo_url }}"
 								width="28"
 								height="28"
 								alt=""
 								class="align-middle"
 								border="0"
 							/>
-							<span class="fc-wordmark">Frappe Cloud</span>
+							<span class="fc-wordmark">{{ platform.title }}</span>
 							{% endif %}
 							{% endblock %}
 						</td>
@@ -29,7 +30,7 @@
 					<tr>
 						<td class="fc-footer">
 							{% block footer %}
-							<b>{{ _("Note") }}:</b> {{ _("You are receiving this because you are a member of a Frappe Cloud team.") }}
+							<b>{{ _("Note") }}:</b> {{ _("You are receiving this because you are a member of a team on {0}.").format(get_brand_name()) | e }}
 							{% endblock %}
 						</td>
 					</tr>

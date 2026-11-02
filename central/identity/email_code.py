@@ -47,7 +47,7 @@ class EmailCode:
 		brand: dict | None = None,
 	) -> None:
 		"""Email a fresh code. Failed attempts carry over, so a resend cannot reset the lock.
-		`subject` builds the subject from the code, and `brand` replaces Frappe Cloud's header."""
+		`subject` builds the subject from the code, and `brand` replaces the platform's header."""
 		pending = self._next_pending()
 		code = f"{secrets.randbelow(900_000) + 100_000}"
 		self._store({**pending, "code": code, "full_name": full_name or pending["full_name"]})

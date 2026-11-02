@@ -11,7 +11,7 @@ Every site gets an address in its region, such as `erp.bom.frappe.cloud`. You ca
 
 | Domain | Example | HTTPS |
 | --- | --- | --- |
-| Region address | `erp.bom.frappe.cloud` | Frappe Cloud serves it over HTTPS. You do not need a certificate. |
+| Region address | `erp.bom.frappe.cloud` | Intrakore Cloud serves it over HTTPS. You do not need a certificate. |
 | Custom domain | `erp.contrail.example` | Pilot gets a Let's Encrypt certificate for it on the server. |
 
 The site name is always one of its domains. Pilot marks it **Included** in the domain list.

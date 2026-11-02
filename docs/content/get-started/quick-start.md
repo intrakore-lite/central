@@ -9,12 +9,12 @@ This guide shows how to create a server with Pilot and open your first site. It 
 
 ## Before you begin
 
-- A work email address. Frappe Cloud signs you in with a code that it sends to this address. There is no password.
+- A work email address. Intrakore Cloud signs you in with a code that it sends to this address. There is no password.
 - A payment method, such as a card. The console asks for it during setup.
 
 ## 1. Sign up
 
-1. Open the Frappe Cloud console. Click **Create an account**.
+1. Open the Intrakore Cloud console. Click **Create an account**.
 2. Type your **Full name** and **Work email**. Click **Continue**.
 3. Type the **Code** from the email.
 

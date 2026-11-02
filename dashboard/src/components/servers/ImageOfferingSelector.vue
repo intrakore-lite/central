@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import appsLogo from '@/assets/images/apps.svg'
-import frappeLogo from '@/assets/images/frappe-logo.svg'
 import ubuntuLogo from '@/assets/images/ubuntu.svg'
 import ChoiceCards from '@/components/common/ChoiceCards.vue'
+import { brand } from '@/lib/brand'
 
 interface ImageChoice {
 	label: string
@@ -21,7 +21,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const defaultLogos: Record<string, string> = {
 	apps: appsLogo,
-	pilot: frappeLogo,
+	pilot: brand.logo,
 	ubuntu: ubuntuLogo,
 }
 

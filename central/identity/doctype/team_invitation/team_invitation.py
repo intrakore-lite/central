@@ -16,6 +16,7 @@ from frappe.utils import (
 	validate_email_address,
 )
 
+from central.branding import get_brand_name
 from central.iam import can, user_has_operator_bypass
 from central.identity.doctype.team_member.team_member import validate_resource_scope
 from central.sso import central_url
@@ -77,7 +78,7 @@ class TeamInvitation(Document):
 		invited_by = get_fullname(self.invited_by)
 		frappe.sendmail(
 			recipients=[self.email],
-			subject=_("{0} invited you to join {1} on Frappe Cloud").format(invited_by, team_name),
+			subject=_("{0} invited you to join {1} on {2}").format(invited_by, team_name, get_brand_name()),
 			template="team_invitation",
 			args={
 				"team_name": team_name,

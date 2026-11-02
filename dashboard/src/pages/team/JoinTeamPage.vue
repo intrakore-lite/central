@@ -7,6 +7,7 @@ import ValidatedFormControl from '@/components/common/formComponents/ValidatedFo
 import { useAuth } from '@/composables/useAuth'
 import { useJoinTeam } from '@/composables/useJoinTeam'
 import { requiredError } from '@/lib/auth'
+import { brand } from '@/lib/brand'
 import { formatDate } from '@/lib/format'
 
 const route = useRoute()
@@ -79,7 +80,7 @@ function submitSignUp() {
 						class="w-full"
 						size="md"
 						route="/servers"
-						label="Open Frappe Cloud"
+						:label="`Open ${brand.name}`"
 					/>
 				</template>
 

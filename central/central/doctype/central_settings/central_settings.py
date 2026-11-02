@@ -21,6 +21,8 @@ class CentralSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		brand_logo: DF.AttachImage | None
+		brand_name: DF.Data | None
 		central_id: DF.Int
 		common_site_config: DF.JSON | None
 		disk_iops: DF.Int
@@ -45,6 +47,7 @@ class CentralSettings(Document):
 		invitation_resend_cooldown_minutes: DF.Int
 		invitations_per_hour: DF.Int
 		private_network_throughput_mibps: DF.Int
+		policies_url: DF.Data | None
 		public_network_throughput_mibps: DF.Int
 		require_payment_method: DF.Check
 		sign_in_code_attempts: DF.Int

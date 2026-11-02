@@ -1,7 +1,7 @@
 app_name = "central"
 app_title = "Central"
 app_publisher = "frappe"
-app_description = "The one stop console for Frappe Cloud"
+app_description = "The one stop console for Intrakore Cloud"
 app_email = "developers@frappe.io"
 app_license = "agpl-3.0"
 
@@ -107,7 +107,12 @@ website_user_home_page = "dashboard"
 # add methods and filters to jinja environment
 jinja = {
 	# The body of the Webhook that carries a team's tier to Grove (AI Settings).
-	"methods": ["central.services.ai.get_team_limits"],
+	"methods": [
+		"central.services.ai.get_team_limits",
+		# The platform name and logo for email templates.
+		"central.branding.get_brand_name",
+		"central.branding.get_email_brand",
+	],
 }
 
 # Installation

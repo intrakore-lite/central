@@ -8,9 +8,9 @@ You need the Owner, Admin, or Billing role to add credit. All billing roles can 
 
 ## Wallet credits
 
-The wallet holds your prepaid credit. Each invoice uses credit first, before Frappe Cloud charges a payment method. The balance shows as **Wallet** in the summary panel and as **Prepaid credits** on the **Methods** card.
+The wallet holds your prepaid credit. Each invoice uses credit first, before Intrakore Cloud charges a payment method. The balance shows as **Wallet** in the summary panel and as **Prepaid credits** on the **Methods** card.
 
-Credit that you add while an invoice is unpaid pays that invoice only when it covers the whole amount due, tax included. Otherwise the credit stays in the wallet, and Frappe Cloud does not split the invoice between credit and a payment method. If an automatic debit for the invoice was still pending at your bank and goes through after the credit paid the invoice, Frappe Cloud refunds that debit in full to its source.
+Credit that you add while an invoice is unpaid pays that invoice only when it covers the whole amount due, tax included. Otherwise the credit stays in the wallet, and Intrakore Cloud does not split the invoice between credit and a payment method. If an automatic debit for the invoice was still pending at your bank and goes through after the credit paid the invoice, Intrakore Cloud refunds that debit in full to its source.
 
 ### Add credit
 
@@ -21,7 +21,7 @@ Credit that you add while an invoice is unpaid pays that invoice only when it co
 
 <Screenshot name="billing/topup" alt="The Top up wallet dialog with an Amount field and preset amounts of 1,000, 5,000, 10,000, and 25,000 dollars" />
 
-Frappe Cloud adds the credit to your wallet after the payment goes through. Add your billing details before you add credit.
+Intrakore Cloud adds the credit to your wallet after the payment goes through. Add your billing details before you add credit.
 
 ### Wallet history
 
@@ -52,7 +52,7 @@ The tiers and amounts in your console depend on your billing currency. The conso
 
 ## When you reach a limit
 
-Frappe Cloud checks your limits when you create or resize a server. It refuses the change when:
+Intrakore Cloud checks your limits when you create or resize a server. It refuses the change when:
 
 - The new monthly cost and your current costs go above your spend limit. Choose a smaller plan.
 - Your team already runs the most servers that your tier allows. Terminate a server you no longer need.

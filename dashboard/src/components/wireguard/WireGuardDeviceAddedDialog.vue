@@ -2,6 +2,7 @@
 import { Alert, Button, Dialog } from 'frappe-ui'
 import { renderSVG } from 'uqr'
 import { computed } from 'vue'
+import { brand } from '@/lib/brand'
 import {
 	buildConfig,
 	downloadConfig,
@@ -41,7 +42,7 @@ function close(): void {
 				v-if="privateKey"
 				theme="blue"
 				title="Download the file now"
-				description="Frappe Cloud never saw the private key and can't show it again."
+				:description="`${brand.name} never saw the private key and can't show it again.`"
 			/>
 
 			<ol class="list-decimal space-y-1.5 pl-5 text-p-sm text-ink-gray-7">

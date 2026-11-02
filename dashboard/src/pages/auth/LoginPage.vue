@@ -10,6 +10,7 @@ import { useEmailSignIn } from '@/composables/useEmailSignIn'
 import { useProduct } from '@/composables/useProduct'
 import { emailError, frappeErrorMessage, queryString } from '@/lib/auth'
 import { carriedQuery } from '@/lib/authRedirect'
+import { brand } from '@/lib/brand'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,7 +46,7 @@ async function submit() {
 	<AuthShell :show-progress="Boolean(productKey)" :step="1">
 		<h1 class="flex items-center gap-2 text-xl-semibold text-ink-gray-9">
 			<ProductLogo />
-			Sign in to Frappe Cloud
+			Sign in to {{ brand.name }}
 		</h1>
 		<p v-if="product?.subtitle" class="mt-1 text-p-base text-ink-gray-5">
 			{{ product.subtitle }}
@@ -75,7 +76,7 @@ async function submit() {
 		</form>
 
 		<p class="mt-6 text-center text-p-sm text-ink-gray-5">
-			New to Frappe Cloud?
+			New to {{ brand.name }}?
 			<RouterLink
 				class="text-p-sm-medium text-ink-gray-8 hover:underline"
 				:to="{ path: '/signup', query: carriedQuery(route.query) }"
