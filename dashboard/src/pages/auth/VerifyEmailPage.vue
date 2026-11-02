@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Button } from 'frappe-ui'
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AuthErrorMessage from '@/components/auth/AuthErrorMessage.vue'
 import AuthShell from '@/components/auth/AuthShell.vue'
+import AuthSubmitButton from '@/components/auth/AuthSubmitButton.vue'
 import ProductLogo from '@/components/auth/ProductLogo.vue'
 import TermsNotice from '@/components/auth/TermsNotice.vue'
 import ValidatedFormControl from '@/components/common/formComponents/ValidatedFormControl.vue'
@@ -100,18 +100,19 @@ onBeforeUnmount(() => clearInterval(resendTimer))
 <template>
 	<AuthShell :show-progress="Boolean(productKey)" :step="2">
 		<template v-if="needsName">
-			<h1 class="flex items-center gap-2 text-xl-semibold text-ink-gray-9">
+			<h1 class="flex items-center gap-2 text-3xl-semibold text-ink-gray-9">
 				<ProductLogo />
 				Set up your profile
 			</h1>
-			<p class="mt-1 text-p-base text-ink-gray-5">
+			<p class="mt-1.5 text-p-base text-ink-gray-6">
 				This is how you appear in {{ brand.name }}.
 			</p>
 
-			<form class="mt-6 space-y-4" novalidate @submit.prevent="verify">
+			<form class="mt-8 space-y-4" novalidate @submit.prevent="verify">
 				<ValidatedFormControl
 					v-model="fullName"
 					label="Full name"
+					variant="outline"
 					autocomplete="name"
 					placeholder="Your full name"
 					v-focus
@@ -123,31 +124,23 @@ onBeforeUnmount(() => clearInterval(resendTimer))
 					:message="error"
 					page="Set up your profile"
 				/>
-				<Button
-					type="submit"
-					variant="solid"
-					size="md"
-					class="w-full"
-					:loading="loading"
-				>
-					Continue
-				</Button>
+				<AuthSubmitButton :loading="loading">Continue</AuthSubmitButton>
 			</form>
 			<TermsNotice class="mt-6" />
 		</template>
 
 		<template v-else>
-			<h1 class="flex items-center gap-2 text-xl-semibold text-ink-gray-9">
+			<h1 class="flex items-center gap-2 text-3xl-semibold text-ink-gray-9">
 				<ProductLogo />
 				Check your email
 			</h1>
-			<p class="mt-1 text-p-base text-ink-gray-5">
+			<p class="mt-1.5 text-p-base text-ink-gray-6">
 				We sent a 6-digit code to
 				<span class="text-p-base-medium text-ink-gray-8">{{ email }}</span>. If
 				it is not in your inbox, check your spam folder.
 			</p>
 
-			<form class="mt-6 space-y-4" @submit.prevent="verify">
+			<form class="mt-8 space-y-4" @submit.prevent="verify">
 				<OtpInput
 					ref="otpInput"
 					v-model="code"
@@ -158,28 +151,21 @@ onBeforeUnmount(() => clearInterval(resendTimer))
 				/>
 				<p v-if="notice" class="text-p-sm text-ink-gray-6">{{ notice }}</p>
 				<AuthErrorMessage v-if="error" :message="error" page="Verify email" />
-				<Button
-					type="submit"
-					variant="solid"
-					size="md"
-					class="w-full"
-					:loading="loading"
-					:disabled="code.length !== 6"
-				>
+				<AuthSubmitButton :loading="loading" :disabled="code.length !== 6">
 					Continue
-				</Button>
+				</AuthSubmitButton>
 			</form>
 
-			<div class="mt-6 flex items-center justify-between text-p-sm">
+			<div class="mt-8 flex items-center justify-between text-p-sm">
 				<RouterLink
-					class="text-p-sm-medium text-ink-gray-8 hover:text-ink-gray-9"
+					class="text-p-sm-medium text-blueprint-700 hover:underline dark:text-blueprint-300"
 					:to="backTo"
 				>
 					Use a different email
 				</RouterLink>
 				<button
 					type="button"
-					class="text-p-sm-medium text-ink-gray-8 hover:text-ink-gray-9 disabled:text-ink-gray-4"
+					class="text-p-sm-medium text-blueprint-700 hover:underline disabled:text-ink-gray-4 disabled:no-underline dark:text-blueprint-300"
 					:disabled="loading || resendWait > 0"
 					@click="resend"
 				>

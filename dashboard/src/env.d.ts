@@ -37,6 +37,12 @@ interface Window {
 		logo_url?: string | null
 		policies_url?: string | null
 	}
+	/** The free trial the sign-in page offers. See central/signups/trial_offer.py. */
+	trial_offer?: {
+		product: string
+		title: string
+		days: number
+	} | null
 	features?: {
 		addons?: boolean
 		storage?: boolean

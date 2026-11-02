@@ -35,8 +35,13 @@ A Team has paid when it has a Subscription, or an Invoice that is not Draft or C
 | Trial Days | Central Settings (Trials tab), and Product | Days a trial site runs from when Central records it. A Product with 0 uses Central Settings. |
 | Trial Deletion Days | Central Settings (Trials tab), and Product | Days a stopped trial site is kept before its server is terminated. A Product with 0 uses Central Settings. |
 | Trial Notice Days | Central Settings (Trials tab) | Days before the end date, and before the deletion date, that the warning email goes out. |
+| Default Trial Product | Central Settings (Trials tab) | The product of the free trial that the sign-in page offers and that `/try` opens. Empty hides the offer and sends `/try` to the plain signup. A disabled product counts as empty. |
 
 Example: Central Settings has Trial Days 7 and Trial Deletion Days 7. Product `raven` has Trial Days 14. A Raven trial runs 14 days, stops, and is terminated 7 days later.
+
+### Trial link
+
+`/try` is the short link for the marketing site, for example `https://intrakore.cloud/try?utm_source=intrakore.com`. It sends a 302 redirect to `/dashboard/signup?product=<Default Trial Product>` and keeps every query parameter, so the console records the UTM tags and the referrer as the team's first touch. A `product` in the link wins over the setting. The sign-in page shows **Start your free N-day trial** to a visitor without a product link. Both read `central/signups/trial_offer.py`.
 
 ### Operation
 
