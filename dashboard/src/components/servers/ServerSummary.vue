@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Badge } from 'frappe-ui'
+import type { ProductApp } from '@/types/serverCreation'
 
 interface Resource {
 	type: string
@@ -12,10 +13,12 @@ interface Props {
 	price: string
 	cycle?: string
 	resources: Resource[]
+	/** The apps of the chosen product, without the core apps. */
+	apps?: ProductApp[]
 	tags: string[]
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), { apps: () => [] })
 
 const tiles = [
 	{ type: 'Compute', label: 'vCPU', icon: 'lucide-cpu' },
@@ -62,6 +65,22 @@ const tiles = [
 				</div>
 			</div>
 		</dl>
+
+		<div v-if="apps.length" class="space-y-2">
+			<p class="text-sm text-ink-gray-5">Included apps</p>
+			<ul class="flex flex-wrap gap-2">
+				<li
+					v-for="app in apps"
+					:key="app.app"
+					class="rounded-5 border border-outline-gray-2 px-2 py-1 text-base text-ink-gray-8"
+				>
+					{{ app.title }}
+					<span v-if="app.version" class="text-sm text-ink-gray-5"
+						>{{ app.version }}</span
+					>
+				</li>
+			</ul>
+		</div>
 
 		<div class="flex flex-wrap gap-2">
 			<Badge

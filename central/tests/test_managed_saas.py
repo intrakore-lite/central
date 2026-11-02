@@ -301,3 +301,34 @@ class TestDefaultTrialProduct(IntegrationTestCase):
 			).insert(ignore_permissions=True)
 
 		self.assertEqual(get_default_trial_product(), "first-one")
+
+
+class TestProductApps(IntegrationTestCase):
+	"""A product card lists the apps its image carries, by friendly name."""
+
+	def test_the_app_tags_become_friendly_names_with_core_apps_last(self):
+		from central.signups.server_products import get_image_apps
+
+		apps = get_image_apps(
+			{
+				"purpose": "pilot",
+				"app": "intrakore_crm",
+				"app_intrakore_ui": "0.3.0",
+				"app_intrakore_master": "",
+				"app_intrakore_estimation": "0.0.1",
+				"app_intrakore_crm": "1.6.8",
+				"app_intrakore_fixed_assets": "2.0.0",
+			}
+		)
+
+		self.assertEqual(
+			[(app["title"], app["version"], app["is_core"]) for app in apps],
+			[
+				("CRM", "1.6.8", False),
+				("Estimation", "0.0.1", False),
+				("Fixed Assets", "2.0.0", False),
+				("Master", None, True),
+				("UI", "0.3.0", True),
+			],
+		)
+		self.assertEqual(apps[0]["app"], "intrakore_crm")

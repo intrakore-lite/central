@@ -1,21 +1,37 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import appsLogo from '@/assets/images/apps.svg'
 import ubuntuLogo from '@/assets/images/ubuntu.svg'
 import ChoiceCards from '@/components/common/ChoiceCards.vue'
 import { brand } from '@/lib/brand'
+import type { ProductApp } from '@/types/serverCreation'
 
 interface ImageChoice {
 	label: string
 	value: string
 	description?: string
 	logo: string | null
+	apps?: ProductApp[]
 }
 
-defineProps<{
+const props = defineProps<{
 	modelValue: string
 	options: ImageChoice[]
 	disabled?: boolean
 }>()
+
+// A product card lists its apps, which needs room: two wide columns, top-aligned.
+const hasApps = computed(() =>
+	props.options.some((option) => option.apps?.length),
+)
+
+function ownApps(option: ImageChoice): ProductApp[] {
+	return (option.apps ?? []).filter((app) => !app.is_core)
+}
+
+function hasCore(option: ImageChoice): boolean {
+	return (option.apps ?? []).some((app) => app.is_core)
+}
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
@@ -36,10 +52,36 @@ function logoFor(option: ImageChoice): string | null {
 			:model-value="modelValue"
 			:options="options"
 			:disabled="disabled"
-			:columns="options.length > 2 ? 3 : 2"
+			:columns="hasApps || options.length <= 2 ? 2 : 3"
+			:class="{ 'items-start': hasApps }"
 			label="Select an image"
 			@update:model-value="emit('update:modelValue', $event)"
 		>
+			<template #details="{ option }">
+				<ul
+					v-if="(option as ImageChoice).apps?.length"
+					class="mt-1.5 flex flex-wrap gap-1"
+					aria-label="Included apps"
+				>
+					<li
+						v-for="app in ownApps(option as ImageChoice)"
+						:key="app.app"
+						class="rounded-4 bg-surface-gray-2 px-1.5 py-0.5 text-p-xs text-ink-gray-7"
+						:title="app.version ? `${app.title} ${app.version}` : app.title"
+					>
+						{{ app.title }}
+						<span v-if="app.version" class="text-ink-gray-5"
+							>{{ app.version }}</span
+						>
+					</li>
+					<li
+						v-if="hasCore(option as ImageChoice)"
+						class="rounded-4 px-1.5 py-0.5 text-p-xs text-ink-gray-5"
+					>
+						+ Core
+					</li>
+				</ul>
+			</template>
 			<template #icon="{ option }">
 				<img
 					v-if="logoFor(option as ImageChoice)"
