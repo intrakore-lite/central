@@ -41,6 +41,7 @@ class Product(Document):
 		from central.signups.doctype.product_email_note.product_email_note import ProductEmailNote
 		from central.signups.doctype.product_plan_note.product_plan_note import ProductPlanNote
 
+		available_on_new_server: DF.Check
 		email_notes: DF.Table[ProductEmailNote]
 		enabled: DF.Check
 		frappe_version: DF.Data

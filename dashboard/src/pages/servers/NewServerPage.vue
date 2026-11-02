@@ -67,6 +67,7 @@ const {
 	apps,
 	isApp,
 	app,
+	product,
 	appRequirements,
 	appAnswers,
 	appRequirementsLoading,
@@ -246,7 +247,7 @@ watch(
 								<AppSelector v-else v-model="imageId" :apps="apps" />
 							</template>
 							<p
-								v-else-if="imageOptions.length < 2"
+								v-else-if="!product && imageOptions.length < 2"
 								class="text-p-sm text-ink-gray-5"
 							>
 								This image has no build in this region. Select another image or

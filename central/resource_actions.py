@@ -86,11 +86,13 @@ def submit_request(
 	subdomain: str | None = None,
 	snapshot: str | None = None,
 	site: SiteCreation | None = None,
+	product: str = "",
 ) -> dict:
 	"""Authorize and persist intent before any remote mutation.
 
 	Server and site requests use the same queued action. A restore passes `snapshot`;
-	its offering and image come from the snapshot. A trial site passes `site`."""
+	its offering and image come from the snapshot. A trial site passes `site`. A server
+	with a product's apps passes `product`, and its image must carry them."""
 	if snapshot:
 		offering, image_id = snapshot_source(team, snapshot)
 
@@ -112,6 +114,7 @@ def submit_request(
 		is_firewall_enabled=is_firewall_enabled,
 		user_data=user_data,
 		app_inputs=app_inputs,
+		product=product,
 	)
 	if not can(frappe.session.user, server_input.team, "server:create"):
 		frappe.throw(
@@ -133,7 +136,7 @@ def submit_request(
 		return existing.customer_status()
 
 	is_free_trial = is_free_trial_creation(server_input.team, site.product if site else None)
-	configuration, rate = _build_server_configuration(server_input, snapshot, is_free_trial)
+	configuration, rate = _build_server_configuration(server_input, snapshot, is_free_trial, site)
 	configuration.site = site
 
 	return ResourceAction.queue(
@@ -299,7 +302,10 @@ def _repeated_request(server_input: CreateServerInput, digest: str):
 
 
 def _build_server_configuration(
-	server_input: CreateServerInput, snapshot: str | None, is_free_trial: bool
+	server_input: CreateServerInput,
+	snapshot: str | None,
+	is_free_trial: bool,
+	site: SiteCreation | None = None,
 ) -> tuple[ServerCreation, float]:
 	"""Resolve the authorized image, purchasable composition, and saved configuration."""
 	image = (
@@ -311,6 +317,7 @@ def _build_server_configuration(
 			server_input.offering,
 			server_input.image_id,
 			"server:create",
+			**_get_image_selector(server_input, site),
 		)
 	)
 	includes = [row.model_dump() for row in server_input.includes]
@@ -351,6 +358,21 @@ def _build_server_configuration(
 	)
 
 	return configuration, rate
+
+
+def _get_image_selector(server_input: CreateServerInput, site: SiteCreation | None) -> dict:
+	"""The flow and tags a product's image must match: a server with the product's apps, or a
+	product's trial site. Both boot the signup offering's image of that product."""
+	from central.signups.server_products import get_product_image_selector
+	from central.site_provisioning import SIGNUP_FLOW, product_image_tags
+
+	if server_input.product:
+		return get_product_image_selector(server_input.product)
+	if site and site.product:
+		product = frappe.get_cached_doc("Product", site.product)
+		return {"flow": SIGNUP_FLOW, "extra_tags": product_image_tags(product)}
+
+	return {}
 
 
 def _get_user_data(server_input: CreateServerInput, image: dict, snapshot: str | None) -> str:

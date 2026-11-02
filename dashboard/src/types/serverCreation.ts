@@ -42,11 +42,19 @@ export interface AppRequirements {
 	ports: { port: number; protocol: string }[]
 }
 
+/** A product a server can start with, and the regional image that carries its apps. */
+export interface ServerProduct extends ImageOffering {
+	offering: string
+	image_id: string
+}
+
 export interface ImageSelection {
 	offering: string
 	image_id: string
 	/** A restore names the VM Snapshot; Central reads its offering and image from it. */
 	snapshot?: string
+	/** A product server names the product; Central checks the image carries its apps. */
+	product?: string
 }
 
 export interface ActionStatus {

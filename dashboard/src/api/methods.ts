@@ -81,6 +81,7 @@ export const API = {
 	listRegionalImages: 'central.api.images.list_images',
 	imageEligiblePlans: 'central.api.images.eligible_plans',
 	listApps: 'central.api.images.list_apps',
+	listServerProducts: 'central.api.images.list_server_products',
 	appRequirements: 'central.api.images.get_app_requirements',
 	listTeamSSHKeys: 'central.api.ssh_keys.list_team_ssh_keys',
 	createTeamSSHKey: 'central.api.ssh_keys.create_team_ssh_key',

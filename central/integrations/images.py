@@ -97,19 +97,30 @@ def validate_catalog_access(team: str, flow: str) -> None:
 
 
 def selected_image(
-	team: str, region: str, offering: str, image_id: str, capability: str = "server:view"
+	team: str,
+	region: str,
+	offering: str,
+	image_id: str,
+	capability: str = "server:view",
+	flow: str = "Server",
+	extra_tags: dict[str, str] | None = None,
 ) -> dict:
-	"""Resolve a saved offering against the current regional build."""
+	"""Resolve a saved offering against the current regional build.
+
+	A product server passes the Signup flow and the product's tags, as in `list_images`. They
+	come from Central, never from the request."""
 	document = frappe.get_doc("Image Offering", offering)
 	document.check_permission("read")
-	if not document.enabled or document.available_in not in ("Server", "Both"):
+	if not document.enabled or document.available_in not in (flow, "Both"):
 		frappe.throw(_("This offering is not available for server creation."))
 
 	instance = frappe.get_doc("Region", region)
 	instance.ensure_accepts_new_servers()
 
 	client = AtlasClient.for_team(instance, team, capability)
-	image = client.read_system_image(client.get_image(image_id), document.get_image_tags())
+	image = client.read_system_image(
+		client.get_image(image_id), {**document.get_image_tags(), **(extra_tags or {})}
+	)
 	if not image["enabled"] or image["status"] != "available":
 		frappe.throw(_("This image is no longer available. Select another image."))
 
@@ -167,18 +178,27 @@ def _restorable_snapshot(team: str, snapshot: str):
 	return row
 
 
-def eligible_plans(team: str, region: str, offering: str, image_id: str, snapshot: str | None = None) -> dict:
+def eligible_plans(
+	team: str,
+	region: str,
+	offering: str,
+	image_id: str,
+	snapshot: str | None = None,
+	product: str | None = None,
+) -> dict:
 	"""Combine billing eligibility with the selected image's disk requirement. A restore
-	passes `snapshot` instead of an offering and image."""
+	passes `snapshot` instead of an offering and image. A product server also names its
+	`product`, so the image must carry that product's app."""
 	from math import ceil
 
 	from central.billing.catalog.composition import composition_quantities
 	from central.billing.catalog.server_plans import get_server_plans
+	from central.signups.server_products import get_product_image_selector
 
 	image = (
 		snapshot_image(team, region, snapshot)
 		if snapshot
-		else selected_image(team, region, offering, image_id)
+		else selected_image(team, region, offering, image_id, **get_product_image_selector(product))
 	)
 	minimum = get_minimum_shape(image, get_image_app_requirements(region, image, snapshot))
 	catalog = get_server_plans(team, cluster=region)

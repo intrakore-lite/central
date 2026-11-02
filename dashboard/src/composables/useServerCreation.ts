@@ -147,6 +147,7 @@ export function useServerCreation() {
 		apps,
 		isApp,
 		app,
+		product,
 		imageId,
 		image,
 		selection,
@@ -171,6 +172,7 @@ export function useServerCreation() {
 			label: item.title,
 			value: item.name,
 			logo: item.logo,
+			description: item.description ?? undefined,
 		})),
 	)
 	const sshKeyIds = ref<string[]>([])
@@ -505,6 +507,7 @@ export function useServerCreation() {
 		apps,
 		isApp,
 		app,
+		product,
 		appRequirements,
 		appAnswers,
 		appRequirementsLoading,

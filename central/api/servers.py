@@ -731,8 +731,10 @@ def create_server(
 	user_data: str = "",
 	app_inputs: dict[str, str] | None = None,
 	snapshot: str | None = None,
+	product: str = "",
 ) -> dict:
-	"""Create a server from an image, or restore one from a `snapshot`."""
+	"""Create a server from an image, or restore one from a `snapshot`. A `product` server
+	boots the product's image with its apps installed."""
 	from central.resource_actions import submit_request
 
 	return submit_request(
@@ -752,6 +754,7 @@ def create_server(
 		user_data=user_data,
 		app_inputs=app_inputs,
 		snapshot=snapshot,
+		product=product,
 	)
 
 
@@ -775,6 +778,7 @@ def create_composed_server(
 	user_data: str = "",
 	app_inputs: dict[str, str] | None = None,
 	snapshot: str | None = None,
+	product: str = "",
 ) -> dict:
 	"""Create a custom-sized server from an image, or restore one from a `snapshot`."""
 	from central.resource_actions import submit_request
@@ -797,6 +801,7 @@ def create_composed_server(
 		user_data=user_data,
 		app_inputs=app_inputs,
 		snapshot=snapshot,
+		product=product,
 	)
 
 

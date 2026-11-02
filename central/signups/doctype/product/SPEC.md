@@ -15,6 +15,7 @@ System Managers and Product Operators create and edit products in Desk. Only a S
 | Product Key | Lowercase letters, numbers and hyphens. It is the record name and cannot change after creation. |
 | Title | The product name. The signup pages use it as the logo's alternative text. |
 | Enabled | A disabled product refuses new signups. Its existing sites keep running. |
+| Available on New Server | On by default. An enabled product with this flag shows as a choice on the console's New Server page. See [New server](#new-server). |
 | Logo | Shown with rounded corners next to the heading on the signup, login, verification, site name and setup pages. |
 | Subtitle | Optional. Shown under the heading on the signup and login pages. |
 | Setup Messages | Optional. One line each, such as `Setting up channels…`. The waiting page shows them one at a time, in a loop, while the product starts. Without them, the page shows general lines. |
@@ -67,6 +68,16 @@ To move a product to another Frappe version:
 New trials use the new version. Existing sites stay on the version they started on. The app version is not set on the Product. Cargo builds only the newest stable release for each branch and retires older images, so a pinned version would soon have no image.
 
 A customer can add another product's app to an open trial site. Pilot installs the release of that app that runs on the site's Frappe version, which can differ from the other product's Frappe Version.
+
+## New server
+
+A customer can create a server with a product's apps installed. The New Server page shows each enabled product with **Available on New Server** as a choice, with its Logo, Title and Subtitle. The page shows the products before the image offerings.
+
+`GET central.api.images.list_server_products(team, region)` returns these products. It requires `server:view` in the Team, the same as `list_images`. It returns a product only when the region has an image for it. The image is the one that a signup of the product selects: the signup offering, with the tags `has_site=1`, `frappe_version=<frappe version>` and `app=<signup app>`, and the newest image at least **Signup Image Minimum Age (Minutes)** old. Each row gives the product name, title, logo, subtitle as `description`, the `offering` and the `image_id`.
+
+The console sends `product` with the offering and image to `eligible_plans`, `create_server` and `create_composed_server`. Central refuses a product that is disabled or not available on a new server. It then checks that the image has the product's tags, so a request cannot use another image. The signup offering can be marked for Signup alone, because the product supplies the server choice. The plans are filtered by the image's disk size, as for any image.
+
+The server is a paid server. It does not start a trial, and its site does not record the product.
 
 ## Access
 

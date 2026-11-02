@@ -13,6 +13,7 @@
   "title",
   "column_break_identity",
   "enabled",
+  "available_on_new_server",
   "signup_page_section",
   "logo",
   "subtitle",
@@ -61,6 +62,14 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Enabled"
+  },
+  {
+   "default": "1",
+   "description": "Customers can create a server with this product's apps installed from the console's New Server page. The product must also be enabled.",
+   "fieldname": "available_on_new_server",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Available on New Server"
   },
   {
    "fieldname": "signup_page_section",
@@ -186,7 +195,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2026-10-30 12:00:00.000000",
+ "modified": "2026-11-03 12:00:00.000000",
  "modified_by": "prathamesh@frappe.io",
  "module": "Signups",
  "name": "Product",
