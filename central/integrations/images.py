@@ -3,7 +3,7 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-from central.iam import can
+from central.iam import can, is_managed_customer
 from central.integrations.atlas import AtlasClient
 from central.integrations.cargo import CargoClient
 from central.utils.units import MIB_PER_GIB, MILLICORES_PER_VCPU
@@ -16,9 +16,13 @@ def list_offerings(team: str, flow: str = "Server") -> list[dict]:
 	"""List customer image choices.
 
 	1. Require server view access.
-	2. Return enabled offerings for the requested flow.
+	2. In Managed SaaS mode a customer gets no image choices: they create from a product.
+	3. Return enabled offerings for the requested flow.
 	"""
 	validate_catalog_access(team, flow)
+	if flow == "Server" and is_managed_customer():
+		return []
+
 	return frappe.get_list(
 		"Image Offering",
 		filters={"enabled": 1, "available_in": ["in", [flow, "Both"]]},
@@ -41,6 +45,7 @@ def list_images(
 	`extra_tags` narrows the offering selector for one flow, such as the site and the Frappe
 	version a trial needs. It comes from Central, never from the request."""
 	validate_catalog_access(team, flow)
+	require_image_choice(flow)
 	document = frappe.get_doc("Image Offering", offering)
 	document.check_permission("read")
 	if not document.enabled or document.available_in not in (flow, "Both"):
@@ -66,6 +71,7 @@ def get_app_requirements(team: str, region: str, application: str) -> dict:
 
 def _app_cargo(team: str, region: str) -> CargoClient:
 	validate_catalog_access(team, "Server")
+	require_image_choice("Server")
 	instance = frappe.get_doc("Region", region)
 	instance.ensure_accepts_new_servers()
 	return CargoClient(instance)
@@ -96,6 +102,15 @@ def validate_catalog_access(team: str, flow: str) -> None:
 		frappe.throw(_("Select the Server or Signup image flow."))
 
 
+def require_image_choice(flow: str) -> None:
+	"""Refuse a raw image to a customer of a managed console. They create a site from a
+	product, whose image Central picks on the Signup flow. Operators keep the catalog."""
+	if flow == "Server" and is_managed_customer():
+		frappe.throw(
+			_("Create a site from a product. Server images are not available."), frappe.PermissionError
+		)
+
+
 def selected_image(
 	team: str,
 	region: str,
@@ -109,6 +124,7 @@ def selected_image(
 
 	A product server passes the Signup flow and the product's tags, as in `list_images`. They
 	come from Central, never from the request."""
+	require_image_choice(flow)
 	document = frappe.get_doc("Image Offering", offering)
 	document.check_permission("read")
 	if not document.enabled or document.available_in not in (flow, "Both"):

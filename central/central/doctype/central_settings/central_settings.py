@@ -46,6 +46,7 @@ class CentralSettings(Document):
 		invitation_expiry_days: DF.Int
 		invitation_resend_cooldown_minutes: DF.Int
 		invitations_per_hour: DF.Int
+		managed_saas_mode: DF.Check
 		private_network_throughput_mibps: DF.Int
 		policies_url: DF.Data | None
 		public_network_throughput_mibps: DF.Int
@@ -138,3 +139,15 @@ class CentralSettings(Document):
 		for is_refused, option in refusals:
 			if is_refused:
 				frappe.throw(_("{0} is not available for new servers yet.").format(option))
+
+
+def enable_managed_saas_mode() -> None:
+	"""After install: start a new Central as a managed service, the field's default. A single
+	stores no default until it is saved, so the value is written here."""
+	frappe.db.set_single_value("Central Settings", "managed_saas_mode", 1)
+
+
+def disable_managed_saas_mode() -> None:
+	"""Before tests: most suites test the self-serve console. A Managed SaaS test turns the
+	mode on for its own block."""
+	frappe.db.set_single_value("Central Settings", "managed_saas_mode", 0)

@@ -56,8 +56,8 @@ export const sidebarSections = computed<SidebarSection[]>(() => {
 			label: '',
 			items: [
 				{
-					label: 'Servers',
-					icon: 'lucide-server',
+					label: features.managed ? 'Sites' : 'Servers',
+					icon: features.managed ? 'lucide-globe' : 'lucide-server',
 					to: '/servers',
 					condition: canViewServers.value,
 				},

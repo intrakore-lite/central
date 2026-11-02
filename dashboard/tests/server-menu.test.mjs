@@ -112,3 +112,25 @@ test('a locked web console is one disabled row with the reason and no submenu', 
 	assert.equal('submenu' in row, false)
 	assert.equal(row.description, 'Not in the free trial.')
 })
+
+test('a site login without the console visits the site but never opens the server', () => {
+	const server = {
+		resource_id: 'vm-2',
+		status: 'Running',
+		pending_action: null,
+		gateway_url: 'https://admin.example.test',
+	}
+	const customer = { ...allowed, console: false, siteLogin: true }
+	const labels = (options) =>
+		menu
+			.getServerMenuGroups(server, customer, () => {}, options)
+			.flat()
+			.map((option) => option.label)
+
+	const siteMenu = labels({ site: 'acme.example.test' })
+	assert.ok(siteMenu.includes('Visit site'))
+	assert.ok(!siteMenu.includes('Open server'))
+	assert.ok(!siteMenu.includes('Web console'))
+
+	assert.ok(!labels({}).includes('Open server'))
+})

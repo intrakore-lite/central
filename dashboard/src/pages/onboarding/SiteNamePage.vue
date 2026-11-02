@@ -60,7 +60,29 @@ const error = ref('')
 
 let debounce: ReturnType<typeof setTimeout> | undefined
 
+// A link without a product, or with one that is gone, starts the default trial product.
+// With no default either, the customer picks a product on the New site page instead of
+// reading that their team buys its servers.
+async function resolveProduct(): Promise<boolean> {
+	try {
+		const { product: resolved } = await getFrappe<{ product: string | null }>(
+			methodUrl(API.resolveTrialProduct),
+			{ product: productKey.value || undefined },
+		)
+		if (!resolved) {
+			await router.replace({ path: '/servers/new' })
+			return false
+		}
+		if (resolved !== productKey.value)
+			await router.replace({ query: { ...route.query, product: resolved } })
+	} catch {
+		// Non-fatal: the status read below reports a product that cannot start a trial.
+	}
+	return true
+}
+
 onMounted(async () => {
+	if (!(await resolveProduct())) return
 	try {
 		await prepareTeam()
 	} catch (exception) {
@@ -229,18 +251,20 @@ async function createSite() {
 		<template v-else-if="!isFreeTrial">
 			<h1 class="flex items-center gap-2 text-2xl-semibold text-ink-gray-9">
 				<ProductLogo />
-				Your team buys its servers
+				Your team buys its sites
 			</h1>
 			<p class="mt-2 text-p-base text-ink-gray-5">
 				Free trials are for teams with no payment method and no past payments.
-				Create a server for {{ activeTeamLabel }} in the console instead.
+				Create a {{ product?.title ? `${product.title} site` : 'site' }} for
+				{{ activeTeamLabel }}
+				in the console instead.
 			</p>
 			<Button
 				class="mt-8 w-full"
 				variant="solid"
 				size="md"
-				label="Create a server"
-				:route="{ path: '/servers/new' }"
+				label="Create a site"
+				:route="{ path: '/servers/new', query: { product: productKey } }"
 			/>
 		</template>
 		<template v-else>

@@ -29,6 +29,7 @@ SERVER_CAPABILITIES = [
 	"server:network",
 	"server:power",
 	"server:resize",
+	"server:site-login",
 	"server:snapshot",
 	"server:terminate",
 	"server:view",

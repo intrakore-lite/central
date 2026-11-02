@@ -136,6 +136,7 @@ after_install = [
 	"central.billing.gateways.setup.ensure_gateway_records",
 	"central.integrations.email_oauth.setup.ensure_email_oauth_providers",
 	"central.billing.navigation.ensure_workspace_sidebars",
+	"central.central.doctype.central_settings.central_settings.enable_managed_saas_mode",
 ]
 
 # Uninstallation
@@ -312,6 +313,7 @@ before_tests = [
 	"central.billing.gateways.setup.ensure_gateway_records",
 	"central.integrations.email_oauth.setup.ensure_email_oauth_providers",
 	"central.billing.navigation.ensure_workspace_sidebars",
+	"central.central.doctype.central_settings.central_settings.disable_managed_saas_mode",
 ]
 
 # Extend DocType Class

@@ -113,6 +113,7 @@ class TestServerProducts(IntegrationTestCase):
 					"description": "crm for contractors",
 					"offering": self.offering.name,
 					"image_id": "crm-new",
+					"apps": [],
 				}
 			],
 		)

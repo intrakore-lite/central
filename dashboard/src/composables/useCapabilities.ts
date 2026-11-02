@@ -38,6 +38,10 @@ export function useCapabilities() {
 		canManageSSHKeys: computed(() => has('server:ssh-key')),
 		canManageWireGuard: computed(() => has('server:wireguard')),
 		canOpenConsole: computed(() => has('server:console')),
+		// A site login as yourself, or as Administrator through the console capability.
+		canVisitSite: computed(
+			() => has('server:site-login') || has('server:console'),
+		),
 		canViewClusters: computed(() => has('cluster:view')),
 		canViewBilling: computed(() => has('billing:view')),
 		canManageBilling: computed(() => has('billing:manage')),

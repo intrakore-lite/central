@@ -6,6 +6,7 @@ import AddMethodDialog from '@/components/AddMethodDialog.vue'
 import EditBillingProfileDialog from '@/components/billing/EditBillingProfileDialog.vue'
 import { useBillingSetup } from '@/composables/useBillingSetup'
 import { useSession } from '@/composables/useSession'
+import { features } from '@/lib/features'
 import { getErrorMessage } from '@/lib/feedback'
 import { formatDate, money, plural } from '@/lib/format'
 import type { ServerTrial, TrialPlanChoice } from '@/types/billing'
@@ -59,10 +60,16 @@ const facts = computed(() => [
 		icon: 'lucide-credit-card',
 		text: `Billing starts at ${price.value} a month when your site moves to this plan.`,
 	},
-	{
-		icon: 'lucide-terminal',
-		text: 'Every plan gives you full server access: SSH, the web console, Pilot and snapshots.',
-	},
+	// Server access is a staff tool in Managed SaaS mode, so the plan does not promise it.
+	features.managed
+		? {
+				icon: 'lucide-life-buoy',
+				text: 'We run the server under your site. Contact support for anything beyond the site.',
+			}
+		: {
+				icon: 'lucide-terminal',
+				text: 'Every plan gives you full server access: SSH, the web console, Pilot and snapshots.',
+			},
 	{
 		icon: 'lucide-refresh-cw',
 		text: 'Your site restarts once, for a few minutes, to move to the new plan. Its data stays as it is.',

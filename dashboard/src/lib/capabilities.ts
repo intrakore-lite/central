@@ -21,6 +21,7 @@ export type ServerCapability =
 	| 'server:snapshot'
 	| 'server:terminate'
 	| 'server:console'
+	| 'server:site-login'
 
 /** A row that carries the caller's capabilities on its own server. */
 export interface ServerAccess {
@@ -43,6 +44,8 @@ export interface ServerActions {
 	snapshot: boolean
 	terminate: boolean
 	console?: boolean
+	/** Sign in to the server's site as yourself, not as Administrator. */
+	siteLogin?: boolean
 	/** SSH, the web console, Pilot and snapshots wait for an upgrade. */
 	isAccessLocked?: boolean
 }
@@ -66,6 +69,7 @@ export function getServerActions(
 		snapshot: caps.includes('server:snapshot'),
 		terminate: caps.includes('server:terminate'),
 		console: caps.includes('server:console'),
+		siteLogin: caps.includes('server:site-login'),
 	}
 }
 

@@ -38,6 +38,8 @@ interface ServerMapProps {
 	interactive?: boolean
 	allowCreate?: boolean
 	allowOpen?: boolean
+	/** Open a bench, which needs the console capability. A site opens with `allowOpen`. */
+	allowOpenBench?: boolean
 	/** Server resource id or site name opening in a new tab. */
 	opening?: string | null
 	compact?: boolean
@@ -55,6 +57,7 @@ const props = withDefaults(defineProps<ServerMapProps>(), {
 	interactive: true,
 	allowCreate: false,
 	allowOpen: false,
+	allowOpenBench: false,
 	opening: null,
 	compact: false,
 })
@@ -323,6 +326,7 @@ function clickNode(node: MapNode): void {
 					:node="card.node"
 					:allow-create="allowCreate"
 					:allow-open="allowOpen"
+					:allow-open-bench="allowOpenBench"
 					:opening="opening"
 					@open="emit('open', $event)"
 					@open-server="emit('open-server', $event)"

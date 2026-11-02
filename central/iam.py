@@ -10,7 +10,7 @@ from frappe.utils.caching import request_cache
 OPERATOR_BYPASS_ROLE = "System Manager"
 
 # The revision of the capability taxonomy. Bump it with every change (see CAPABILITIES.md).
-CAPABILITY_VERSION = 7
+CAPABILITY_VERSION = 8
 
 # Granting a key implies each capability in its value, because acting on a resource needs
 # seeing it. Every grant is closed under these before it is checked.
@@ -24,6 +24,7 @@ CAP_IMPLICATIONS = {
 	"server:ssh-key": ("server:view",),
 	"server:wireguard": ("server:view",),
 	"server:console": ("server:view",),
+	"server:site-login": ("server:view",),
 	"service:manage": ("service:view",),
 }
 
@@ -38,6 +39,19 @@ SERVER_CAPABILITIES = frozenset(
 		"server:snapshot",
 		"server:terminate",
 		"server:console",
+		"server:site-login",
+	}
+)
+# The server-level tools a customer does not get in Managed SaaS mode: shell access, the
+# bench admin, networking, snapshots and resizing. Operators keep them. See CAPABILITIES.md.
+MANAGED_STAFF_CAPABILITIES = frozenset(
+	{
+		"server:console",
+		"server:ssh-key",
+		"server:wireguard",
+		"server:network",
+		"server:resize",
+		"server:snapshot",
 	}
 )
 # The scope of a team-wide grant. A scoped grant's scope is its server's name.
@@ -70,6 +84,18 @@ def user_has_operator_bypass(user: str | None = None) -> bool:
 @request_cache
 def _user_has_operator_bypass(user: str) -> bool:
 	return OPERATOR_BYPASS_ROLE in frappe.get_roles(user)
+
+
+def is_managed_mode() -> bool:
+	"""Whether Central Settings runs the console as a managed service, which keeps the
+	server-level tools for operators only."""
+	return bool(frappe.get_cached_doc("Central Settings").managed_saas_mode)
+
+
+def is_managed_customer(user: str | None = None) -> bool:
+	"""Whether `user` is a customer of a managed console: Managed SaaS mode is on and the
+	user is not an operator."""
+	return is_managed_mode() and not user_has_operator_bypass(user)
 
 
 def get_all_capabilities() -> list[str]:
@@ -245,11 +271,15 @@ def resolve_user_grants(user: str) -> dict[str, list[dict[str, Any]]]:
 	# Close every grant under the implication rules so enforcement (`can`, the SSO
 	# mint, the capability reads) always sees a self-consistent set — never
 	# server:create without the server:view/cluster:view it depends on. A scoped
-	# grant then keeps only the capabilities one server can carry.
+	# grant then keeps only the capabilities one server can carry. In Managed SaaS mode a
+	# customer's grant drops the server-level tools, whatever the role says.
+	is_managed = is_managed_mode()
 	for grant in grants_by_key.values():
 		caps = expand_capabilities(grant["caps"])
 		if grant["scope"] != ALL_SERVERS:
 			caps = [cap for cap in caps if cap in SERVER_CAPABILITIES]
+		if is_managed:
+			caps = [cap for cap in caps if cap not in MANAGED_STAFF_CAPABILITIES]
 		grant["caps"] = caps
 
 	return dict(grants_by_team)

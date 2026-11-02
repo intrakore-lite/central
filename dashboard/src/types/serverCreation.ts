@@ -1,8 +1,20 @@
+/** An app a product's image carries, from its `app_<name>=<version>` tag. */
+export interface ProductApp {
+	app: string
+	/** A friendly name, such as CRM for intrakore_crm. */
+	title: string
+	version: string | null
+	/** An app every product runs on, such as Master and UI, shown as Core. */
+	is_core: boolean
+}
+
 export interface ImageOffering {
 	name: string
 	title: string
 	logo: string | null
 	description: string | null
+	/** A product's apps. A plain offering has none. */
+	apps?: ProductApp[]
 }
 
 export interface RegionalImage {

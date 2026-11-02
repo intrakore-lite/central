@@ -49,7 +49,37 @@ def _get_choice(product: Product, offering: str, image: dict) -> dict:
 		"description": product.subtitle,
 		"offering": offering,
 		"image_id": image["id"],
+		"apps": get_image_apps(image.get("tags") or {}),
 	}
+
+
+# Apps every bundle carries for the others to run on. The console shows them as "Core".
+CORE_APPS = frozenset({"frappe", "intrakore_master", "intrakore_ui"})
+# Words a person reads as an acronym, not as a capitalised word.
+ACRONYMS = frozenset({"ai", "boq", "crm", "hr", "ui", "vat"})
+APP_TAG_PREFIX = "app_"
+
+
+def get_image_apps(tags: dict[str, str]) -> list[dict]:
+	"""The apps an image carries, from its `app_<name>=<version>` tags: the product's own
+	apps by title, then the core apps."""
+	apps = [
+		{
+			"app": tag.removeprefix(APP_TAG_PREFIX),
+			"title": get_app_title(tag.removeprefix(APP_TAG_PREFIX)),
+			"version": version or None,
+			"is_core": tag.removeprefix(APP_TAG_PREFIX) in CORE_APPS,
+		}
+		for tag, version in tags.items()
+		if tag.startswith(APP_TAG_PREFIX) and len(tag) > len(APP_TAG_PREFIX)
+	]
+	return sorted(apps, key=lambda app: (app["is_core"], app["title"]))
+
+
+def get_app_title(app: str) -> str:
+	"""A friendly name for an app: `intrakore_crm` reads CRM, `intrakore_fixed_assets` Fixed Assets."""
+	words = app.removeprefix("intrakore_").split("_")
+	return " ".join(word.upper() if word in ACRONYMS else word.capitalize() for word in words if word)
 
 
 def get_new_server_product(product: str) -> Product:

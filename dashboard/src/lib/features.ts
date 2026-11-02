@@ -17,6 +17,9 @@ export interface Features {
 	publicIpv6: boolean
 	/** The firewall switch on the New server page. */
 	firewall: boolean
+	/** Managed SaaS mode for this user: the console shows sites and products, and
+	 *  Central keeps the server tools for operators. */
+	managed: boolean
 }
 
 // Defaults match the DocType: the area is on, individual services off until rolled out.
@@ -27,4 +30,5 @@ export const features: Features = {
 	publicIpv4: window.features?.public_ipv4 ?? false,
 	publicIpv6: window.features?.public_ipv6 ?? false,
 	firewall: window.features?.firewall ?? false,
+	managed: window.features?.managed ?? false,
 }

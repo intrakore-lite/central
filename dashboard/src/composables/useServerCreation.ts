@@ -158,6 +158,7 @@ export function useServerCreation() {
 	} = useRegionalImages(
 		selectedRegion,
 		typeof route.query.snapshot === 'string' ? route.query.snapshot : '',
+		typeof route.query.product === 'string' ? route.query.product : '',
 	)
 	const {
 		requirements: appRequirements,
@@ -173,6 +174,7 @@ export function useServerCreation() {
 			value: item.name,
 			logo: item.logo,
 			description: item.description ?? undefined,
+			apps: item.apps,
 		})),
 	)
 	const sshKeyIds = ref<string[]>([])
@@ -353,10 +355,13 @@ export function useServerCreation() {
 			plan: isCustom.value
 				? 'Custom'
 				: selectedPlanObj.value?.title.split(' · ')[0],
-			server: name.value.trim() || 'Untitled server',
+			server:
+				name.value.trim() ||
+				(features.managed ? 'Untitled site' : 'Untitled server'),
 			price: price.value?.split(' / ')[0] ?? '—',
 			cycle: price.value?.split(' / ')[1],
 			resources: summaryResources.value,
+			apps: (product.value?.apps ?? []).filter((app) => !app.is_core),
 			tags: [
 				region
 					? `${flagEmoji(region.country_code)} ${regionLabel(region)}`
