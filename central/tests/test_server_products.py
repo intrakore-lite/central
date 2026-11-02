@@ -28,6 +28,7 @@ class TestServerProducts(IntegrationTestCase):
 		self.addCleanup(frappe.set_user, "Administrator")
 		self.addCleanup(frappe.db.rollback)
 		frappe.db.set_single_value("Central Settings", "signup_image_minimum_age_minutes", 0)
+		# Only this test's offering may be the signup offering.
 		frappe.db.delete("Image Offering")
 		frappe.db.delete("Product")
 		self.region = frappe.get_doc(
@@ -45,7 +46,7 @@ class TestServerProducts(IntegrationTestCase):
 		self.offering = frappe.get_doc(
 			{
 				"doctype": "Image Offering",
-				"offering_key": "pilot",
+				"offering_key": "signup-" + frappe.generate_hash(length=8),
 				"title": "Intrakore Apps",
 				"enabled": 1,
 				"available_in": "Signup",
@@ -110,7 +111,7 @@ class TestServerProducts(IntegrationTestCase):
 					"title": "CRM",
 					"logo": None,
 					"description": "crm for contractors",
-					"offering": "pilot",
+					"offering": self.offering.name,
 					"image_id": "crm-new",
 				}
 			],
@@ -133,7 +134,7 @@ class TestServerProducts(IntegrationTestCase):
 				title="CRM",
 				request_key="product-request-0001",
 				plan="any-plan",
-				offering="pilot",
+				offering=self.offering.name,
 				image_id="crm-new",
 				product="crm",
 			)
@@ -145,12 +146,14 @@ class TestServerProducts(IntegrationTestCase):
 			"central.integrations.atlas.AtlasClient.get_image",
 			return_value=self.image("crm-new", "intrakore_crm"),
 		):
-			image = selected_image(self.team.name, self.region.name, "pilot", "crm-new", **selector)
+			image = selected_image(
+				self.team.name, self.region.name, self.offering.name, "crm-new", **selector
+			)
 			self.assertEqual(image["tags"]["app"], "intrakore_crm")
 
 			# The raw signup offering is not a server choice without a product.
 			with self.assertRaises(frappe.ValidationError):
-				selected_image(self.team.name, self.region.name, "pilot", "crm-new")
+				selected_image(self.team.name, self.region.name, self.offering.name, "crm-new")
 
 		self.product("estimation", "intrakore_estimation")
 		with (
@@ -163,7 +166,7 @@ class TestServerProducts(IntegrationTestCase):
 			selected_image(
 				self.team.name,
 				self.region.name,
-				"pilot",
+				self.offering.name,
 				"crm-new",
 				**get_product_image_selector("estimation"),
 			)
@@ -187,7 +190,9 @@ class TestServerProducts(IntegrationTestCase):
 			),
 			patch("central.billing.catalog.server_plans.get_server_plans", return_value=catalog),
 		):
-			menu = eligible_plans(self.team.name, self.region.name, "pilot", "crm-new", product="crm")
+			menu = eligible_plans(
+				self.team.name, self.region.name, self.offering.name, "crm-new", product="crm"
+			)
 
 		self.assertEqual([row["plan"] for row in menu["plans"]["Standard"]], ["large"])
 
@@ -200,7 +205,7 @@ class TestServerProducts(IntegrationTestCase):
 				team=self.team.name,
 				region=self.region.name,
 				title="CRM",
-				offering="pilot",
+				offering=self.offering.name,
 				image_id="crm-new",
 				request_key="product-request-0002",
 				plan="any-plan",
