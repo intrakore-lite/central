@@ -127,6 +127,16 @@ class TestCountryVat(BillingTestCase):
 
 		profile = frappe.db.get_value("Billing Profile", TEAM, ["country", "currency"], as_dict=True)
 		self.assertEqual(profile, {"country": "India", "currency": "USD"})
+		self.assertEqual(self.tax_profile(), {"output_tax_type": "None", "output_tax_rate": 0})
+
+	def test_billing_currency_refuses_another_currency(self):
+		frappe.db.set_single_value(settings.SETTINGS, "billing_currency", "USD")
+		provisioning.provision_signup_billing(TEAM, UAE)
+
+		profile = frappe.get_doc("Billing Profile", TEAM)
+		profile.currency = "INR"
+		with self.assertRaises(frappe.ValidationError):
+			profile.save(ignore_permissions=True)
 
 	def test_india_cannot_have_a_vat_row(self):
 		with self.assertRaises(frappe.ValidationError):
