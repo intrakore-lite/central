@@ -3,7 +3,7 @@ from frappe.utils import escape_html, get_url
 
 # The defaults when Central Settings leaves the brand fields empty.
 BRAND_NAME = "Intrakore Cloud"
-BRAND_LOGO = "/assets/central/images/intrakore-logo.png"
+BRAND_LOGO = "/assets/central/images/intrakore-wordmark.png"
 
 
 def get_brand_name() -> str:
@@ -22,9 +22,16 @@ def get_brand() -> dict[str, str | None]:
 	}
 
 
-def get_email_brand() -> dict[str, str]:
+def get_email_brand() -> dict[str, str | bool]:
 	"""The platform's email header: the name and an absolute logo URL. Escaped, because an
-	operator writes them and Jinja does not escape. A product's own branding replaces it."""
+	operator writes them and Jinja does not escape. A product's own branding replaces it.
+
+	The bundled logo is the INTRAKORE wordmark, which already reads as the name. So the header
+	shows the name beside it only when the operator renames the brand."""
 	brand = get_brand()
 	logo_url = get_url(brand["logo_url"] or BRAND_LOGO)
-	return {"title": escape_html(brand["title"]), "logo_url": escape_html(logo_url)}
+	return {
+		"title": escape_html(brand["title"]),
+		"logo_url": escape_html(logo_url),
+		"is_wordmark": not brand["logo_url"] and brand["title"] == BRAND_NAME,
+	}

@@ -18,7 +18,8 @@ class TestBranding(IntegrationTestCase):
 	def test_the_base_email_shows_the_intrakore_brand_only(self):
 		html = frappe.render_template("templates/emails/base.html", {})
 
-		self.assertIn(">Intrakore Cloud</span>", html)
+		self.assertIn('alt="Intrakore Cloud"', html)
+		self.assertNotIn(">Intrakore Cloud</span>", html)
 		self.assertIn("a member of a team on Intrakore Cloud", html)
 		self.assertIn(BRAND_LOGO, html)
 		self.assertNotIn("Frappe Cloud", html)

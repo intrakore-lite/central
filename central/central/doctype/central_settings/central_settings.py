@@ -25,6 +25,7 @@ class CentralSettings(Document):
 		brand_name: DF.Data | None
 		central_id: DF.Int
 		common_site_config: DF.JSON | None
+		default_trial_product: DF.Link | None
 		disk_iops: DF.Int
 		disk_throughput_mibps: DF.Int
 		enable_addons: DF.Check

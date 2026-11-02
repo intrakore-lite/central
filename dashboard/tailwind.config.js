@@ -13,4 +13,23 @@ export default {
 		// grid, for one — never compile, and the component silently mis-sizes.
 		'./node_modules/frappe-ui/experimental/**/*.{vue,js,ts,jsx,tsx}',
 	],
+	theme: {
+		extend: {
+			colors: {
+				// The INTRAKORE brand palette. 700 is the brand blue of the logo.
+				blueprint: {
+					50: '#ebecff',
+					100: '#d6d9ff',
+					200: '#b9befe',
+					300: '#8d95f6',
+					400: '#5763fa',
+					500: '#2a37f4',
+					600: '#0717e4',
+					700: '#000fcc',
+					800: '#0310aa',
+					900: '#050d76',
+				},
+			},
+		},
+	},
 }

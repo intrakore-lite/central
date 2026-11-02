@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Button } from 'frappe-ui'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AuthErrorMessage from '@/components/auth/AuthErrorMessage.vue'
 import AuthShell from '@/components/auth/AuthShell.vue'
+import AuthSubmitButton from '@/components/auth/AuthSubmitButton.vue'
 import ProductLogo from '@/components/auth/ProductLogo.vue'
 import TermsNotice from '@/components/auth/TermsNotice.vue'
 import ValidatedFormControl from '@/components/common/formComponents/ValidatedFormControl.vue'
@@ -16,6 +16,7 @@ import {
 	requiredError,
 } from '@/lib/auth'
 import { carriedQuery } from '@/lib/authRedirect'
+import { trialDays } from '@/lib/brand'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +28,16 @@ const email = ref(queryString(route.query.email))
 const submitted = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+const trialSummary = computed(() => {
+	const days = trialDays(productKey.value)
+	const trial = [days && `${days} days`, product.value?.title]
+		.filter(Boolean)
+		.join(' of ')
+	return trial
+		? `${trial}, free. No card needed to start.`
+		: 'No card needed to start.'
+})
 
 async function submit() {
 	submitted.value = true
@@ -51,53 +62,58 @@ async function submit() {
 
 <template>
 	<AuthShell :show-progress="Boolean(productKey)" :step="1">
-		<h1 class="flex items-center gap-2 text-xl-semibold text-ink-gray-9">
+		<h1 class="flex items-center gap-2 text-3xl-semibold text-ink-gray-9">
 			<ProductLogo />
-			Create your account
+			{{ productKey ? 'Start your free trial' : 'Create your account' }}
 		</h1>
-		<p v-if="product?.subtitle" class="mt-1 text-p-base text-ink-gray-5">
-			{{ product.subtitle }}
+		<p
+			v-if="productKey || product?.subtitle"
+			class="mt-1.5 text-p-base text-ink-gray-6"
+		>
+			{{ productKey ? trialSummary : product?.subtitle }}
 		</p>
 
-		<form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
+		<form class="mt-8 space-y-4" novalidate @submit.prevent="submit">
 			<ValidatedFormControl
 				v-model="fullName"
 				label="Full name"
+				variant="outline"
 				autocomplete="name"
 				placeholder="Your full name"
 				v-focus
 				:validator="requiredError('Full name')"
 				:submitted="submitted"
-			/>
+			>
+				<template #prefix>
+					<span class="lucide-user size-4 text-ink-gray-5" aria-hidden="true" />
+				</template>
+			</ValidatedFormControl>
 			<ValidatedFormControl
 				v-model="email"
 				label="Work email"
 				type="email"
+				variant="outline"
 				autocomplete="email"
 				placeholder="name@company.com"
 				:validator="emailError"
 				:submitted="submitted"
-			/>
-			<AuthErrorMessage v-if="error" :message="error" page="Sign up" />
-			<Button
-				type="submit"
-				variant="solid"
-				size="md"
-				class="w-full"
-				:loading="loading"
 			>
-				Continue
-			</Button>
+				<template #prefix>
+					<span class="lucide-mail size-4 text-ink-gray-5" aria-hidden="true" />
+				</template>
+			</ValidatedFormControl>
+			<AuthErrorMessage v-if="error" :message="error" page="Sign up" />
+			<AuthSubmitButton :loading="loading">Continue</AuthSubmitButton>
 		</form>
 
-		<div class="mt-6 space-y-2 text-center text-p-sm text-ink-gray-5">
+		<div class="mt-8 space-y-2 text-center text-p-sm text-ink-gray-6">
 			<p>
 				Already have an account?
 				<RouterLink
-					class="text-p-sm-medium text-ink-gray-8 hover:underline"
+					class="text-p-sm-medium text-blueprint-700 hover:underline dark:text-blueprint-300"
 					:to="{ path: '/login', query: carriedQuery(route.query) }"
 				>
-					Sign in
+					Log in
 				</RouterLink>
 			</p>
 			<TermsNotice />

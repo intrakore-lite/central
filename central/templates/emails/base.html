@@ -11,6 +11,16 @@
 							<span class="fc-wordmark">{{ brand.title }}</span>
 							{% else %}
 							{% set platform = get_email_brand() %}
+							{% if platform.is_wordmark %}
+							<img
+								src="{{ platform.logo_url }}"
+								width="111"
+								height="24"
+								alt="{{ platform.title }}"
+								class="align-middle"
+								border="0"
+							/>
+							{% else %}
 							<img
 								src="{{ platform.logo_url }}"
 								width="28"
@@ -20,6 +30,7 @@
 								border="0"
 							/>
 							<span class="fc-wordmark">{{ platform.title }}</span>
+							{% endif %}
 							{% endif %}
 							{% endblock %}
 						</td>

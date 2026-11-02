@@ -71,6 +71,8 @@
   "trial_servers_per_team",
   "column_break_trial_limits",
   "trial_idle_shutdown_minutes",
+  "trial_signup_section",
+  "default_trial_product",
   "github_tab",
   "github_app_section",
   "github_app_id",
@@ -485,6 +487,19 @@
    "non_negative": 1
   },
   {
+   "description": "The free trial that the sign-in page offers, and that the /try link opens.",
+   "fieldname": "trial_signup_section",
+   "fieldtype": "Section Break",
+   "label": "Trial Signup"
+  },
+  {
+   "description": "The product of the free trial, such as crm-estimation. Leave empty to send /try to the plain signup and hide the trial link on the sign-in page.",
+   "fieldname": "default_trial_product",
+   "fieldtype": "Link",
+   "label": "Default Trial Product",
+   "options": "Product"
+  },
+  {
    "fieldname": "github_tab",
    "fieldtype": "Tab Break",
    "label": "GitHub"
@@ -544,7 +559,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-03 00:00:00.000000",
+ "modified": "2026-11-03 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",
