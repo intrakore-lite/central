@@ -267,10 +267,11 @@ class TestTrialOffer(ManagedTeam):
 			self.assertIsNone(trial_offer(self.team.name))
 
 	def test_a_viewer_gets_none_and_an_outsider_is_refused(self):
+		outsider = ensure_user(f"outsider-{frappe.generate_hash(length=8)}@example.test")
 		self.as_user(self.viewer)
 		self.assertIsNone(trial_offer(self.team.name))
 
-		self.as_user(ensure_user(f"outsider-{frappe.generate_hash(length=8)}@example.test"))
+		self.as_user(outsider)
 		with self.assertRaises(frappe.PermissionError):
 			trial_offer(self.team.name)
 

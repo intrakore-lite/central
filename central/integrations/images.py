@@ -45,6 +45,7 @@ def list_images(
 	`extra_tags` narrows the offering selector for one flow, such as the site and the Frappe
 	version a trial needs. It comes from Central, never from the request."""
 	validate_catalog_access(team, flow)
+	require_image_choice(flow)
 	document = frappe.get_doc("Image Offering", offering)
 	document.check_permission("read")
 	if not document.enabled or document.available_in not in (flow, "Both"):
