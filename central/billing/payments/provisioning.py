@@ -6,7 +6,8 @@ Setting up a billing profile is the moment a team becomes a real paying customer
 so two things are wired up here, once, off that event:
 
   - the entry Trust Tier (the ladder rung every team starts on, so its caps resolve);
-  - a Tax Profile (GST for India, untaxed elsewhere at launch).
+  - a Tax Profile (GST for India, VAT where Billing Settings has a rate for the
+    country, untaxed elsewhere).
 
 Each step is independently idempotent and guarded, so this is safe to re-run on
 every save of the profile — a step that has already happened (tier linked, tax
@@ -42,15 +43,14 @@ def provision_signup_billing(team: str, country: str | None) -> None:
 	Idempotent — an existing profile (e.g. one already carrying money) is left
 	untouched, and every downstream step is individually guarded."""
 	from central.billing.api.dashboard._shared import currency_for_country
-	from central.billing.india_gst import INDIA
 
 	if not frappe.db.exists("Billing Profile", team):
 		# When the IP can't be geolocated — localhost/127.0.0.1, a private address,
-		# or a failed lookup — fall back to India, our home market. Currency is then
-		# always derived from the country actually stamped on the profile, so the
-		# two can never disagree (India → INR, everywhere else → USD).
+		# or a failed lookup — fall back to the home market on Billing Settings (India
+		# when unset). Currency is then always derived from the country actually stamped
+		# on the profile, so the two can never disagree (India → INR, everywhere else → USD).
 		profile = frappe.get_doc({"doctype": "Billing Profile", "team": team})
-		profile.country = country or INDIA
+		profile.country = country or settings.signup_fallback_country()
 		profile.currency = currency_for_country(profile.country)
 		profile.insert(ignore_permissions=True, ignore_mandatory=True)
 
@@ -76,15 +76,14 @@ def complete_trial_billing_profile(team: str) -> None:
 	the currency/country stamped at signup are kept, and a team that isn't a staging
 	trial (or has no profile yet) is left untouched — signup creates the profile with the
 	IP-derived currency first, then calls this."""
-	from central.billing.india_gst import INDIA
-
 	if not frappe.db.get_value("Team", team, "is_staging_trial"):
 		return
 	if not frappe.db.exists("Billing Profile", team):
 		return
 	profile = frappe.get_doc("Billing Profile", team)
 	dirty = False
-	for field, value in {**_STAGING_TRIAL_PROFILE, "country": profile.country or INDIA}.items():
+	country = profile.country or settings.signup_fallback_country()
+	for field, value in {**_STAGING_TRIAL_PROFILE, "country": country}.items():
 		if not str(profile.get(field) or "").strip():
 			profile.set(field, value)
 			dirty = True
@@ -121,9 +120,9 @@ def assign_entry_tier(team: str) -> None:
 def ensure_tax_profile(team: str):
 	"""Create the team's Tax Profile if absent.
 
-	India is GST at the rate on Billing Settings; everywhere else ships an untaxed
-	profile (output tax None) — a real row an admin can edit, rather than the
-	implicit no-profile default."""
+	India is GST at the rate on Billing Settings. A country with a row in VAT Rates by
+	Country is VAT at that rate. Everywhere else ships an untaxed profile (output tax
+	None) — a real row an admin can edit, rather than the implicit no-profile default."""
 	if frappe.db.exists("Tax Profile", team):
 		return frappe.get_doc("Tax Profile", team)
 
@@ -160,6 +159,10 @@ def _output_tax_for(team: str) -> dict:
 	india = (profile.country or "").strip() == "India" or profile.currency == "INR"
 	if india:
 		return {"output_tax_type": "GST", "output_tax_rate": settings.default_gst_rate()}
+	# GST is India's alone; any other country gets VAT only at a rate the operator set.
+	vat_rate = settings.vat_rate_for_country(profile.country)
+	if vat_rate:
+		return {"output_tax_type": "VAT", "output_tax_rate": vat_rate}
 	return {"output_tax_type": "None", "output_tax_rate": 0}
 
 

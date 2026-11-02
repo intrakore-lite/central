@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-11-03 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "country",
+  "vat_rate",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "VAT added to the invoice of a team billed in this country. 0 bills the country without VAT.",
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "VAT Rate"
+  },
+  {
+   "description": "Who confirmed the rate, and when.",
+   "fieldname": "note",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Note"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Billing",
+ "name": "Country Tax Rate",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": []
+}

@@ -27,6 +27,7 @@ class BillingSettings(Document):
 		self.validate_retry_days()
 		self.validate_dunning_ladder()
 		self.validate_one_row_per_currency()
+		self.validate_country_tax_rates()
 		self.validate_operator_alerts()
 
 	@frappe.whitelist(methods=["POST"])
@@ -112,6 +113,28 @@ class BillingSettings(Document):
 				_("Terminate After must be later than Suspend After."),
 				title=_("Invalid Dunning Ladder"),
 			)
+
+	def validate_country_tax_rates(self):
+		"""One VAT rate per country, and none for India, which is billed GST at Default GST Rate."""
+		from central.billing.india_gst import INDIA
+
+		seen = set()
+		for row in self.country_tax_rates:
+			if row.country == INDIA:
+				frappe.throw(
+					_("Row {0}: India is billed GST at Default GST Rate, not from this table.").format(
+						row.idx
+					),
+					title=_("India Has GST"),
+				)
+			if row.country in seen:
+				frappe.throw(
+					_("Row {0}: {1} already has a VAT rate.").format(row.idx, row.country),
+					title=_("Duplicate Country"),
+				)
+			if frappe.utils.flt(row.vat_rate) < 0:
+				frappe.throw(_("Row {0}: a VAT rate cannot be negative.").format(row.idx))
+			seen.add(row.country)
 
 	def validate_one_row_per_currency(self):
 		"""One grant amount per currency — two rows would make the grant ambiguous."""

@@ -96,6 +96,17 @@ currency** (rates live in standalone **Catalog Rate**, not on the Plan).
   there is no per-team tier doctype.
 - **Tax Profile** per team drives GST (additive) / SEZ (zero-with-reason) / TDS (withholding)
   — `revenue/tax.resolve_tax`. India GST codes live in `india_gst.py`.
+- A new team's Tax Profile follows its billing country (`payments/provisioning._output_tax_for`):
+  India is GST at **Default GST Rate**; a country with a row in Billing Settings, **VAT Rates by
+  Country** is VAT at that rate; any other country is untaxed. The rate is copied onto the Tax
+  Profile until the team's first invoice, so a later change to the table applies to new teams
+  only. Edit an existing team's Tax Profile by hand.
+- **Signup Fallback Country** (Billing Settings, Trials) is the country of a new team whose
+  signup IP gives no country. Empty is India.
+- A site that bills in USD through Stripe can apply these in one step, then list what is still
+  missing (keys, webhook, prices, product image):
+  `pilot frappe --site <site> execute central.billing.market_setup.configure_usd_stripe_market`
+  and `... execute central.billing.market_setup.readiness`.
 
 ### Step 4 · Customer Team + Billing Profile
 Charging a card needs a **complete Billing Profile**. Its `currency` is the source of truth (gateway-backed, locks after first activity). Credit can fund server creation without a complete profile. The team's invoices are then held at Draft until the billing details arrive. A daily job reminds the team, and operators get an alert after `billing_details_grace_days`.

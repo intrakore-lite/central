@@ -12,6 +12,7 @@
   "welcome_credit_amounts",
   "section_break_trials",
   "provision_teams_as_trial",
+  "signup_fallback_country",
   "section_break_invoicing",
   "invoice_due_days",
   "billing_details_grace_days",
@@ -35,6 +36,7 @@
   "default_gst_rate",
   "gst_status_refresh_days",
   "gst_status_daily_limit",
+  "country_tax_rates",
   "section_break_reports",
   "reporting_usd_to_inr",
   "tab_operator_alerts",
@@ -127,6 +129,13 @@
    "fieldname": "provision_teams_as_trial",
    "fieldtype": "Check",
    "label": "Provision Teams as Trial"
+  },
+  {
+   "description": "Billing country of a new team whose signup IP gives no country, such as a private address or a failed lookup. The country sets the currency and the tax. Empty uses India.",
+   "fieldname": "signup_fallback_country",
+   "fieldtype": "Link",
+   "label": "Signup Fallback Country",
+   "options": "Country"
   },
   {
    "fieldname": "section_break_invoicing",
@@ -275,6 +284,13 @@
    "fieldtype": "Int",
    "label": "GSTIN Lookups per Day",
    "non_negative": 1
+  },
+  {
+   "description": "VAT added to a new team's tax profile, by billing country. India uses Default GST Rate instead. A country without a row is billed without tax.",
+   "fieldname": "country_tax_rates",
+   "fieldtype": "Table",
+   "label": "VAT Rates by Country",
+   "options": "Country Tax Rate"
   },
   {
    "fieldname": "section_break_reports",
@@ -538,7 +554,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-23 12:00:00.000000",
+ "modified": "2026-11-03 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Billing",
  "name": "Billing Settings",

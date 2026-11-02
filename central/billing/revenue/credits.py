@@ -410,6 +410,14 @@ def top_up_gst_rate(team: str) -> float:
 	return frappe.utils.flt(resolve_tax(team, 100)["output_tax_amount"]) / 100
 
 
+def top_up_tax_label(team: str) -> str:
+	"""The name of the tax added to this team's top-ups, as its invoices show it."""
+	from central.billing.revenue.tax import resolve_tax
+
+	tax_type = resolve_tax(team, 0)["output_tax_type"]
+	return tax_type if tax_type in ("GST", "VAT") else "Tax"
+
+
 def top_up_gst(team: str, credit) -> float:
 	"""GST to charge on top of a top-up of `credit`."""
 	return frappe.utils.flt(frappe.utils.flt(credit) * top_up_gst_rate(team), 2)

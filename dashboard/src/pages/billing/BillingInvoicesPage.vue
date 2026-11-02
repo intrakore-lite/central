@@ -278,7 +278,10 @@ const eventDate = (at: string | null): string => String(at ?? '').split(',')[0]
 							v-if="detail.data.advance_tax_applied"
 							class="flex justify-between gap-3"
 						>
-							<dt class="text-ink-green-5">GST paid with top-ups</dt>
+							<dt class="text-ink-green-5">
+								{{ detail.data.output_tax_type || 'Tax' }}
+								paid with top-ups
+							</dt>
 							<dd class="tabular-nums text-ink-green-5">
 								−{{ money(detail.data.advance_tax_applied, detail.data.currency) }}
 							</dd>

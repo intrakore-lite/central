@@ -43,7 +43,7 @@ const presets = [1000, 5000, 10000, 25000]
 
 const { activeTeam } = useSession()
 const options = useCall<
-	{ instruments: PaymentInstrument[]; gst_rate: number },
+	{ instruments: PaymentInstrument[]; gst_rate: number; tax_label?: string },
 	{ team: string }
 >({
 	url: method(API.topupOptions),
@@ -54,6 +54,8 @@ const options = useCall<
 const instruments = computed(() => options.data?.instruments ?? [])
 // GST is charged on top of a top-up; the wallet is credited the amount entered.
 const gstRate = computed(() => options.data?.gst_rate ?? 0)
+// GST in India, VAT elsewhere: the name the team's invoices give the tax.
+const taxLabel = computed(() => options.data?.tax_label ?? 'Tax')
 const gst = computed(
 	() => Math.round(Number(amount.value || 0) * gstRate.value) / 100,
 )
@@ -366,7 +368,7 @@ watch(open, (isOpen) => {
 						</dd>
 					</div>
 					<div v-if="gstRate" class="flex justify-between">
-						<dt class="text-ink-gray-6">GST ({{ gstRate }}%)</dt>
+						<dt class="text-ink-gray-6">{{ taxLabel }} ({{ gstRate }}%)</dt>
 						<dd class="tabular-nums text-ink-gray-8">
 							{{ money(gst, currency) }}
 						</dd>
