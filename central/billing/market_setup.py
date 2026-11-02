@@ -127,6 +127,7 @@ def ensure_billing_settings(home_country: str) -> None:
 	"""Set the signup fallback country and add each seed VAT rate that has no row yet."""
 	doc = frappe.get_doc(SETTINGS)
 	doc.signup_fallback_country = home_country
+	doc.billing_currency = CURRENCY
 	configured = {row.country for row in doc.country_tax_rates}
 	for country, rate in SEED_VAT_RATES.items():
 		if country not in configured:
@@ -179,6 +180,8 @@ def _tax_gaps() -> list[str]:
 	gaps = []
 	if settings.signup_fallback_country() != HOME_COUNTRY:
 		gaps.append(f"Billing Settings, Signup Fallback Country is not {HOME_COUNTRY}.")
+	if settings.billing_currency() != CURRENCY:
+		gaps.append(f"Billing Settings, Billing Currency is not {CURRENCY}.")
 	for country, rate in SEED_VAT_RATES.items():
 		if settings.vat_rate_for_country(country) != rate:
 			gaps.append(f"Billing Settings, VAT Rates by Country has no {rate}% row for {country}.")
