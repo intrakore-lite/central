@@ -184,6 +184,23 @@ def default_gst_rate() -> float:
 	return frappe.utils.flt(_settings().default_gst_rate)
 
 
+def vat_rate_for_country(country: str | None) -> float | None:
+	"""The VAT rate on a new team's tax profile in `country`, or None when the country has
+	no row in VAT Rates by Country (so its teams are billed without tax)."""
+	country = (country or "").strip()
+	for row in _settings().country_tax_rates:
+		if row.country == country:
+			return frappe.utils.flt(row.vat_rate)
+	return None
+
+
+def signup_fallback_country() -> str:
+	"""The billing country of a new team whose signup IP gives no country. Empty is India."""
+	from central.billing.india_gst import INDIA
+
+	return _settings().signup_fallback_country or INDIA
+
+
 def gst_status_refresh_days() -> int:
 	"""How old a stored GSTIN status may get before the sweep looks it up again."""
 	return frappe.utils.cint(_settings().gst_status_refresh_days)

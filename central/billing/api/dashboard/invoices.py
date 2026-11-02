@@ -715,6 +715,8 @@ def get_topup_options(team: str | None = None) -> dict:
 		"publishable_key": publishable_key,
 		# GST charged on top of a top-up, as a percentage. 0 where none applies.
 		"gst_rate": frappe.utils.flt(credits.top_up_gst_rate(team) * 100, 2),
+		# What that tax is called on the team's invoices: GST in India, VAT elsewhere.
+		"tax_label": credits.top_up_tax_label(team),
 	}
 
 

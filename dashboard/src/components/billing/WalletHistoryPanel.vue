@@ -97,7 +97,9 @@ function isCredit(entry: CreditLedgerEntry): boolean {
 						<p class="text-p-sm text-ink-gray-5">
 							{{ e.created_at }}
 							<span v-if="Number(e.tax_amount)">
-								· GST {{ money(e.tax_amount, e.currency || currency) }} paid
+								· {{ e.currency === 'INR' ? 'GST' : 'VAT' }}
+								{{ money(e.tax_amount, e.currency || currency) }}
+								paid
 							</span>
 						</p>
 					</div>
