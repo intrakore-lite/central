@@ -156,7 +156,11 @@ def _output_tax_for(team: str) -> dict:
 	profile = (
 		frappe.db.get_value("Billing Profile", team, ["country", "currency"], as_dict=True) or frappe._dict()
 	)
-	india = (profile.country or "").strip() == "India" or profile.currency == "INR"
+	india = profile.currency == "INR" or (
+		# With one Billing Currency, GST follows an INR profile only: a seller abroad does not
+		# charge Indian GST to a customer in India.
+		not settings.billing_currency() and (profile.country or "").strip() == "India"
+	)
 	if india:
 		return {"output_tax_type": "GST", "output_tax_rate": settings.default_gst_rate()}
 	# GST is India's alone; any other country gets VAT only at a rate the operator set.

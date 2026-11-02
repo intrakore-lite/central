@@ -201,6 +201,11 @@ def signup_fallback_country() -> str:
 	return _settings().signup_fallback_country or INDIA
 
 
+def billing_currency() -> str | None:
+	"""The one currency every team is billed in, or None to derive it from the country."""
+	return _settings().billing_currency or None
+
+
 def gst_status_refresh_days() -> int:
 	"""How old a stored GSTIN status may get before the sweep looks it up again."""
 	return frappe.utils.cint(_settings().gst_status_refresh_days)

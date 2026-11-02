@@ -186,8 +186,15 @@ class BillingProfile(Document):
 		frappe.db.release_savepoint(_SYSTEM_SAVEPOINT)
 
 	def validate_currency_matches_country(self):
-		"""India is billed only in INR, and only India is billed in INR."""
+		"""India is billed only in INR, and only India is billed in INR. A platform with one
+		Billing Currency bills every country in that currency instead."""
 		if not self.country or not self.currency:
+			return
+		from central.billing import settings
+
+		if fixed := settings.billing_currency():
+			if self.currency != fixed:
+				frappe.throw(_("Every team is billed in {0}.").format(fixed), frappe.ValidationError)
 			return
 		if (self.country.strip() == INDIA) == (self.currency == "INR"):
 			return

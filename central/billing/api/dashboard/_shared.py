@@ -103,9 +103,13 @@ def _team_clusters(team: str) -> list[str]:
 def currency_for_country(country: str | None) -> str:
 	"""Billing currency follows the customer's country: India bills in INR, every
 	other country in USD. Derived, not chosen — so a customer can't pick a currency
-	that mismatches where they are."""
+	that mismatches where they are. Billing Settings, Billing Currency overrides it
+	for a platform that bills every team in one currency."""
+	from central.billing import settings
 	from central.billing.india_gst import INDIA
 
+	if fixed := settings.billing_currency():
+		return fixed
 	return "INR" if (country or "").strip() == INDIA else "USD"
 
 

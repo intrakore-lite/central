@@ -13,6 +13,7 @@
   "section_break_trials",
   "provision_teams_as_trial",
   "signup_fallback_country",
+  "billing_currency",
   "section_break_invoicing",
   "invoice_due_days",
   "billing_details_grace_days",
@@ -136,6 +137,13 @@
    "fieldtype": "Link",
    "label": "Signup Fallback Country",
    "options": "Country"
+  },
+  {
+   "description": "Bill every team in this currency, whatever its country. Empty keeps the rule India → INR, every other country → USD.",
+   "fieldname": "billing_currency",
+   "fieldtype": "Link",
+   "label": "Billing Currency",
+   "options": "Currency"
   },
   {
    "fieldname": "section_break_invoicing",

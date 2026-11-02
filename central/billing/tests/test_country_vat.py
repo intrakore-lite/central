@@ -35,6 +35,7 @@ class TestCountryVat(BillingTestCase):
 	def tearDown(self):
 		doc = frappe.get_doc(settings.SETTINGS)
 		doc.signup_fallback_country = self.saved.get("signup_fallback_country")
+		doc.billing_currency = self.saved.get("billing_currency")
 		doc.set("country_tax_rates", [])
 		for row in self.saved.get("country_tax_rates") or []:
 			doc.append(
@@ -111,6 +112,32 @@ class TestCountryVat(BillingTestCase):
 	def test_signup_fallback_is_india_when_unset(self):
 		self.assertEqual(settings.signup_fallback_country(), "India")
 
+	def test_billing_currency_overrides_the_country_rule(self):
+		from central.billing.api.dashboard._shared import currency_for_country
+
+		self.assertEqual(currency_for_country("India"), "INR")
+		frappe.db.set_single_value(settings.SETTINGS, "billing_currency", "USD")
+		self.assertEqual(currency_for_country("India"), "USD")
+		self.assertEqual(currency_for_country(UAE), "USD")
+
+	def test_signup_from_india_bills_in_the_billing_currency(self):
+		frappe.db.set_single_value(settings.SETTINGS, "billing_currency", "USD")
+
+		provisioning.provision_signup_billing(TEAM, "India")
+
+		profile = frappe.db.get_value("Billing Profile", TEAM, ["country", "currency"], as_dict=True)
+		self.assertEqual(profile, {"country": "India", "currency": "USD"})
+		self.assertEqual(self.tax_profile(), {"output_tax_type": "None", "output_tax_rate": 0})
+
+	def test_billing_currency_refuses_another_currency(self):
+		frappe.db.set_single_value(settings.SETTINGS, "billing_currency", "USD")
+		provisioning.provision_signup_billing(TEAM, UAE)
+
+		profile = frappe.get_doc("Billing Profile", TEAM)
+		profile.currency = "INR"
+		with self.assertRaises(frappe.ValidationError):
+			profile.save(ignore_permissions=True)
+
 	def test_india_cannot_have_a_vat_row(self):
 		with self.assertRaises(frappe.ValidationError):
 			self.set_rates({"India": 5})
@@ -132,6 +159,7 @@ class TestMarketSetup(BillingTestCase):
 	def tearDown(self):
 		doc = frappe.get_doc(settings.SETTINGS)
 		doc.signup_fallback_country = self.saved.get("signup_fallback_country")
+		doc.billing_currency = self.saved.get("billing_currency")
 		doc.set("country_tax_rates", [])
 		for row in self.saved.get("country_tax_rates") or []:
 			doc.append(
@@ -152,6 +180,7 @@ class TestMarketSetup(BillingTestCase):
 		)
 		self.assertEqual(row, {"is_default": 1, "requires_predebit_notice": 0})
 		self.assertEqual(settings.signup_fallback_country(), UAE)
+		self.assertEqual(settings.billing_currency(), "USD")
 		self.assertEqual(settings.vat_rate_for_country(UAE), 5)
 		self.assertIsNone(settings.vat_rate_for_country("Saudi Arabia"))
 		self.assertEqual(frappe.db.get_single_value("Central Settings", "trial_days"), 60)
