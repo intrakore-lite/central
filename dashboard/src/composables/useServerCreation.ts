@@ -158,6 +158,7 @@ export function useServerCreation() {
 	} = useRegionalImages(
 		selectedRegion,
 		typeof route.query.snapshot === 'string' ? route.query.snapshot : '',
+		typeof route.query.product === 'string' ? route.query.product : '',
 	)
 	const {
 		requirements: appRequirements,

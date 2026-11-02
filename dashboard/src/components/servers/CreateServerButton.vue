@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from 'frappe-ui'
 import { computed } from 'vue'
+import { features } from '@/lib/features'
 import { getCreationStage } from '@/lib/status'
 import type { ActionStatus } from '@/types/serverCreation'
 
@@ -22,13 +23,17 @@ const tone = computed<Tone>(() => {
 	return props.submitting || props.status ? 'working' : 'idle'
 })
 
+// A customer of a managed console creates a site; the server under it is not theirs to see.
+const noun = features.managed ? 'site' : 'server'
+
 const label = computed(() => {
-	if (tone.value === 'idle') return 'Create server'
-	if (tone.value === 'success') return 'Server ready'
+	if (tone.value === 'idle') return `Create ${noun}`
+	if (tone.value === 'success')
+		return features.managed ? 'Site ready' : 'Server ready'
 	const stage = props.status ? getCreationStage(props.status) : null
 	if (stage === null) return 'Sending request'
 	if (stage === 1 && props.regionLabel) return `Sent to ${props.regionLabel}`
-	return ['Request accepted', 'Sent to the region', 'Building your server'][
+	return ['Request accepted', 'Sent to the region', `Building your ${noun}`][
 		stage
 	]
 })

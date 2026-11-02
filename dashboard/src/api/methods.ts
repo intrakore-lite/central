@@ -132,6 +132,8 @@ export const API = {
 	createTrialTeam: 'central.api.sites.create_trial_team',
 	createTrialSite: 'central.api.sites.create_trial_site',
 	onboardingStatus: 'central.api.sites.onboarding_status',
+	trialOffer: 'central.api.sites.trial_offer',
+	resolveTrialProduct: 'central.api.sites.resolve_trial_product',
 	claimSite: 'central.api.sites.claim_site',
 	getSite: 'central.api.sites.get_site',
 	loginSite: 'central.api.sites.login_site',

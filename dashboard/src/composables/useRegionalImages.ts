@@ -109,6 +109,7 @@ function snapshotAsImage(snapshot: VMSnapshotRow): RegionalImage {
 export function useRegionalImages(
 	region: Ref<string | null>,
 	initialSnapshot = '',
+	initialProduct = '',
 ) {
 	const { activeTeam } = useSession()
 	const source = ref<ImageSource>(initialSnapshot ? 'snapshot' : 'image')
@@ -170,7 +171,8 @@ export function useRegionalImages(
 	const images = ref<RegionalImage[]>([])
 	const apps = ref<App[]>([])
 	const products = ref<ServerProduct[]>([])
-	const offering = ref('')
+	// A link such as the trial page's names a product, which is picked once it loads.
+	const offering = ref(initialProduct ? PRODUCT_PREFIX + initialProduct : '')
 	const imageId = ref('')
 	const loading = ref(false)
 	const error = ref('')

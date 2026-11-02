@@ -73,3 +73,7 @@ central.patches.v0_0.revoke_trial_keys
 central.patches.v0_0.seed_template_offering
 # Image offerings show Frappe first, then Apps, then Ubuntu.
 central.patches.v0_0.order_image_offerings
+# Managed SaaS: customers keep their sites and products; the server-level tools are for operators.
+central.patches.v0_0.enable_managed_saas_mode
+# Team-defined roles that open the console also sign in to their sites as the member.
+central.patches.v0_0.grant_site_login_to_console_roles

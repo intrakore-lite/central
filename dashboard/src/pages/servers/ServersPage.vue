@@ -10,6 +10,7 @@ import ServerListPanel from '@/components/servers/ServerListPanel.vue'
 import ServerMap from '@/components/servers/ServerMap.vue'
 import ServerRowActions from '@/components/servers/ServerRowActions.vue'
 import TerminateServerDialog from '@/components/servers/TerminateServerDialog.vue'
+import TrialOfferBanner from '@/components/servers/TrialOfferBanner.vue'
 import TakeSnapshotDialog from '@/components/snapshots/TakeSnapshotDialog.vue'
 import { useFleetCommands } from '@/composables/useFleetCommands'
 import { useServerFleet } from '@/composables/useServerFleet'
@@ -17,6 +18,7 @@ import { useServerLink } from '@/composables/useServerLink'
 import { useServerNavigation } from '@/composables/useServerNavigation'
 import { useServers } from '@/composables/useServers'
 import { getServerActions, type ServerActions } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import { infoToast } from '@/lib/feedback'
 import { canChange } from '@/lib/status'
 
@@ -33,6 +35,7 @@ const {
 	canTerminateServer,
 	canSnapshotServer,
 	canOpenConsole,
+	canVisitSite,
 	canCreateServer,
 	activeTeam,
 	rows,
@@ -107,6 +110,7 @@ const teamActions = computed<ServerActions>(() => ({
 	snapshot: canSnapshotServer.value,
 	terminate: canTerminateServer.value,
 	console: canOpenConsole.value,
+	siteLogin: canVisitSite.value,
 }))
 const terminateActions = computed(() =>
 	getServerActions(pendingTerminate.value, teamActions.value),
@@ -147,11 +151,13 @@ useServerLink(
 			<Button
 				v-if="activeTeam && canCreateServer && !isFleetEmpty"
 				variant="solid"
-				label="New server"
+				:label="features.managed ? 'New site' : 'New server'"
 				icon-left="lucide-plus"
 				@click="$router.push('/servers/new')"
 			/>
 		</Teleport>
+
+		<TrialOfferBanner v-if="activeTeam" :team="activeTeam" />
 
 		<!-- The list stays in view on the right. Below lg, it stacks over a short map. -->
 		<div class="flex min-h-0 flex-1 flex-col lg:flex-row-reverse">
@@ -202,7 +208,8 @@ useServerLink(
 					:label-spots="isFleetEmpty"
 					:highlight-id="hoverId"
 					:allow-create="canCreateServer"
-					:allow-open="canOpenConsole"
+					:allow-open="canVisitSite"
+					:allow-open-bench="canOpenConsole"
 					:opening="opening"
 					@open="openById"
 					@open-server="openBench"

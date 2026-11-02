@@ -30,7 +30,7 @@ from central.billing.doctype.billing_profile.billing_profile import (
 from central.billing.payments.settlement import has_paid_by_hand, is_behind_on_payment, wallet_funds
 from central.billing.revenue.tax import is_internal_team
 from central.errors import throw_action_error
-from central.iam import can, resolve_team
+from central.iam import can, is_managed_customer, resolve_team
 from central.infrastructure.doctype.resource_action.resource_action import (
 	ACTION_CAPABILITIES,
 	COMMAND_ACTIONS,
@@ -121,6 +121,7 @@ def submit_request(
 			_("You cannot create servers for this Team. Ask a team admin to review your access."),
 			frappe.PermissionError,
 		)
+	_require_managed_creation(server_input, site)
 	frappe.get_cached_doc("Central Settings").require_new_server_network_options(
 		server_input.has_public_ipv4, server_input.has_public_ipv6, server_input.is_firewall_enabled
 	)
@@ -358,6 +359,23 @@ def _build_server_configuration(
 	)
 
 	return configuration, rate
+
+
+def _require_managed_creation(server_input: CreateServerInput, site: SiteCreation | None) -> None:
+	"""What a customer of a managed console may create.
+
+	1. A site from a product, or a product's trial site. Never a raw image.
+	2. No SSH key and no user data: both run as root on the new machine."""
+	if not is_managed_customer():
+		return
+
+	if not server_input.product and not site:
+		frappe.throw(_("Create a site from a product."), frappe.PermissionError)
+	if server_input.ssh_keys or server_input.ssh_key_ids or server_input.user_data or server_input.app_inputs:
+		frappe.throw(
+			_("SSH keys and user data are not available. Contact support for server access."),
+			frappe.PermissionError,
+		)
 
 
 def _get_image_selector(server_input: CreateServerInput, site: SiteCreation | None) -> dict:

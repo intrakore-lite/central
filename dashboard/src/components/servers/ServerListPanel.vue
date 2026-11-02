@@ -6,6 +6,7 @@ import ProviderAvatar from '@/components/servers/ProviderAvatar.vue'
 import ServerRowActions from '@/components/servers/ServerRowActions.vue'
 import StatusRing from '@/components/servers/StatusRing.vue'
 import type { ConsoleMode, VirtualMachineRow } from '@/composables/useServers'
+import { features } from '@/lib/features'
 import type { ResourceRow } from '@/lib/serverMap'
 
 // The servers list beside the map, always in view. Renders both kinds indistinguishably —
@@ -198,19 +199,27 @@ onBeforeUnmount(() => window.clearTimeout(cascadeTimer))
 				v-if="!rows.length"
 				class="m-2"
 				:icon="hasRows ? 'lucide-search-x' : 'lucide-server'"
-				:title="hasRows ? 'No servers match' : 'No servers yet'"
+				:title="
+					hasRows
+						? `No ${features.managed ? 'sites' : 'servers'} match`
+						: `No ${features.managed ? 'sites' : 'servers'} yet`
+				"
 				:description="
 					hasRows
 						? 'Try a different search or clear the filters.'
-						: canCreate
-							? 'Create your first server to host your sites. Pick a region on the map, or start here.'
-							: 'This team has no servers you can view. Ask a team admin to create a server or check your access.'
+						: features.managed
+							? canCreate
+								? 'Create your first site. Pick a product and a plan, and your site is ready in a few minutes.'
+								: 'This team has no sites you can view. Ask a team admin to create a site or check your access.'
+							: canCreate
+								? 'Create your first server to host your sites. Pick a region on the map, or start here.'
+								: 'This team has no servers you can view. Ask a team admin to create a server or check your access.'
 				"
 			>
 				<template v-if="canCreate && !hasRows" #action>
 					<Button
 						variant="solid"
-						label="New server"
+						:label="features.managed ? 'New site' : 'New server'"
 						icon-left="lucide-plus"
 						@click="$emit('create')"
 					/>

@@ -12,6 +12,7 @@ import { useTeamMembers } from '@/composables/useTeamMembers'
 import { openTeamSwitcher } from '@/composables/useTeamSwitcher'
 import { getServerActions } from '@/lib/capabilities'
 import { billingPeriod } from '@/lib/date'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import {
 	getServerMenuGroups,
@@ -76,8 +77,10 @@ export function useSearchIndex() {
 		}
 		if (canCreateServer.value) {
 			actions.push({
-				name: 'New server',
-				description: 'Provision a server',
+				name: features.managed ? 'New site' : 'New server',
+				description: features.managed
+					? 'Create a site from a product'
+					: 'Provision a server',
 				icon: 'lucide-plus',
 				route: '/servers/new',
 			})

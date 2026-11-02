@@ -5,6 +5,7 @@ from frappe.core.api.file import get_max_file_size
 from frappe.sessions import get_csrf_token
 
 from central.branding import get_brand
+from central.iam import is_managed_customer
 from central.identity.doctype.team_invitation.team_invitation import get_expiry_days
 
 no_cache = 1
@@ -22,6 +23,8 @@ def get_context(context):
 	boot["user_type"] = getattr(frappe.session.data, "user_type", None)
 	settings = frappe.get_cached_doc("Central Settings")
 	boot["features"] = settings.feature_flags()
+	# A customer of a managed console sees sites and products; operators see the server tools.
+	boot["features"]["managed"] = is_managed_customer()
 	boot["help_links"] = settings.help_links()
 	boot["brand"] = get_brand()
 	boot["invitation_expiry_days"] = get_expiry_days()

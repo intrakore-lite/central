@@ -55,7 +55,12 @@ def require_team_member(func: Callable) -> Callable:
 	return wrapper
 
 
-def require_capability(capability: str, message: str, server: str | None = None) -> Callable:
+def require_capability(
+	capability: str,
+	message: str,
+	server: str | None = None,
+	unless: Callable[[dict], bool] | None = None,
+) -> Callable:
 	"""Gate an endpoint on `capability` for the `team` argument; operators bypass. Place it
 	under @frappe.whitelist. Pass `message` as `_lt(...)`: the decorator runs at import, before
 	a request has a language.
@@ -63,7 +68,9 @@ def require_capability(capability: str, message: str, server: str | None = None)
 	1. When the argument named by `server` holds a server, the user needs the capability
 	   on that server.
 	2. Otherwise the user needs it team-wide or on at least one server of the team. A
-	   route that then reads a list relies on the permission rules to narrow it."""
+	   route that then reads a list relies on the permission rules to narrow it.
+	3. Without the capability, `unless` may still allow the call: it gets the call's
+	   arguments, with the team resolved."""
 
 	def decorator(func: Callable) -> Callable:
 		@functools.wraps(func)
@@ -75,7 +82,7 @@ def require_capability(capability: str, message: str, server: str | None = None)
 				allowed = can(frappe.session.user, team, capability, server=server_name)
 			else:
 				allowed = can_on_any_server(frappe.session.user, team, capability)
-			if not allowed:
+			if not allowed and not (unless and unless(dict(bound.arguments))):
 				frappe.throw(str(message), frappe.PermissionError)
 
 			return func(*bound.args, **bound.kwargs)

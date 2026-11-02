@@ -3,6 +3,7 @@ import type { Component } from 'vue'
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useCapabilities } from '@/composables/useCapabilities'
 import { MOBILE_BREAKPOINT } from '@/composables/useIsMobile'
+import { features } from '@/lib/features'
 import { router } from '@/router'
 
 const ProfileForm = defineAsyncComponent(
@@ -55,9 +56,10 @@ export interface SettingsTabDef {
 	/**
 	 * Capability gate, resolved by the consumer against useCapabilities:
 	 * 'member' needs any standing on the team, 'teamAdmin' needs team:edit or
-	 * team:delete, 'wireguard' needs server:wireguard. Undefined is always available.
+	 * team:delete, 'wireguard' needs server:wireguard, 'sshKeys' needs membership outside
+	 * Managed SaaS mode and server:ssh-key in it. Undefined is always available.
 	 */
-	requires?: 'member' | 'teamAdmin' | 'wireguard'
+	requires?: 'member' | 'teamAdmin' | 'wireguard' | 'sshKeys'
 }
 
 export const SETTINGS_TABS: SettingsTabDef[] = [
@@ -115,7 +117,7 @@ export const SETTINGS_TABS: SettingsTabDef[] = [
 		title: 'SSH keys',
 		description: 'Team keys that sign in to your servers.',
 		component: SSHKeysForm,
-		requires: 'member',
+		requires: 'sshKeys',
 	},
 	{
 		value: 'wireguard',
@@ -132,11 +134,18 @@ export const SETTINGS_TABS: SettingsTabDef[] = [
 
 /** The settings tabs this member can open on the active team. */
 export function useSettingsTabs() {
-	const { isMember, canEditTeam, canDeleteTeam, canManageWireGuard } =
-		useCapabilities()
+	const {
+		isMember,
+		canEditTeam,
+		canDeleteTeam,
+		canManageWireGuard,
+		canManageSSHKeys,
+	} = useCapabilities()
 
 	const isAvailable = (tab: SettingsTabDef): boolean => {
 		if (tab.requires === 'member') return isMember.value
+		if (tab.requires === 'sshKeys')
+			return features.managed ? canManageSSHKeys.value : isMember.value
 		if (tab.requires === 'wireguard') return canManageWireGuard.value
 		if (tab.requires === 'teamAdmin')
 			return canEditTeam.value || canDeleteTeam.value

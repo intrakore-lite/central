@@ -97,10 +97,15 @@ const {
 const paymentFlow = ref<InstanceType<typeof PaymentMethodFlow> | null>(null)
 
 const { setBreadcrumbs } = useBreadcrumbs()
-setBreadcrumbs([
-	{ label: 'Servers', route: { path: '/servers' } },
-	{ label: 'New server' },
-])
+// A customer of a managed console creates a site from a product: one site, one server.
+setBreadcrumbs(
+	features.managed
+		? [{ label: 'Sites', route: { path: '/servers' } }, { label: 'New site' }]
+		: [
+				{ label: 'Servers', route: { path: '/servers' } },
+				{ label: 'New server' },
+			],
+)
 
 const selectedRegionName = computed(() =>
 	selectedRegionRow.value ? regionLabel(selectedRegionRow.value) : '',
@@ -169,7 +174,7 @@ watch(
 						<TextInput
 							v-focus
 							v-model="name"
-							label="Name"
+							:label="features.managed ? 'Site name' : 'Name'"
 							required
 							:error="nameError"
 							size="md"
@@ -179,9 +184,14 @@ watch(
 					</section>
 
 					<section class="space-y-3">
-						<h2 class="text-base-semibold text-ink-gray-8">Image</h2>
+						<h2 class="text-base-semibold text-ink-gray-8">
+							{{ features.managed ? 'Product' : 'Image' }}
+						</h2>
 						<TabButtons
-							v-if="snapshotOptions.length > 1 || source === 'snapshot'"
+							v-if="
+								!features.managed &&
+								(snapshotOptions.length > 1 || source === 'snapshot')
+							"
 							v-model="source"
 							:options="[
 								{ label: 'Image', value: 'image' },
@@ -256,13 +266,21 @@ watch(
 						</template>
 						<div class="grid gap-3 md:grid-cols-2">
 							<Select
-								v-if="source === 'image' && !isApp && imageOptions.length > 1"
+								v-if="
+									!features.managed &&
+									source === 'image' &&
+									!isApp &&
+									imageOptions.length > 1
+								"
 								v-model="imageId"
 								label="Image build"
 								size="md"
 								:options="imageOptions"
 							/>
-							<SSHKeysField v-if="image" v-model="sshKeyIds" />
+							<SSHKeysField
+								v-if="image && !features.managed"
+								v-model="sshKeyIds"
+							/>
 						</div>
 					</section>
 
@@ -304,6 +322,7 @@ watch(
 					<section
 						v-if="
 							image &&
+							!features.managed &&
 							(features.publicIpv4 || features.publicIpv6 || features.firewall)
 						"
 					>
@@ -340,7 +359,9 @@ watch(
 					<section>
 						<div class="mb-3 flex items-center justify-between gap-3">
 							<h2 class="text-base-semibold text-ink-gray-8">Plan</h2>
-							<span class="text-xs text-ink-gray-5">Resize anytime</span>
+							<span class="text-xs text-ink-gray-5"
+								>{{ features.managed ? 'Change plan anytime' : 'Resize anytime' }}</span
+							>
 						</div>
 						<p v-if="!image" class="text-p-sm text-ink-gray-5">
 							{{ source === 'snapshot'
@@ -451,7 +472,7 @@ watch(
 						<Alert
 							v-if="submitError && !action"
 							theme="red"
-							title="We couldn't create this server"
+							:title="`We couldn't create this ${features.managed ? 'site' : 'server'}`"
 							:description="submitError"
 						/>
 						<div class="relative">

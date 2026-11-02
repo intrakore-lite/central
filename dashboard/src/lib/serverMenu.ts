@@ -120,13 +120,17 @@ function getViewItems(
 	const opensSite = !!site
 	const isRunning = server.status === 'Running'
 	const isBusy = !!server.pending_action
-	const canOpen = allowed.open && !isBusy && !isSettingUp(server.status)
+	const isReady = !isBusy && !isSettingUp(server.status)
+	const canOpen = allowed.open && isReady
+	// A site opens with a login as yourself too; the bench needs the console capability.
+	const canVisit =
+		(opensSite ? allowed.open || allowed.siteLogin : allowed.open) && isReady
 	const items: DropdownOption[] = []
 
 	if (!isOnServerPage) items.push(entry('overview', 'Overview', 'lucide-gauge'))
 
 	// Without a site, Open signs in to Pilot, which a free trial locks.
-	if (canOpen && !isOnServerPage)
+	if (canVisit && !isOnServerPage)
 		items.push(
 			...lockable(allowed, !opensSite, {
 				...entry(
