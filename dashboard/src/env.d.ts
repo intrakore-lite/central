@@ -50,5 +50,7 @@ interface Window {
 		public_ipv4?: boolean
 		public_ipv6?: boolean
 		firewall?: boolean
+		/** Managed SaaS mode, for a customer: sites and products, no server tools. */
+		managed?: boolean
 	}
 }

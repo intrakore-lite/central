@@ -47,6 +47,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 				>
 					{{ option.description }}
 				</span>
+				<slot name="details" :option="option" />
 			</span>
 		</button>
 	</fieldset>

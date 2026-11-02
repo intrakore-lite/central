@@ -1,8 +1,20 @@
+/** An app a product's image carries, from its `app_<name>=<version>` tag. */
+export interface ProductApp {
+	app: string
+	/** A friendly name, such as CRM for intrakore_crm. */
+	title: string
+	version: string | null
+	/** An app every product runs on, such as Master and UI, shown as Core. */
+	is_core: boolean
+}
+
 export interface ImageOffering {
 	name: string
 	title: string
 	logo: string | null
 	description: string | null
+	/** A product's apps. A plain offering has none. */
+	apps?: ProductApp[]
 }
 
 export interface RegionalImage {
@@ -42,11 +54,19 @@ export interface AppRequirements {
 	ports: { port: number; protocol: string }[]
 }
 
+/** A product a server can start with, and the regional image that carries its apps. */
+export interface ServerProduct extends ImageOffering {
+	offering: string
+	image_id: string
+}
+
 export interface ImageSelection {
 	offering: string
 	image_id: string
 	/** A restore names the VM Snapshot; Central reads its offering and image from it. */
 	snapshot?: string
+	/** A product server names the product; Central checks the image carries its apps. */
+	product?: string
 }
 
 export interface ActionStatus {

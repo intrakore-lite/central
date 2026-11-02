@@ -108,12 +108,14 @@ const facts = computed(() => {
 
 const canOpen = computed(
 	() =>
-		props.actions.open &&
 		!isUbuntu.value &&
 		!isSettingUp(props.server.status) &&
-		// Without a site, Open signs in to Pilot, which a free trial locks.
-		(!!props.siteUrl ||
-			(!!props.server.gateway_url && !props.actions.isAccessLocked)),
+		// A site opens with a login as yourself too. Without a site, Open signs in to
+		// Pilot, which needs the console capability and which a free trial locks.
+		((!!props.siteUrl && (props.actions.open || !!props.actions.siteLogin)) ||
+			(props.actions.open &&
+				!!props.server.gateway_url &&
+				!props.actions.isAccessLocked)),
 )
 
 // Overview and Open are the page itself and its primary button, so the menu omits them.

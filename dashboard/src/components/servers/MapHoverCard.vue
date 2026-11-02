@@ -13,8 +13,10 @@ const props = defineProps<{
 	node: MapNode
 	/** Show create affordances inside cards (page gates on server:create). */
 	allowCreate: boolean
-	/** Show direct bench-open affordances inside cluster cards. */
+	/** Show direct open affordances inside cluster cards. */
 	allowOpen: boolean
+	/** Open a bench, which needs the console capability. */
+	allowOpenBench: boolean
 	/** Server resource id or site name currently opening in a new tab. */
 	opening: string | null
 }>()
@@ -31,7 +33,9 @@ const hasManyTargets = computed(
 )
 
 function canOpenBench(server: NonNullable<MapPin['server']>): boolean {
-	return props.allowOpen && server.status === 'Running' && !!server.gateway_url
+	return (
+		props.allowOpenBench && server.status === 'Running' && !!server.gateway_url
+	)
 }
 </script>
 

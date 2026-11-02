@@ -165,12 +165,7 @@ def trial_configuration(team: str, product: Product | None = None) -> dict:
 
 		has_plan = True
 		if images := trial_images(team, region, offering, product):
-			minimum_age = frappe.get_cached_doc("Central Settings").signup_image_minimum_age_minutes
-			cutoff = time.time() - minimum_age * 60
-			preferred = (
-				[image for image in images if image["created_at"] <= cutoff] if minimum_age else images
-			)
-			newest = max(preferred or images, key=lambda image: image["created_at"])
+			newest = preferred_image(images)
 			return {"region": region, "offering": offering, "image_id": newest["id"], "plan": plan}
 
 	if not has_plan:
@@ -190,6 +185,15 @@ def trial_images(team: str, region: str, offering: str, product: Product | None)
 			break
 
 	return images if product else [image for image in images if SIGNUP_APP_TAG not in image["tags"]]
+
+
+def preferred_image(images: list[dict]) -> dict:
+	"""The newest image at least Signup Image Minimum Age old, so hosts have had time to cache
+	it. Without one, the newest image."""
+	minimum_age = frappe.get_cached_doc("Central Settings").signup_image_minimum_age_minutes
+	cutoff = time.time() - minimum_age * 60
+	preferred = [image for image in images if image["created_at"] <= cutoff] if minimum_age else images
+	return max(preferred or images, key=lambda image: image["created_at"])
 
 
 def product_image_tags(product: Product) -> dict[str, str]:

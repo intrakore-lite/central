@@ -30,7 +30,7 @@ from central.billing.doctype.billing_profile.billing_profile import (
 from central.billing.payments.settlement import has_paid_by_hand, is_behind_on_payment, wallet_funds
 from central.billing.revenue.tax import is_internal_team
 from central.errors import throw_action_error
-from central.iam import can, resolve_team
+from central.iam import can, is_managed_customer, resolve_team
 from central.infrastructure.doctype.resource_action.resource_action import (
 	ACTION_CAPABILITIES,
 	COMMAND_ACTIONS,
@@ -86,11 +86,13 @@ def submit_request(
 	subdomain: str | None = None,
 	snapshot: str | None = None,
 	site: SiteCreation | None = None,
+	product: str = "",
 ) -> dict:
 	"""Authorize and persist intent before any remote mutation.
 
 	Server and site requests use the same queued action. A restore passes `snapshot`;
-	its offering and image come from the snapshot. A trial site passes `site`."""
+	its offering and image come from the snapshot. A trial site passes `site`. A server
+	with a product's apps passes `product`, and its image must carry them."""
 	if snapshot:
 		offering, image_id = snapshot_source(team, snapshot)
 
@@ -112,12 +114,14 @@ def submit_request(
 		is_firewall_enabled=is_firewall_enabled,
 		user_data=user_data,
 		app_inputs=app_inputs,
+		product=product,
 	)
 	if not can(frappe.session.user, server_input.team, "server:create"):
 		frappe.throw(
 			_("You cannot create servers for this Team. Ask a team admin to review your access."),
 			frappe.PermissionError,
 		)
+	_require_managed_creation(server_input, site)
 	frappe.get_cached_doc("Central Settings").require_new_server_network_options(
 		server_input.has_public_ipv4, server_input.has_public_ipv6, server_input.is_firewall_enabled
 	)
@@ -133,7 +137,7 @@ def submit_request(
 		return existing.customer_status()
 
 	is_free_trial = is_free_trial_creation(server_input.team, site.product if site else None)
-	configuration, rate = _build_server_configuration(server_input, snapshot, is_free_trial)
+	configuration, rate = _build_server_configuration(server_input, snapshot, is_free_trial, site)
 	configuration.site = site
 
 	return ResourceAction.queue(
@@ -299,7 +303,10 @@ def _repeated_request(server_input: CreateServerInput, digest: str):
 
 
 def _build_server_configuration(
-	server_input: CreateServerInput, snapshot: str | None, is_free_trial: bool
+	server_input: CreateServerInput,
+	snapshot: str | None,
+	is_free_trial: bool,
+	site: SiteCreation | None = None,
 ) -> tuple[ServerCreation, float]:
 	"""Resolve the authorized image, purchasable composition, and saved configuration."""
 	image = (
@@ -311,6 +318,7 @@ def _build_server_configuration(
 			server_input.offering,
 			server_input.image_id,
 			"server:create",
+			**_get_image_selector(server_input, site),
 		)
 	)
 	includes = [row.model_dump() for row in server_input.includes]
@@ -351,6 +359,38 @@ def _build_server_configuration(
 	)
 
 	return configuration, rate
+
+
+def _require_managed_creation(server_input: CreateServerInput, site: SiteCreation | None) -> None:
+	"""What a customer of a managed console may create.
+
+	1. A site from a product, or a product's trial site. Never a raw image.
+	2. No SSH key and no user data: both run as root on the new machine."""
+	if not is_managed_customer():
+		return
+
+	if not server_input.product and not site:
+		frappe.throw(_("Create a site from a product."), frappe.PermissionError)
+	if server_input.ssh_keys or server_input.ssh_key_ids or server_input.user_data or server_input.app_inputs:
+		frappe.throw(
+			_("SSH keys and user data are not available. Contact support for server access."),
+			frappe.PermissionError,
+		)
+
+
+def _get_image_selector(server_input: CreateServerInput, site: SiteCreation | None) -> dict:
+	"""The flow and tags a product's image must match: a server with the product's apps, or a
+	product's trial site. Both boot the signup offering's image of that product."""
+	from central.signups.server_products import get_product_image_selector
+	from central.site_provisioning import SIGNUP_FLOW, product_image_tags
+
+	if server_input.product:
+		return get_product_image_selector(server_input.product)
+	if site and site.product:
+		product = frappe.get_cached_doc("Product", site.product)
+		return {"flow": SIGNUP_FLOW, "extra_tags": product_image_tags(product)}
+
+	return {}
 
 
 def _get_user_data(server_input: CreateServerInput, image: dict, snapshot: str | None) -> str:

@@ -9,6 +9,7 @@ import type {
 	ImageOffering,
 	ImageSelection,
 	RegionalImage,
+	ServerProduct,
 } from '@/types/serverCreation'
 import type { SnapshotList, VMSnapshotRow } from '@/types/snapshots'
 
@@ -72,6 +73,26 @@ function appAsImage(app: App): RegionalImage {
 	}
 }
 
+// A product shares the offering picker. An offering key has no colon, so the keys never clash.
+const PRODUCT_PREFIX = 'product:'
+
+function productAsOffering(product: ServerProduct): ImageOffering {
+	return { ...product, name: PRODUCT_PREFIX + product.name }
+}
+
+// Central resolves the product's newest image in the region, so it stands in for the
+// one build of its choice. Central checks the image carries the product's apps.
+function productAsImage(product: ServerProduct): RegionalImage {
+	return {
+		id: product.image_id,
+		title: product.title,
+		architecture: '',
+		rootfs_size_mib: 0,
+		created_at: 0,
+		tags: {},
+	}
+}
+
 // A snapshot restores into a server of its source's kind, so it stands in for an image
 // build. Its tags are empty: Central applies the source offering's tags itself.
 function snapshotAsImage(snapshot: VMSnapshotRow): RegionalImage {
@@ -88,6 +109,7 @@ function snapshotAsImage(snapshot: VMSnapshotRow): RegionalImage {
 export function useRegionalImages(
 	region: Ref<string | null>,
 	initialSnapshot = '',
+	initialProduct = '',
 ) {
 	const { activeTeam } = useSession()
 	const source = ref<ImageSource>(initialSnapshot ? 'snapshot' : 'image')
@@ -148,11 +170,19 @@ export function useRegionalImages(
 	const offerings = ref<ImageOffering[]>([])
 	const images = ref<RegionalImage[]>([])
 	const apps = ref<App[]>([])
-	const offering = ref('')
+	const products = ref<ServerProduct[]>([])
+	// A link such as the trial page's names a product, which is picked once it loads.
+	const offering = ref(initialProduct ? PRODUCT_PREFIX + initialProduct : '')
 	const imageId = ref('')
 	const loading = ref(false)
 	const error = ref('')
 	let generation = 0
+	const product = computed<ServerProduct | null>(
+		() =>
+			products.value.find(
+				(item) => PRODUCT_PREFIX + item.name === offering.value,
+			) ?? null,
+	)
 
 	async function reload() {
 		const current = ++generation
@@ -160,6 +190,7 @@ export function useRegionalImages(
 		const atlas = region.value
 		images.value = []
 		apps.value = []
+		products.value = []
 		imageId.value = ''
 		error.value = ''
 		loading.value = false
@@ -167,18 +198,33 @@ export function useRegionalImages(
 
 		loading.value = true
 		try {
-			const choices = await frappeRequest<ImageOffering[]>({
-				url: methodV1(API.listImageOfferings),
-				method: 'GET',
-				params: { team },
-			})
+			const [catalog, available] = await Promise.all([
+				frappeRequest<ImageOffering[]>({
+					url: methodV1(API.listImageOfferings),
+					method: 'GET',
+					params: { team },
+				}),
+				frappeRequest<ServerProduct[]>({
+					url: methodV1(API.listServerProducts),
+					method: 'GET',
+					params: { team, region: atlas },
+				}),
+			])
 			if (current !== generation) return
+			products.value = available
+			const choices = [...available.map(productAsOffering), ...catalog]
 			offerings.value = choices
 			if (!choices.some((choice) => choice.name === offering.value)) {
 				offering.value = choices[0]?.name ?? ''
 				return
 			}
 			if (!offering.value) return
+
+			if (product.value) {
+				images.value = [productAsImage(product.value)]
+				imageId.value = product.value.image_id
+				return
+			}
 
 			// The user picks an app card, so none is selected for them.
 			if (offering.value === APPS_OFFERING) {
@@ -239,6 +285,12 @@ export function useRegionalImages(
 						snapshot: snapshot.value.name,
 					}
 				: null
+		if (product.value && image.value)
+			return {
+				offering: product.value.offering,
+				image_id: image.value.id,
+				product: product.value.name,
+			}
 		return image.value
 			? { offering: offering.value, image_id: image.value.id }
 			: null
@@ -300,6 +352,7 @@ export function useRegionalImages(
 		apps,
 		isApp,
 		app,
+		product,
 		imageId,
 		image,
 		selection,

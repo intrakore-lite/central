@@ -74,7 +74,7 @@ def authorized_open_trial(team: str):
 	if not trial:
 		frappe.throw(_("You have no free trial site to add an app to."))
 
-	return Trial(authorized_site(trial.site.name, "server:console"))
+	return Trial(authorized_login_site(trial.site.name))
 
 
 @frappe.whitelist(methods=["GET"])
@@ -86,6 +86,27 @@ def check_subdomain(subdomain: str, team: str | None = None) -> dict:
 	from central.site_provisioning import subdomain_availability
 
 	return subdomain_availability(subdomain)
+
+
+@frappe.whitelist(methods=["GET"])
+@require_capability(
+	"server:view", _lt("You can't view this team's sites. Ask a team admin to review your access.")
+)
+def trial_offer(team: str | None = None) -> dict | None:
+	"""The free trial the Sites page offers this team, or None. See `get_trial_offer`."""
+	from central.signups.trial_product import get_trial_offer
+
+	return get_trial_offer(team)
+
+
+@frappe.whitelist(methods=["GET"])
+def resolve_trial_product(product: str | None = None) -> dict:
+	"""The product the trial onboarding page uses: the named one when it is enabled, else the
+	default trial product. None sends the customer to the product picker."""
+	from central.signups.trial_product import resolve_trial_product as resolve
+
+	# Product is an operator DocType. The answer is only a public product key, as on signup.
+	return {"product": resolve(product)}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -132,7 +153,7 @@ def create_trial_site(
 def claim_site(name: str) -> dict:
 	"""Return a login for the new site and schedule its rename to the customer's hostname.
 	A failed login leaves the site unclaimed, so the console can try again."""
-	site = authorized_site(name, "server:console")
+	site = authorized_login_site(name)
 	state = site_state(site)
 
 	if state["login_url"]:
@@ -161,9 +182,9 @@ def get_site(name: str) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 def login_site(name: str, product: str | None = None) -> dict:
-	"""Create a one-time site login. It signs in as Administrator, so it needs `server:console`.
+	"""Create a one-time site login. See `authorized_login_site` for who signs in as whom.
 	It lands on the page of `product` when given, such as an app just installed on the site."""
-	return site_state(authorized_site(name, "server:console"), with_login=True, product=product)
+	return site_state(authorized_login_site(name), with_login=True, product=product)
 
 
 @frappe.whitelist(methods=["GET"])
@@ -273,6 +294,24 @@ def site_state(site: Site, with_login: bool = True, product: str | None = None) 
 		"login_pending": login_pending,
 		"claimed": bool(site.claimed_at),
 	}
+
+
+def authorized_login_site(name: str) -> Site:
+	"""The Site document, once the caller may sign in to it.
+
+	1. The caller must see the site's server (`server:view`).
+	2. A login as the caller themselves needs `server:site-login`. A customer of a managed
+	   console and a member on a trial site sign in this way, never as Administrator.
+	3. A login as Administrator needs `server:console`, a staff tool in Managed SaaS mode."""
+	site = authorized_site(name, "server:view")
+	capability = site.get_login_capability(frappe.session.user)
+	if not can(frappe.session.user, site.team, capability, server=site.server):
+		frappe.throw(
+			_("You can't sign in to this site. Ask a team admin to review your access."),
+			frappe.PermissionError,
+		)
+
+	return site
 
 
 def authorized_site(name: str, capability: str) -> Site:

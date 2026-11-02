@@ -80,6 +80,16 @@
   "resource": "server"
  },
  {
+  "capability": "server:site-login",
+  "description": "Sign in to the sites of selected servers as yourself",
+  "docstatus": 0,
+  "doctype": "Capability",
+  "modified": "2026-11-03 00:00:00.000000",
+  "name": "server:site-login",
+  "plane": "atlas",
+  "resource": "server"
+ },
+ {
   "capability": "server:snapshot",
   "description": "Create and restore server snapshots",
   "docstatus": 0,

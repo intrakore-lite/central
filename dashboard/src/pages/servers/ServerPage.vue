@@ -26,19 +26,26 @@ import {
 import { useTerminateServer } from '@/composables/useTerminateServer'
 import { useTerminationProtection } from '@/composables/useTerminationProtection'
 import { getServerActions } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import { successToast } from '@/lib/feedback'
 import { METRIC_PERIODS } from '@/lib/serverMetrics'
 import type { MetricsRange } from '@/types/servers'
 
 type PowerCommand = Exclude<ServerCommand, 'terminate'>
 
-const TABS = [
+const ALL_TABS = [
 	{ label: 'Overview', value: 'overview', iconLeft: 'lucide-gauge' },
 	{ label: 'Networking', value: 'networking', iconLeft: 'lucide-network' },
 	{ label: 'Access', value: 'access', iconLeft: 'lucide-key-round' },
 	{ label: 'Snapshots', value: 'snapshots', iconLeft: 'lucide-camera' },
 	{ label: 'Settings', value: 'settings', iconLeft: 'lucide-settings' },
 ]
+// Networking, SSH access and snapshots are staff tools in Managed SaaS mode. Central
+// refuses their calls too; the tabs go so a customer sees only what they can use.
+const MANAGED_TABS = new Set(['overview', 'settings'])
+const TABS = features.managed
+	? ALL_TABS.filter((tab) => MANAGED_TABS.has(tab.value))
+	: ALL_TABS
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +58,7 @@ const {
 	canSnapshotServer,
 	canTerminateServer,
 	canOpenConsole,
+	canVisitSite,
 	canManageSSHKeys,
 } = useCapabilities()
 
@@ -133,6 +141,7 @@ const actions = computed(() =>
 		snapshot: canSnapshotServer.value,
 		terminate: canTerminateServer.value,
 		console: canOpenConsole.value,
+		siteLogin: canVisitSite.value,
 	}),
 )
 
@@ -149,7 +158,10 @@ watch(
 	() => server.value?.title,
 	(title) =>
 		setBreadcrumbs([
-			{ label: 'Servers', route: { path: '/servers' } },
+			{
+				label: features.managed ? 'Sites' : 'Servers',
+				route: { path: '/servers' },
+			},
 			{ label: title || resourceId.value },
 		]),
 	{ immediate: true },

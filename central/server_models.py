@@ -55,6 +55,8 @@ class CreateServerInput(BaseModel):
 	user_data: Annotated[str, StringConstraints(strip_whitespace=False)] = ""
 	# The answers to an app's inputs. Its Cargo turns them into the user data.
 	app_inputs: dict[str, str] = Field(default_factory=dict, max_length=20)
+	# The product whose apps the server's image carries. Central picks the image tags from it.
+	product: str = Field(default="", max_length=140)
 
 
 class SiteCreation(BaseModel):

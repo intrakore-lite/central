@@ -399,17 +399,26 @@ class Site(Document):
 		)
 
 	def get_login_user(self, user: str | None) -> tuple[str | None, str | None]:
-		"""Who `user` signs in as: themselves on a trial site of their team, otherwise
-		Administrator, shown as (None, None).
+		"""Who `user` signs in as: themselves, or Administrator, shown as (None, None).
 
-		1. Only a trial site is for its owner. Others, such as a bought server's, keep Administrator.
-		2. An operator outside the team never gets a user on a customer's site."""
-		from central.iam import get_user_team_names
+		1. An operator outside the team never gets a user on a customer's site.
+		2. A member signs in as themselves on a trial site of their team.
+		3. In Managed SaaS mode a customer signs in as themselves on every site of their team.
+		4. Others, such as a member on a bought server's site, sign in as Administrator."""
+		from central.iam import get_user_team_names, is_managed_customer
 
-		if not user or not self.is_trial() or self.team not in get_user_team_names(user):
+		if not user or self.team not in get_user_team_names(user):
+			return None, None
+		if not self.is_trial() and not is_managed_customer(user):
 			return None, None
 
 		return user, frappe.db.get_value("User", user, "full_name")
+
+	def get_login_capability(self, user: str) -> str:
+		"""The capability a site login for `user` needs: `server:site-login` to sign in as
+		themselves, `server:console` to sign in as Administrator."""
+		login_user, _full_name = self.get_login_user(user)
+		return "server:site-login" if login_user else "server:console"
 
 	def is_trial(self) -> bool:
 		request = self.get_creation_request()

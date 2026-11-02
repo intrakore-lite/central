@@ -9,7 +9,7 @@ from frappe.utils.translations import _lt
 from pydantic import ValidationError
 
 from central.errors import handle_resource_operation
-from central.iam import can, get_server_capabilities, user_has_operator_bypass
+from central.iam import can, get_server_capabilities, is_managed_customer, user_has_operator_bypass
 from central.infrastructure.doctype.resource_action.resource_action import ResourceAction
 from central.infrastructure.doctype.site.site import Site
 from central.infrastructure.doctype.virtual_machine.virtual_machine import VirtualMachine
@@ -492,6 +492,7 @@ def restart_server(team: str | None = None, resource_id: str | None = None) -> d
 	"server:resize",
 	_lt("You can't resize this team's servers. Ask a team admin to review your access."),
 	server="resource_id",
+	unless=lambda arguments: _is_managed_plan_change(**arguments),
 )
 def resize_server(
 	team: str | None = None,
@@ -501,7 +502,8 @@ def resize_server(
 	sub_category: str | None = None,
 	disk_gigabytes: int | None = None,
 ) -> dict:
-	"""Resize a server's CPU, memory and disk. Gated on `server:resize`.
+	"""Resize a server's CPU, memory and disk. Gated on `server:resize`, or see
+	`_is_managed_plan_change`.
 	A compute change stops the server first. A larger disk does not, and a smaller disk is refused.
 	On an open trial it keeps the paid plan the site moves to when the trial converts."""
 	from central.signups.trial import Trial
@@ -537,6 +539,21 @@ def resize_server(
 	)
 
 	return {"subscription": subscription, **result}
+
+
+def _is_managed_plan_change(
+	team: str, plan: str | None = None, includes=None, disk_gigabytes=None, **_arguments
+) -> bool:
+	"""Whether a resize without `server:resize` may go ahead.
+
+	1. Only in Managed SaaS mode, where `server:resize` is a staff tool, and only for a customer.
+	2. Only a move to a catalog `plan`. Composing a size or changing the disk stays with staff.
+	3. The customer must hold `billing:manage`, as when they choose a trial's paid plan."""
+	if not plan or includes or disk_gigabytes:
+		return False
+
+	user = frappe.session.user
+	return is_managed_customer(user) and can(user, team, "billing:manage")
 
 
 @frappe.whitelist(methods=["POST"])
@@ -731,8 +748,10 @@ def create_server(
 	user_data: str = "",
 	app_inputs: dict[str, str] | None = None,
 	snapshot: str | None = None,
+	product: str = "",
 ) -> dict:
-	"""Create a server from an image, or restore one from a `snapshot`."""
+	"""Create a server from an image, or restore one from a `snapshot`. A `product` server
+	boots the product's image with its apps installed."""
 	from central.resource_actions import submit_request
 
 	return submit_request(
@@ -752,6 +771,7 @@ def create_server(
 		user_data=user_data,
 		app_inputs=app_inputs,
 		snapshot=snapshot,
+		product=product,
 	)
 
 
@@ -775,6 +795,7 @@ def create_composed_server(
 	user_data: str = "",
 	app_inputs: dict[str, str] | None = None,
 	snapshot: str | None = None,
+	product: str = "",
 ) -> dict:
 	"""Create a custom-sized server from an image, or restore one from a `snapshot`."""
 	from central.resource_actions import submit_request
@@ -797,6 +818,7 @@ def create_composed_server(
 		user_data=user_data,
 		app_inputs=app_inputs,
 		snapshot=snapshot,
+		product=product,
 	)
 
 

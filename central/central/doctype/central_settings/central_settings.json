@@ -39,6 +39,8 @@
   "column_break_networking_firewall",
   "enable_firewall",
   "servers_tab",
+  "managed_section",
+  "managed_saas_mode",
   "server_creation_section",
   "require_payment_method",
   "included_transfer_gb",
@@ -275,6 +277,18 @@
    "fieldname": "servers_tab",
    "fieldtype": "Tab Break",
    "label": "Servers"
+  },
+  {
+   "fieldname": "managed_section",
+   "fieldtype": "Section Break",
+   "label": "Managed SaaS"
+  },
+  {
+   "default": "1",
+   "description": "Customers get their sites and products only. SSH keys, the web console, the bench admin (Open server), WireGuard, firewall and public addresses, snapshots, resizing and the image catalog are for System Managers. A customer signs in to a site as their own user. Turn it off for a self-serve console.",
+   "fieldname": "managed_saas_mode",
+   "fieldtype": "Check",
+   "label": "Managed SaaS Mode"
   },
   {
    "fieldname": "server_creation_section",

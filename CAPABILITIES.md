@@ -23,7 +23,7 @@ The distinction matters:
 - **The vocabulary** is the set of capability strings below. Central enforces it, and stored grants, fixtures, and the dashboard depend on it. It is small and changes rarely.
 - **Roles** (system roles and team-defined custom roles) are named subsets of that vocabulary. A custom role recombines existing capabilities. It never mints a new capability string. Teams can create as many custom roles as they like without an effect on this contract.
 
-## The 18 capabilities
+## The 19 capabilities
 
 ### `central` plane (9)
 
@@ -39,7 +39,7 @@ The distinction matters:
 | `server:ssh-key` | Add, rotate, and remove Team SSH keys for selected servers. |
 | `server:wireguard` | See, add, and remove team WireGuard devices that reach servers through the regional gateway. A member removes only their own devices unless they also hold `team:manage_members`. |
 
-### `atlas` plane (9)
+### `atlas` plane (10)
 
 | Capability | Meaning |
 | --- | --- |
@@ -52,6 +52,7 @@ The distinction matters:
 | `server:snapshot` | Create and restore server snapshots. |
 | `server:terminate` | Destroy a server. |
 | `server:console` | Open the web console of a running server, and sign in to its bench or site as Administrator. |
+| `server:site-login` | Sign in to the site of a server as yourself, never as Administrator. A trial site, and every site in Managed SaaS mode, signs in this way. |
 
 ### `bench` plane (0)
 
@@ -67,13 +68,14 @@ Acting on a resource is meaningless without seeing it. Central closes every gran
 | `server:power` / `network` / `resize` / `snapshot` / `terminate` | `server:view` |
 | `server:ssh-key` / `wireguard` | `server:view` |
 | `server:console` | `server:view` |
+| `server:site-login` | `server:view` |
 | `service:manage` | `service:view` |
 
 The role builder can let a user tick `server:create` without `server:view` and `cluster:view`. A grant made directly through the API cannot bypass the closure either.
 
 ## Scoped grants
 
-A role grant can apply to one server or site instead of the whole team. A scoped grant carries only these capabilities, on that server: `server:view`, `server:power`, `server:network`, `server:resize`, `server:snapshot`, `server:terminate`, and `server:console`. Every other capability is team-wide and comes only from a team-wide grant. For example, Developer on one server can stop that server, but cannot create a server or change the Team SSH keys. See [IAM resource scope](spec/IAM.md#resource-scope).
+A role grant can apply to one server or site instead of the whole team. A scoped grant carries only these capabilities, on that server: `server:view`, `server:power`, `server:network`, `server:resize`, `server:snapshot`, `server:terminate`, `server:console`, and `server:site-login`. Every other capability is team-wide and comes only from a team-wide grant. For example, Developer on one server can stop that server, but cannot create a server or change the Team SSH keys. See [IAM resource scope](spec/IAM.md#resource-scope).
 
 ## The 5 system roles
 
@@ -97,12 +99,32 @@ System roles are seeded from `fixtures/team_role.json` and are identical across 
 | `server:wireguard` | ✓ | ✓ | ✓ | | |
 | `server:terminate` | ✓ | ✓ | ✓ | | |
 | `server:console` | ✓ | ✓ | ✓ | | |
+| `server:site-login` | ✓ | ✓ | ✓ | | |
 | `service:view` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `service:manage` | ✓ | ✓ | ✓ | | ✓ |
 
-Totals: Owner 18, Admin 17, Developer 13, Viewer 3, Billing 6.
+Totals: Owner 19, Admin 18, Developer 14, Viewer 3, Billing 6.
 
 The ladder reads top to bottom: **Viewer** (look), **Billing** (look and pay), **Developer** (operate servers), **Admin** (Developer and run the team), **Owner** (Admin and delete the team). A team has exactly one Owner, transferable through Transfer Ownership. For a different mix, such as server operations without billing, create a custom role.
+
+## Managed SaaS mode
+
+Central Settings > Servers > **Managed SaaS Mode** (on by default) runs the console as a managed service. Customers get their sites and the products they are built from. The server-level tools are for operators (System Manager) only.
+
+In this mode, `central/iam.py` removes `MANAGED_STAFF_CAPABILITIES` from every customer grant when it resolves the grant, whatever the role holds:
+
+| Capability | What a customer loses |
+| --- | --- |
+| `server:console` | The SSH and TTY web console, Open server (the bench admin), and the Administrator site login. |
+| `server:ssh-key` | Team SSH keys. |
+| `server:wireguard` | WireGuard devices. |
+| `server:network` | The firewall, public addresses, IPv4 internet, and WireGuard access of a server. |
+| `server:resize` | Resizing, composing a size, the disk, and renaming. A customer with `billing:manage` can still move a site to another catalog plan. |
+| `server:snapshot` | Snapshots and restores. |
+
+Every check (`can`, the console's capability reads, and the permission rules) reads the same resolved grant, so a hidden button and a refused API call cannot disagree. Roles and stored grants do not change: turn the mode off and the tools come back.
+
+A customer of a managed console also cannot choose a raw image, an SSH key, or user data when they create a server. They create a site from a product. They sign in to a site as themselves with `server:site-login`.
 
 ## Changing the taxonomy
 

@@ -20,7 +20,9 @@ Operators can upload a logo and set a description. The console shows image choic
 
 `GET central.api.images.list_images(team, region, offering, flow, offset)` reads one page from the selected region. It requires `server:view` in the Team through Central IAM. Central derives the tenant header from that Team. The regional catalog remains shared.
 
-`GET central.api.images.eligible_plans(team, region, offering, image_id, snapshot)` returns the billing catalog filtered by the selected image's minimum disk size. A snapshot replaces the offering and image inputs. The response keeps billing's `cluster` price dimension because the billing catalog owns that model.
+`GET central.api.images.list_server_products(team, region)` returns the [products](../../../signups/doctype/product/SPEC.md#new-server) that a customer can create a server of in the region. The console shows them before the offerings.
+
+`GET central.api.images.eligible_plans(team, region, offering, image_id, snapshot, product)` returns the billing catalog filtered by the selected image's minimum disk size. A snapshot replaces the offering and image inputs. A product adds the product's image tags to the offering's tags. The response keeps billing's `cluster` price dimension because the billing catalog owns that model.
 
 The integration requests System images with every saved offering tag. It rejects private images and mismatched responses. It returns available, enabled builds with their IDs, titles, architecture, disk size, and tags. It does not return transfer errors or private regional configuration.
 
