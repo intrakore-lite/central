@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import frappeCloudLogo from '@/assets/fc-logo.svg'
+import { brand } from '@/lib/brand'
 
 interface AuthShellProps {
 	step?: number
@@ -36,12 +36,8 @@ withDefaults(defineProps<AuthShellProps>(), {
 		</section>
 
 		<footer class="flex items-center justify-center gap-2 py-8">
-			<img
-				:src="frappeCloudLogo"
-				alt=""
-				class="h-6 w-6 rounded-4 object-contain"
-			/>
-			<span class="text-base-semibold text-ink-gray-8">Frappe Cloud</span>
+			<img :src="brand.logo" alt="" class="h-6 w-6 rounded-4 object-contain" />
+			<span class="text-base-semibold text-ink-gray-8">{{ brand.name }}</span>
 		</footer>
 	</main>
 </template>

@@ -54,7 +54,7 @@ Create a custom role when no system role fits, such as server operations without
 1. Go to **Team**. Click **Roles**.
 2. Click **New role**.
 3. Type a **Role name**.
-4. Select the permissions. Frappe Cloud adds the view permissions that a selected permission needs.
+4. Select the permissions. Intrakore Cloud adds the view permissions that a selected permission needs.
 5. Click **Create role**.
 
 <Screenshot name="team/new-role" alt="The New custom role dialog with a role name field and permission checkboxes grouped by Billing, Team, Services, and Servers" />

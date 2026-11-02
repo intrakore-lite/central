@@ -1,8 +1,8 @@
-# Frappe Cloud documentation
+# Intrakore Cloud documentation
 
 ## Purpose
 
-This folder holds the customer documentation site for Frappe Cloud. It uses VitePress 1.6.4 with the Frappe UI 1.0.1 docs theme and the Espresso design system. Keep the Frappe UI version the same as the dashboard. The theme entry is marked unstable, so review theme changes when you update it.
+This folder holds the customer documentation site for Intrakore Cloud. It uses VitePress 1.6.4 with the Frappe UI 1.0.1 docs theme and the Espresso design system. Keep the Frappe UI version the same as the dashboard. The theme entry is marked unstable, so review theme changes when you update it.
 
 | Path | Holds |
 | --- | --- |
@@ -117,7 +117,7 @@ export default [
 
 The frame is the same for every file: a theme gradient, 28 px padding, a 10 px radius, an edge line, and a soft shadow. Capture both themes from one scene, never by hand.
 
-`capture/fixtures.mjs` answers the reads that differ from a real Frappe Cloud server. In the console, these are server metrics and the image list, which need a live region. In Pilot, these are storage (scoped to the bench's own databases), domains and their DNS records, wildcard domains, and SSH keys. A failed scene does not stop the run, and the run exits with an error at the end.
+`capture/fixtures.mjs` answers the reads that differ from a real Intrakore Cloud server. In the console, these are server metrics and the image list, which need a live region. In Pilot, these are storage (scoped to the bench's own databases), domains and their DNS records, wildcard domains, and SSH keys. A failed scene does not stop the run, and the run exits with an error at the end.
 
 ## Writing
 

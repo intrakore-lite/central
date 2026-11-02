@@ -110,7 +110,7 @@
   },
   {
    "collapsible": 1,
-   "description": "How the owner first found Frappe Cloud. Written once when the team is created at signup.",
+   "description": "How the owner first found the platform. Written once when the team is created at signup.",
    "fieldname": "attribution_section",
    "fieldtype": "Section Break",
    "label": "Signup Attribution"

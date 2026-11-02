@@ -49,7 +49,7 @@ An app is on the bench once, and many sites can use it. When you update an app, 
 
 ## Open Pilot from the console
 
-You open Pilot from the server in the Frappe Cloud console. Pilot opens in a new browser tab.
+You open Pilot from the server in the Intrakore Cloud console. Pilot opens in a new browser tab.
 
 1. Go to **Servers**. Click the server.
 2. Open Pilot:
@@ -90,7 +90,7 @@ The Pilot sidebar groups its pages in three sections.
 ## Limits
 
 - One server runs one Pilot. Pilot manages only the server it runs on.
-- Pilot on Frappe Cloud shows one bench for each server.
+- Pilot on Intrakore Cloud shows one bench for each server.
 - All benches on a server run as the same server user. To keep two workloads apart, put them on separate servers.
 
 ## See also
@@ -101,4 +101,4 @@ The Pilot sidebar groups its pages in three sections.
 - [Benches](/pilot/benches)
 - [Sites](/pilot/sites)
 - [Apps](/pilot/apps)
-- [How Frappe Cloud works](/get-started/how-it-works)
+- [How Intrakore Cloud works](/get-started/how-it-works)

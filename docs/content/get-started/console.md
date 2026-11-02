@@ -1,6 +1,6 @@
 ---
 title: Tour the console
-description: Find your way around the Frappe Cloud console.
+description: Find your way around the Intrakore Cloud console.
 ---
 
 # Tour the console

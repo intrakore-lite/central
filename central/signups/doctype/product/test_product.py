@@ -246,18 +246,18 @@ class TestProductLifecycleEmails(SiteOnAMachine):
 			}
 		).insert()
 
-	def test_the_note_is_added_escaped_under_frappe_cloud_branding(self):
+	def test_the_note_is_added_escaped_under_the_platform_branding(self):
 		html = self.email_for(self.product())
 
 		self.assertIn("Create a &lt;b&gt;channel&lt;/b&gt; first.", html)
-		self.assertIn("Frappe Cloud", html)
+		self.assertIn("Intrakore Cloud", html)
 
 	def test_own_branding_shows_the_product_logo_and_title(self):
 		html = self.email_for(self.product(use_own_email_branding=1, logo="/files/raven.png"))
 
 		self.assertIn("/files/raven.png", html)
 		self.assertIn("Raven &amp; Co", html)
-		self.assertNotIn(">Frappe Cloud</span>", html)
+		self.assertNotIn(">Intrakore Cloud</span>", html)
 
 	def test_only_the_welcome_emails_link_the_getting_started_page(self):
 		product = self.product(getting_started_url="https://raven.example.test/start")

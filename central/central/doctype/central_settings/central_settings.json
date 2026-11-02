@@ -10,6 +10,11 @@
   "wildcard_domain",
   "column_break_regions",
   "central_id",
+  "brand_section",
+  "brand_name",
+  "brand_logo",
+  "column_break_brand",
+  "policies_url",
   "help_section",
   "support_ticket_url",
   "column_break_help",
@@ -108,12 +113,42 @@
    "non_negative": 1
   },
   {
+   "description": "The name and logo customers see in the console, emails and messages.",
+   "fieldname": "brand_section",
+   "fieldtype": "Section Break",
+   "label": "Brand"
+  },
+  {
+   "default": "Intrakore Cloud",
+   "description": "The product name customers see. Leave empty to use Intrakore Cloud.",
+   "fieldname": "brand_name",
+   "fieldtype": "Data",
+   "label": "Brand Name"
+  },
+  {
+   "description": "A square logo. Upload a public file, because an email client loads it without a session. Leave empty to use the INTRAKORE logo.",
+   "fieldname": "brand_logo",
+   "fieldtype": "Attach Image",
+   "label": "Brand Logo"
+  },
+  {
+   "fieldname": "column_break_brand",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The terms and policies page linked from sign-in and signup. Leave empty to hide the notice.",
+   "fieldname": "policies_url",
+   "fieldtype": "Data",
+   "label": "Policies URL",
+   "options": "URL"
+  },
+  {
    "fieldname": "help_section",
    "fieldtype": "Section Break",
    "label": "Help"
   },
   {
-   "description": "The helpdesk customer portal's new ticket page, such as https://support.frappe.io/help/my-tickets/new. Leave empty to hide Contact support.",
+   "description": "The helpdesk customer portal's new ticket page, such as https://support.example.com/helpdesk/my-tickets/new. Leave empty to hide Contact support.",
    "fieldname": "support_ticket_url",
    "fieldtype": "Data",
    "label": "Support Ticket URL",
@@ -509,7 +544,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-28 18:00:00.000000",
+ "modified": "2026-11-03 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",

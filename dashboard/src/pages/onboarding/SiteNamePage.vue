@@ -19,6 +19,7 @@ import {
 	postFrappe,
 } from '@/lib/auth'
 import { carriedQuery } from '@/lib/authRedirect'
+import { brand } from '@/lib/brand'
 
 type CreationStatus = {
 	status: string
@@ -221,7 +222,7 @@ async function createSite() {
 			<Button
 				class="mt-8 w-full"
 				size="md"
-				label="Go to Frappe Cloud"
+				:label="`Go to ${brand.name}`"
 				:route="{ path: '/servers' }"
 			/>
 		</template>

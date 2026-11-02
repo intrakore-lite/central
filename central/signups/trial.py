@@ -16,6 +16,7 @@ from frappe.utils import (
 )
 
 from central.billing.catalog.trials import is_trial_plan
+from central.branding import get_brand_name
 from central.iam import can
 from central.infrastructure.doctype.resource_action.resource_action import PENDING_STATES, ResourceAction
 from central.infrastructure.doctype.site.site import Site
@@ -651,10 +652,10 @@ def get_trial_plan_floor(server: str) -> dict[str, float] | None:
 
 
 def get_product_branding(product: str | None) -> dict:
-	"""The Product's title and logo as the customer sees them. A plain trial is Frappe Cloud's."""
+	"""The Product's title and logo as the customer sees them. A plain trial is the platform's."""
 	branding = frappe.db.get_value("Product", product, ["title", "logo"], as_dict=True) if product else None
 	branding = branding or frappe._dict()
-	return {"product_title": branding.title or "Frappe Cloud", "product_logo": branding.logo}
+	return {"product_title": branding.title or get_brand_name(), "product_logo": branding.logo}
 
 
 def get_server_trial_state(server: str) -> str | None:

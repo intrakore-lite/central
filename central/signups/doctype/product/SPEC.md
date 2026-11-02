@@ -23,7 +23,7 @@ System Managers and Product Operators create and edit products in Desk. Only a S
 | Landing Route | Optional. Where the owner lands after signing in to a trial site, such as `/raven`, so the app runs its own setup. Empty opens Desk, which shows Frappe's setup wizard. |
 | Trial Days | Days a trial site of this product runs from when Central records its site. 0 uses Central Settings, Trial Days. See [Trials](../../SPEC.md#trials). |
 | Trial Deletion Days | Days a stopped trial site is kept before its server is terminated. 0 uses Central Settings, Trial Deletion Days. |
-| Use Product Branding in Emails | Off uses Frappe Cloud's logo and name in emails. On uses the product's Logo and Title. See [Emails](#emails). |
+| Use Product Branding in Emails | Off uses the platform's brand from Central Settings in emails. On uses the product's Logo and Title. See [Emails](#emails). |
 | Email Notes | One extra paragraph for each lifecycle email about a site of this product. See [Emails](#emails). |
 | Hide Plan Specs | Hides the vCPU, memory and disk line under each plan on a site of this product. See [Plans](#plans). |
 | Plan Notes | A short tag for each plan, which the site's plan list shows on a site of this product. See [Plans](#plans). |
@@ -83,7 +83,7 @@ A Product Operator does not get Region, Image Offering, Site, Team or billing re
 
 Central sends the signup code and the [trial lifecycle emails](../../SPEC.md#operation). A product changes them in three ways.
 
-**Branding.** With **Use Product Branding in Emails** on, the email header shows the product's Logo and Title instead of Frappe Cloud's. The code email also names the product, such as "123456 is your Raven signup code". The lifecycle emails of the product's sites use the same header. The logo must be a public file, because an email client loads it without a session. The footer still says that the person is a member of a Frappe Cloud team.
+**Branding.** With **Use Product Branding in Emails** on, the email header shows the product's Logo and Title instead of the platform's. The code email also names the product, such as "123456 is your Raven signup code". The lifecycle emails of the product's sites use the same header. The logo must be a public file, because an email client loads it without a session. The footer still names the platform from Central Settings.
 
 **Getting started.** With a **Getting Started URL**, the `site_ready` and `trial_unopened` emails show a **Get started** button that opens the site, and a **Documentation** button to that page. Use the product's own guide or docs page, so the product team can change it without a change in Central. The address must start with `https://`. The `site_ready` subject also names the product, such as "Your Raven site is ready".
 
@@ -93,7 +93,7 @@ Central sends the signup code and the [trial lifecycle emails](../../SPEC.md#ope
 |---|---|
 | `site_ready`, `trial_unopened` | The created site's public URL and the product's Landing Route. A plain signup opens the site's root URL. |
 | `trial_expiring`, `trial_ended`, `trial_deletion_soon` | The server's Upgrade dialog (`/servers/<server>?action=resize`). |
-| `trial_converted` | Frappe Cloud's billing page. |
+| `trial_converted` | The console's billing page. |
 | `trial_deleted` | No action link. |
 
 **Email Notes.** Each row adds text under the standard text of one email, only for sites of this product. Separate paragraphs with a blank line. Use it for product advice, such as what to do first. Central keeps the standard text, the dates and the button, so a note cannot change the trial terms.
@@ -150,7 +150,7 @@ When a new email asks for a code, Central also looks up the request's country in
 
 ## Signup attribution
 
-A team created at signup keeps how its owner first found Frappe Cloud. The browser remembers the first public page a guest opens: `utm_source`, `utm_medium`, `utm_campaign` and `product` from its address, and the referring page when it is another site. It sends them with `central.api.sites.create_trial_team`. Central writes them in the same insert as the team, in the collapsed **Signup Attribution** section of Team. Nothing changes them later.
+A team created at signup keeps how its owner first found the platform. The browser remembers the first public page a guest opens: `utm_source`, `utm_medium`, `utm_campaign` and `product` from its address, and the referring page when it is another site. It sends them with `central.api.sites.create_trial_team`. Central writes them in the same insert as the team, in the collapsed **Signup Attribution** section of Team. Nothing changes them later.
 
 | Team field | Source |
 |---|---|

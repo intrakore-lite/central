@@ -7,6 +7,7 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime
 
 from central.billing import settings as billing_settings
+from central.branding import get_brand_name
 from central.iam import can, clear_grants_cache, user_has_operator_bypass
 from central.identity.doctype.team.lifecycle import TeamLifecycle
 from central.identity.doctype.team.tenant import (
@@ -471,7 +472,8 @@ class Team(TeamLifecycle, Document):
 
 		if self.status != previous.status and not self.flags.from_team_archive:
 			frappe.throw(
-				_("Only Frappe Cloud staff can change the status of a team."), frappe.PermissionError
+				_("Only {0} staff can change the status of a team.").format(get_brand_name()),
+				frappe.PermissionError,
 			)
 		if self.team_name != previous.team_name:
 			self._require_capability("team:edit")

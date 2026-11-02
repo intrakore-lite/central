@@ -1,6 +1,6 @@
 # Payment methods
 
-Add a card so that Frappe Cloud can collect each invoice automatically. You can add more than one payment method and set the order in which they are charged.
+Add a card so that Intrakore Cloud can collect each invoice automatically. You can add more than one payment method and set the order in which they are charged.
 
 ::: info
 You need the Owner, Admin, or Billing role to add, order, or remove payment methods.
@@ -8,7 +8,7 @@ You need the Owner, Admin, or Billing role to add, order, or remove payment meth
 
 ## Before you begin
 
-Add your billing details first. Frappe Cloud needs your currency, legal name, and address before you can add a payment method or credit. When they are missing, **Billing > Overview** shows **Add your billing details**. Click **Add billing details** and complete the form.
+Add your billing details first. Intrakore Cloud needs your currency, legal name, and address before you can add a payment method or credit. When they are missing, **Billing > Overview** shows **Add your billing details**. Click **Add billing details** and complete the form.
 
 ## How payment methods are used
 
@@ -17,7 +17,7 @@ The **Methods** card on **Billing > Payments** lists your prepaid credits and yo
 <Screenshot name="billing/payment-methods" alt="The Methods card with prepaid credits, a Visa card marked Primary, and Add another card" />
 
 - An invoice uses your prepaid credits first.
-- Then Frappe Cloud charges the payment method marked **Primary**.
+- Then Intrakore Cloud charges the payment method marked **Primary**.
 - When a charge fails, the next method, marked **Fallback 1**, **Fallback 2**, and so on, is charged.
 
 While your wallet has a balance, the wallet is the primary and every card is a fallback.
@@ -32,11 +32,11 @@ While your wallet has a balance, the wallet is the primary and every card is a f
 
 <Screenshot name="billing/add-method" alt="The Add payment method dialog with the Card option, Visa and Mastercard marks, and a Continue button" />
 
-Frappe Cloud validates the card with a small temporary charge, and refunds it at once. Do not close the dialog while it shows **Validating…**. Frappe Cloud never sees your full card number.
+Intrakore Cloud validates the card with a small temporary charge, and refunds it at once. Do not close the dialog while it shows **Validating…**. Intrakore Cloud never sees your full card number.
 
 The dialog can ask for a phone number. A phone number is required to set up automatic card payments, and it is saved to your billing profile.
 
-The options in the dialog depend on your billing currency. Teams billed in INR can also see RuPay Card and UPI Autopay, which you authorise on your bank's page. To authorise automatic payments, Razorpay charges ₹1. Frappe Cloud refunds it after the authorisation succeeds. Amex and Diners cards cannot be charged automatically. Add credit instead.
+The options in the dialog depend on your billing currency. Teams billed in INR can also see RuPay Card and UPI Autopay, which you authorise on your bank's page. To authorise automatic payments, Razorpay charges ₹1. Intrakore Cloud refunds it after the authorisation succeeds. Amex and Diners cards cannot be charged automatically. Add credit instead.
 
 ## Change the order
 

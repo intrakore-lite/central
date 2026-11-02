@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Alert, Avatar, Button, Popover, TextInput } from 'frappe-ui'
 import { computed, ref, watch } from 'vue'
-import frappeCloudLogo from '@/assets/fc-logo.svg'
 import { useMenuKeyboardNavigation } from '@/composables/useMenuKeyboardNavigation'
 import { useSession } from '@/composables/useSession'
 import { teamSwitcherOpen } from '@/composables/useTeamSwitcher'
+import { brand } from '@/lib/brand'
 import { getErrorMessage } from '@/lib/feedback'
 import { getTeamSwitcherRows } from '@/lib/teamSwitcher'
 import CreateTeamDialog from './CreateTeamDialog.vue'
@@ -83,15 +83,11 @@ const { onKeydown } = useMenuKeyboardNavigation(() => {
 					class="team-switcher-button w-full !justify-start !px-1.5 !text-left"
 				>
 					<template #prefix>
-						<img
-							:src="frappeCloudLogo"
-							alt="Frappe Cloud"
-							class="size-6 shrink-0"
-						/>
+						<img :src="brand.logo" :alt="brand.name" class="size-6 shrink-0" />
 					</template>
 					<span v-if="!collapsed" class="flex min-w-0 flex-col gap-0.5">
 						<span class="truncate text-sm-medium text-ink-gray-8"
-							>Frappe Cloud</span
+							>{{ brand.name }}</span
 						>
 						<span class="truncate text-sm text-ink-gray-6"
 							>{{ activeTeamTitle }}</span
@@ -132,7 +128,10 @@ const { onKeydown } = useMenuKeyboardNavigation(() => {
 				<p v-if="switching" class="p-2 text-p-sm text-ink-gray-5" role="status">
 					Switching team…
 				</p>
-				<div v-if="!loading && !switching" class="max-h-64 overflow-y-auto flex flex-col gap-0.5">
+				<div
+					v-if="!loading && !switching"
+					class="max-h-64 overflow-y-auto flex flex-col gap-0.5"
+				>
 					<Button
 						v-for="team in visibleTeams"
 						:key="team.name"

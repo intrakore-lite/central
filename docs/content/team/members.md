@@ -76,7 +76,7 @@ A member can hold more than one role, and each role can apply to the whole team 
 
 A member must hold at least one role. You cannot change your own access, and you cannot change the Owner's access. To make a member the Owner, [transfer ownership](/team/roles#transfer-ownership).
 
-The dialog tells you when a row has no effect. Admin already covers every other role. A role on **All resources** already covers the same role on one server or site, so Frappe Cloud does not save that row.
+The dialog tells you when a row has no effect. Admin already covers every other role. A role on **All resources** already covers the same role on one server or site, so Intrakore Cloud does not save that row.
 
 ## Remove a member
 

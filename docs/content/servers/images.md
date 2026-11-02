@@ -1,6 +1,6 @@
 ---
 title: Images
-description: What an image is, which images you can choose, and how Frappe Cloud builds them.
+description: What an image is, which images you can choose, and how Intrakore Cloud builds them.
 ---
 
 # Images
@@ -53,6 +53,6 @@ An image belongs to one region. A server starts only from an image in its own re
 ## See also
 
 - [Create a server](/servers/create)
-- [How Frappe Cloud works](/get-started/how-it-works)
+- [How Intrakore Cloud works](/get-started/how-it-works)
 - [What Pilot is](/pilot/)
 - [Snapshots](/servers/snapshots)

@@ -2,6 +2,7 @@
 import { Alert, Button, Checkbox, Dialog, FormControl } from 'frappe-ui'
 import { computed, ref, watch } from 'vue'
 import CopyButton from '@/components/common/CopyButton.vue'
+import { brand } from '@/lib/brand'
 import { getErrorMessage } from '@/lib/feedback'
 import {
 	generateKeyPair,
@@ -178,8 +179,8 @@ async function submit(): Promise<void> {
 				</p>
 			</template>
 			<p v-else class="text-p-sm text-ink-gray-5">
-				Your browser makes the key pair. Only the public key is sent to Frappe
-				Cloud.
+				Your browser makes the key pair. Only the public key is sent to
+				{{ brand.name }}.
 			</p>
 		</div>
 

@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import cint, escape_html, random_string, today
 from frappe.utils.telemetry import capture
 
+from central.branding import get_brand_name
 from central.geo import warm_country_cache
 from central.identity.email_code import EmailCode
 
@@ -21,7 +22,7 @@ def send_sign_in_code(email: str, full_name: str | None = None, product: str | N
 	"""Email a code to any address. A new address gets an account when the code is verified.
 
 	A disabled account gets a notice instead of a code, so the caller cannot tell it apart.
-	`product` labels the signup funnel event, and its branding replaces Frappe Cloud's."""
+	`product` labels the signup funnel event, and its branding replaces the platform's."""
 	from central.signups.doctype.product.product import get_email_product
 
 	user = _find_user(email)
@@ -41,9 +42,9 @@ def get_code_email(
 	product: Product | None, is_new_user: bool
 ) -> tuple[Callable[[str], str], str, dict | None]:
 	"""The subject builder, heading and header branding of a code email. A product with its own
-	branding names itself instead of Frappe Cloud."""
+	branding names itself instead of the platform."""
 	brand = product.get_email_brand() if product else None
-	name = product.title if brand else "Frappe Cloud"
+	name = product.title if brand else get_brand_name()
 	if is_new_user:
 		return (
 			lambda code: _("{0} is your {1} signup code").format(code, name),
@@ -156,13 +157,13 @@ def _find_user(email: str):
 def _send_disabled_notice(email: str) -> None:
 	frappe.sendmail(
 		recipients=[email],
-		subject=_("Your Frappe Cloud account is disabled"),
+		subject=_("Your {0} account is disabled").format(get_brand_name()),
 		template="notification",
 		args={
 			"title": _("Your account is disabled"),
 			"body": _(
-				"Someone tried to sign in to Frappe Cloud with this email. Contact support to restore access."
-			),
+				"Someone tried to sign in to {0} with this email. Contact support to restore access."
+			).format(get_brand_name()),
 		},
 	)
 

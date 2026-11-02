@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useSession } from '@/composables/useSession'
 import { useSupport } from '@/composables/useSupport'
+import { brand } from '@/lib/brand'
 
 const { activeTeamLabel } = useSession()
 const { getTicketUrl } = useSupport()
@@ -15,7 +16,7 @@ const ticketUrl = computed(() => getTicketUrl({ Team: activeTeamLabel.value }))
 		<EmptyState
 			icon="lucide-circle-pause"
 			:title="`${activeTeamLabel} is suspended`"
-			description="Frappe Cloud support suspended this team, so its members cannot open it. Its data is kept. Switch to another team, or contact support to find out why."
+			:description="`${brand.name} support suspended this team, so its members cannot open it. Its data is kept. Switch to another team, or contact support to find out why.`"
 		>
 			<template #action>
 				<Button

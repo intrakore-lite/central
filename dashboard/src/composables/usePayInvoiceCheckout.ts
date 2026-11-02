@@ -37,7 +37,6 @@ export function usePayInvoiceCheckout({
 				return order
 			}
 			const handles = await openRazorpayCheckout(order, {
-				name: 'Frappe Cloud',
 				description: `Invoice ${invoice}`,
 			})
 			await confirm.submit({

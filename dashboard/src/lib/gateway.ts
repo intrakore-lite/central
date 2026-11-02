@@ -1,4 +1,5 @@
 import type { StripeElementStyle } from '@stripe/stripe-js'
+import { brand } from '@/lib/brand'
 
 // Hand a started order to the gateway's hosted element, resolve when the customer
 // finishes. Raw card/UPI data never touches our form — the gateway collects it.
@@ -101,7 +102,7 @@ function loadScript(src: string): Promise<void> {
 export async function openRazorpayCheckout(
 	order: RazorpayOrder,
 	{
-		name = 'Frappe Cloud',
+		name = brand.name,
 		description = '',
 		displayPayPal = false,
 	}: RazorpayOptions = {},

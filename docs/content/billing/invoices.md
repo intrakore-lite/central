@@ -21,10 +21,10 @@ The list shows each invoice with its period, invoice number, status, and amount.
 | Status | Meaning |
 | --- | --- |
 | `Draft` | The cycle has ended and the invoice is being prepared. |
-| `Open` | The invoice is issued and not paid yet. Frappe Cloud collects it from your credits and payment methods. |
+| `Open` | The invoice is issued and not paid yet. Intrakore Cloud collects it from your credits and payment methods. |
 | `Paid` | The invoice is paid in full. |
 | `Overdue` | The invoice is past its due date and still unpaid. Pay it to keep your servers running. |
-| `Waived` | Frappe Cloud cancelled the amount. You do not need to pay it. |
+| `Waived` | Intrakore Cloud cancelled the amount. You do not need to pay it. |
 | `Cancelled` | The invoice was cancelled. |
 
 ## See an invoice
@@ -47,7 +47,7 @@ The PDF is ready only after the invoice is issued. Until then, the download icon
 
 ## Pay an open invoice
 
-Frappe Cloud tries to collect each invoice automatically. Pay by hand when an invoice is still `Open` or `Overdue`, for example after a card is declined.
+Intrakore Cloud tries to collect each invoice automatically. Pay by hand when an invoice is still `Open` or `Overdue`, for example after a card is declined.
 
 1. Go to **Billing > Invoices**.
 2. Click the `Open` or `Overdue` invoice.
@@ -59,7 +59,7 @@ When an invoice is unpaid, **Billing > Overview** shows a banner with the amount
 
 ## When a payment fails
 
-When a charge fails, Frappe Cloud retries it and sends a notification with the reason. If the invoice stays unpaid, it becomes `Overdue`. If it stays unpaid after that, Frappe Cloud stops the team's servers. The data on the servers is kept.
+When a charge fails, Intrakore Cloud retries it and sends a notification with the reason. If the invoice stays unpaid, it becomes `Overdue`. If it stays unpaid after that, Intrakore Cloud stops the team's servers. The data on the servers is kept.
 
 ::: warning
 Pay an overdue invoice as soon as you can. Stopped servers make your sites unavailable.

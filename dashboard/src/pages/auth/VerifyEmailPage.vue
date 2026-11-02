@@ -17,6 +17,7 @@ import {
 	requiredError,
 } from '@/lib/auth'
 import { carriedQuery } from '@/lib/authRedirect'
+import { brand } from '@/lib/brand'
 
 const RESEND_WAIT_SECONDS = 30
 
@@ -104,7 +105,7 @@ onBeforeUnmount(() => clearInterval(resendTimer))
 				Set up your profile
 			</h1>
 			<p class="mt-1 text-p-base text-ink-gray-5">
-				This is how you appear in Frappe Cloud.
+				This is how you appear in {{ brand.name }}.
 			</p>
 
 			<form class="mt-6 space-y-4" novalidate @submit.prevent="verify">

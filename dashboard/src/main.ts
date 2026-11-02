@@ -2,12 +2,16 @@ import { FrappeUI, setConfig, vFocus } from 'frappe-ui'
 import { io } from 'socket.io-client'
 import { createApp } from 'vue'
 import App from '@/App.vue'
+import { brand } from '@/lib/brand'
 import { router } from '@/router'
 import './style.css'
 
 // The new data-fetching composables (useCall/useList) read window.csrf_token —
 // injected by central/www/dashboard.py — and POST relative to the served origin,
 // so no extra request config is needed beyond the FrappeUI plugin.
+// The page title names the brand from Central Settings, not the name built into index.html.
+document.title = brand.name
+
 const app = createApp(App)
 app.use(router)
 app.use(FrappeUI)

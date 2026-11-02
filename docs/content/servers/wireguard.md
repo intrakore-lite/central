@@ -19,7 +19,7 @@ WireGuard VPN is available only in regions that have a WireGuard VPN gateway. If
 4. Select the **Region**.
 5. Click **Add device**.
 
-Your browser makes the key pair. Only the public key goes to Frappe Cloud. The dialog then shows a QR code and a **Download .conf** button. Both hold the private key. Scan the code on a phone, or download the file on a computer. The file has the name of the device, such as `work-laptop.conf`.
+Your browser makes the key pair. Only the public key goes to Intrakore Cloud. The dialog then shows a QR code and a **Download .conf** button. Both hold the private key. Scan the code on a phone, or download the file on a computer. The file has the name of the device, such as `work-laptop.conf`.
 
 ::: warning
 The QR code and the file with the private key show only once. If you lose the file, delete the device and add it again.
@@ -128,7 +128,7 @@ The tunnel works both ways. See [Protect the device](#protect-the-device).
 
 ## Protect the device
 
-The tunnel connects in both directions, like a site-to-site link. While the tunnel is on, each server of your team in the region that has WireGuard VPN on can open a connection to the device. The server can reach every open port on the tunnel address of the device, such as `fdac:1:1:0:4::1`. Frappe Cloud does not filter this traffic.
+The tunnel connects in both directions, like a site-to-site link. While the tunnel is on, each server of your team in the region that has WireGuard VPN on can open a connection to the device. The server can reach every open port on the tunnel address of the device, such as `fdac:1:1:0:4::1`. Intrakore Cloud does not filter this traffic.
 
 ::: warning
 If an attacker gets into one of these servers, they can use the tunnel to connect to services on the device. Block incoming traffic from the tunnel on the device.
@@ -136,7 +136,7 @@ If an attacker gets into one of these servers, they can use the tunnel to connec
 
 The risk is highest for a device that stays connected, such as:
 
-- An application server or another cloud server that connects to a database on Frappe Cloud.
+- An application server or another cloud server that connects to a database on Intrakore Cloud.
 - A CI runner, a backup host, or a monitoring host.
 - An office computer that keeps the tunnel on.
 
@@ -181,7 +181,7 @@ On macOS and Windows, turn on the built-in firewall. Block incoming connections 
 2. Open the row menu of the device. Click **Delete**.
 3. Click **Delete** to confirm.
 
-If the gateway does not answer, the device shows **Removing**. Frappe Cloud tries again every few minutes until it is removed.
+If the gateway does not answer, the device shows **Removing**. Intrakore Cloud tries again every few minutes until it is removed.
 
 ## Who can see and do what
 
@@ -194,14 +194,14 @@ If the gateway does not answer, the device shows **Removing**. Frappe Cloud trie
 | Turn WireGuard VPN on or off for a server | ✓ | ✓ | ✓ | | |
 
 - Billing and Viewer do not see the **WireGuard VPN** settings.
-- A member sees the name, owner, region, and public key of each device. Nobody can see a private key, because Frappe Cloud never has it. A public key alone cannot connect.
+- A member sees the name, owner, region, and public key of each device. Nobody can see a private key, because Intrakore Cloud never has it. A public key alone cannot connect.
 - A role on one server can turn **WireGuard VPN** on or off for that server. Adding and deleting devices needs a role on **All resources**.
 - In a [custom role](/team/roles#create-a-custom-role), **See, add, and remove team WireGuard devices** lets a member manage devices. **Change the firewall, public addresses, and WireGuard access of servers** lets a member change server access.
 - A team can have at most 100 devices.
 
 ## When a member loses access
 
-Frappe Cloud removes every device of a member when the member can no longer manage WireGuard VPN devices. This happens when:
+Intrakore Cloud removes every device of a member when the member can no longer manage WireGuard VPN devices. This happens when:
 
 - The member leaves the team or is removed from it.
 - The member gets a role that cannot manage WireGuard VPN devices, such as Viewer.

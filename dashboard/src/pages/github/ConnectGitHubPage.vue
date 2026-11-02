@@ -11,8 +11,8 @@ import {
 } from 'frappe-ui'
 import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
-import frappeCloudLogo from '@/assets/fc-logo.svg'
 import { useGitHubConnection } from '@/composables/useGitHubConnection'
+import { brand } from '@/lib/brand'
 
 const route = useRoute()
 const {
@@ -91,7 +91,7 @@ const grantLabel = computed(() => {
 	<main class="flex min-h-screen flex-col bg-surface-base px-4">
 		<section class="mx-auto w-full max-w-[480px] flex-1 pb-12 pt-16 sm:pt-24">
 			<div class="mb-8 flex items-center gap-3">
-				<img :src="frappeCloudLogo" alt="" class="size-9 rounded-6" />
+				<img :src="brand.logo" alt="" class="size-9 rounded-6" />
 				<span
 					class="lucide-arrow-left-right size-4 text-ink-gray-4"
 					aria-hidden="true"
@@ -128,7 +128,7 @@ const grantLabel = computed(() => {
 					class="mt-6 w-full"
 					size="md"
 					variant="solid"
-					:label="connection?.return_url ? 'Back to your server' : 'Open Frappe Cloud'"
+					:label="connection?.return_url ? 'Back to your server' : `Open ${brand.name}`"
 					@click="goTo(connection?.return_url || '/dashboard/servers')"
 				/>
 			</template>
@@ -152,8 +152,8 @@ const grantLabel = computed(() => {
 
 				<div v-else-if="!installations.length" class="mt-6 space-y-4">
 					<p class="text-p-base text-ink-gray-7">
-						Install the Frappe Cloud GitHub App on the account that owns your
-						repositories.
+						Install the {{ brand.name }} GitHub App on the account that owns
+						your repositories.
 					</p>
 					<Button
 						class="w-full"

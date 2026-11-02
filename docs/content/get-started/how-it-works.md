@@ -1,27 +1,11 @@
 ---
-title: How Frappe Cloud works
-description: Frappe Cloud gives you a server of your own. Four systems create it, run it, and manage what is inside it.
+title: How Intrakore Cloud works
+description: Intrakore Cloud gives you a server of your own. Four systems create it, run it, and manage what is inside it.
 ---
 
-# How Frappe Cloud works
+# How Intrakore Cloud works
 
-Frappe Cloud gives your team servers. A server is a virtual machine that belongs to your team only. You choose what runs inside it.
-
-## From containers to servers
-
-The first version of Frappe Cloud ran your bench as a container. The container shared a server with the benches of other teams. You worked with bench groups, benches, shared servers, and dedicated servers, and each one had its own settings.
-
-Frappe Cloud now gives you a server directly. There is one thing to create and one thing to pay for. Everything inside the server is yours.
-
-<ArchitectureDiagram variant="generations" />
-
-| | v1: containers | v2: servers |
-| --- | --- | --- |
-| What you get | A bench in a container | A virtual machine |
-| Who else runs on it | Other teams' benches on the same server | No other team. The server is yours alone. |
-| What you choose | Bench group, then a shared or dedicated server | A region, an image, and a plan |
-| Shell access | Limited to your bench | Root access over SSH |
-| What runs inside | Frappe benches only | Frappe with Pilot, or plain Ubuntu |
+Intrakore Cloud gives your team servers. A server is a virtual machine that belongs to your team only. You choose what runs inside it.
 
 ## The four systems
 

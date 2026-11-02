@@ -25,7 +25,7 @@ class TestAuth(IntegrationTestCase):
 		with patch(SENDMAIL) as sendmail:
 			send_code(self.email, "New Person")
 		self.assertIn("signup code", sendmail.call_args.kwargs["subject"])
-		self.assertEqual(sendmail.call_args.kwargs["args"]["heading"], "Create your Frappe Cloud account")
+		self.assertEqual(sendmail.call_args.kwargs["args"]["heading"], "Create your Intrakore Cloud account")
 		self.assertFalse(frappe.db.exists("User", self.email))
 
 		result = self._verify(self._code())
@@ -56,7 +56,7 @@ class TestAuth(IntegrationTestCase):
 		with patch(SENDMAIL) as sendmail:
 			response = send_code(self.email, "Another Name")
 		self.assertIn("sign-in code", sendmail.call_args.kwargs["subject"])
-		self.assertEqual(sendmail.call_args.kwargs["args"]["heading"], "Sign in to Frappe Cloud")
+		self.assertEqual(sendmail.call_args.kwargs["args"]["heading"], "Sign in to Intrakore Cloud")
 
 		signed_in = self._verify(self._code())
 		self.assertEqual(signed_in["user"], self.email)
@@ -196,7 +196,7 @@ class TestAuth(IntegrationTestCase):
 		)
 		self.assertIn(self._code(), html)
 		self.assertIn(self._code(), sendmail.call_args.kwargs["subject"])
-		self.assertIn("Create your Frappe Cloud account", html)
+		self.assertIn("Create your Intrakore Cloud account", html)
 		self.assertIn("It expires in 10 minutes.", html)
 
 	def test_a_branded_product_names_itself_in_the_code_email(self):
@@ -223,7 +223,7 @@ class TestAuth(IntegrationTestCase):
 		self.assertIn("is your Raven signup code", sendmail.call_args.kwargs["subject"])
 		self.assertIn("Create your Raven account", html)
 		self.assertIn("/files/raven.png", html)
-		self.assertNotIn("Frappe Cloud", html.split("fc-footer")[0])
+		self.assertNotIn("Intrakore Cloud", html.split("fc-footer")[0])
 
 	def test_sending_is_limited_per_email_whatever_its_spelling(self):
 		spellings = [self.email, self.email.upper(), f" {self.email} ", self.email.title(), self.email]

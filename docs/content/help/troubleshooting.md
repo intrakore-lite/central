@@ -43,7 +43,7 @@ These messages show when a server action does not complete.
 | **No room for this size** | Choose a smaller size, or try again later. |
 | **The server wasn't created** | Try again, or select another region if the problem continues. |
 | **The [action] is taking too long** | Refresh the server list in a few minutes. If it still looks stuck, contact support. |
-| **We're still confirming this request** | Frappe Cloud keeps checking. Do not submit the request again. |
+| **We're still confirming this request** | Intrakore Cloud keeps checking. Do not submit the request again. |
 | **The [action] didn't complete** | The server is in a failed state. Contact support before you submit another action. |
 | **Setup needs support** | Do not submit another request. Contact support with the action ID. |
 | **The final snapshot didn't complete** | The server is stopped and was not removed. Start it again, or terminate it without a snapshot. |
