@@ -74,7 +74,7 @@ class Subscription(Document):
 		if self.is_new() or self.has_value_changed("project"):
 			from central.billing.catalog.subscriptions import enforce_project_headroom
 
-			rate, _currency = self.resolve_rate_snapshot()
+			rate, _currency = self.get_rate_snapshot()
 			enforce_project_headroom(
 				self.team, self.project, rate or 0, exclude=None if self.is_new() else self.name
 			)
@@ -135,20 +135,8 @@ class Subscription(Document):
 		"""Log a 'Created' Subscription Change, with a rate snapshot, on insert.
 
 		The segment opens when the subscription starts (see `_opening_time`)."""
-		rate, currency = self.flags.opening_quote or self.resolve_rate_snapshot()
-		effective_at = self._opening_time()
-		frappe.get_doc(
-			{
-				"doctype": "Subscription Change",
-				"subscription": self.name,
-				"change_type": "Created",
-				"new_value": self.segment_label(),
-				"locked_rate": rate,
-				"currency": currency,
-				"effective_at": effective_at,
-				"changed_by": frappe.session.user,
-			}
-		).insert(ignore_permissions=True)
+		rate, currency = self.get_rate_snapshot(self.flags.opening_quote)
+		self._insert_change("Created", None, rate, currency, self._opening_time(), frappe.session.user)
 
 	def _opening_time(self):
 		"""Now for a subscription that starts today, so a server that runs a few hours bills
@@ -183,25 +171,49 @@ class Subscription(Document):
 		today's rate (ADR 0010). Used by both a preset plan change and a composed
 		resize / mode switch (#82)."""
 		previous = self.get_doc_before_save()
-		# A resize that keeps a preset's bundle price and only adds for extra disk passes the
-		# rate explicitly, since it is not the à-la-carte composition total.
-		rate, currency = self.flags.locked_rate_override or self.resolve_rate_snapshot()
+		self.log_rate_change(
+			self._segment_label(previous) if previous else None,
+			self.flags.changed_by,
+			# A resize that keeps a preset's bundle price and only adds for extra disk passes the
+			# rate explicitly, since it is not the à-la-carte composition total.
+			self.flags.locked_rate_override,
+		)
+
+	def log_rate_change(self, old_label: str | None, changed_by: str | None, quote=None) -> None:
+		"""Close the open segment and open one at today's rate snapshot. A seat change calls it
+		directly, because the seat count lives on the Team, not here."""
+		rate, currency = self.get_rate_snapshot(quote)
+		self._insert_change(
+			"Plan Changed",
+			old_label,
+			rate,
+			currency,
+			frappe.utils.now_datetime(),
+			changed_by or frappe.session.user,
+		)
+
+	def _insert_change(self, change_type, old_value, rate, currency, effective_at, changed_by) -> None:
 		frappe.get_doc(
 			{
 				"doctype": "Subscription Change",
 				"subscription": self.name,
-				"change_type": "Plan Changed",
-				"old_value": self._segment_label(previous) if previous else None,
+				"change_type": change_type,
+				"old_value": old_value,
 				"new_value": self.segment_label(),
 				"locked_rate": rate,
 				"currency": currency,
-				"effective_at": frappe.utils.now_datetime(),
-				"changed_by": self.flags.changed_by or frappe.session.user,
+				"effective_at": effective_at,
+				"changed_by": changed_by,
 			}
 		).insert(ignore_permissions=True)
 
 	def segment_label(self) -> str | None:
-		"""What this subscription's current billed segment shows (see `_segment_label`)."""
+		"""What this subscription's current billed segment shows: its seats for a site billed per
+		seat, else see `_segment_label`."""
+		from central.billing.catalog.seats import get_subscription_seat_quote
+
+		if seat_quote := get_subscription_seat_quote(self):
+			return seat_quote.label
 		return self._segment_label(self)
 
 	@staticmethod
@@ -221,6 +233,16 @@ class Subscription(Document):
 			summary = config_summary(doc.includes)
 			return f"Custom: {summary}" if summary else "Custom config"
 		return doc.plan
+
+	def get_rate_snapshot(self, quote: tuple | None = None) -> tuple[float | None, str | None]:
+		"""The rate a new segment locks: the seat price of a site billed per seat, which replaces
+		its server plan's price, else `quote` (a price the creation or resize accepted), else
+		`resolve_rate_snapshot`."""
+		from central.billing.catalog.seats import get_subscription_seat_quote
+
+		if seat_quote := get_subscription_seat_quote(self):
+			return seat_quote.monthly_rate, seat_quote.currency
+		return quote or self.resolve_rate_snapshot()
 
 	def resolve_rate_snapshot(self) -> tuple[float | None, str | None]:
 		"""The rate + currency to snapshot onto a Subscription Change now.

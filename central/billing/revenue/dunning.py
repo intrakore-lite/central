@@ -83,6 +83,8 @@ def dunning_policy() -> frappe._dict:
 
 # Stages that land on the same day still have an order: a retry is attempted before
 # the invoice is declared overdue, and suspension precedes termination.
+# A first payment that was not collected is dunned like an arrears invoice.
+DUNNED_INVOICE_TYPES = ("Billable", "Prepayment")
 _STAGE_ORDER = {"Retry": 0, "Overdue": 1, "Suspend": 2, "Terminate": 3}
 
 
@@ -199,7 +201,7 @@ def process_invoice_dunning(invoice_name: str, now=None) -> dict:
 	re-issue a directive already in force.
 	"""
 	inv = frappe.get_doc("Invoice", invoice_name)
-	if inv.invoice_type != "Billable":
+	if inv.invoice_type not in DUNNED_INVOICE_TYPES:
 		return {"invoice": invoice_name, "skipped": "Cost Report"}
 	if inv.status not in ("Open", "Overdue") or frappe.utils.flt(inv.expected_collection) <= 0:
 		return {"invoice": invoice_name, "skipped": "nothing_due"}
@@ -282,7 +284,7 @@ def run_dunning(now=None) -> list[dict]:
 
 	settle_internal_teams()
 	filters = [
-		["invoice_type", "=", "Billable"],
+		["invoice_type", "in", DUNNED_INVOICE_TYPES],
 		["status", "in", ["Open", "Overdue"]],
 		["expected_collection", ">", 0],
 	]

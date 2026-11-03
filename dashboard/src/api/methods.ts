@@ -203,6 +203,10 @@ export const API = {
 	saveBillingProfile: 'central.billing.api.dashboard.save_billing_profile',
 	saveBillingSettings: 'central.billing.api.dashboard.save_billing_settings',
 	setCollectionMode: 'central.billing.api.dashboard.set_collection_mode',
+	seats: 'central.billing.api.dashboard.get_seats',
+	changeSeats: 'central.billing.api.dashboard.change_seats',
+	setSubscriptionCancelled:
+		'central.billing.api.dashboard.set_subscription_cancelled',
 	saveNotificationPreferences: 'central.notification.api.save_user_preferences',
 	markNotificationRead: 'central.notification.api.mark_notification_read',
 	markAllNotificationsRead:

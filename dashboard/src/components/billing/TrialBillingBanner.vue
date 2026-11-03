@@ -3,7 +3,7 @@ import { Alert } from 'frappe-ui'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBillingSetup } from '@/composables/useBillingSetup'
-import { money } from '@/lib/format'
+import { formatDate, money, plural } from '@/lib/format'
 
 interface Props {
 	/** Off inside a dialog, where leaving the page would lose the dialog. */
@@ -15,8 +15,8 @@ const props = withDefaults(defineProps<Props>(), { linkToUpgrade: true })
 const router = useRouter()
 const { profile } = useBillingSetup()
 
-// A payment method converts an Active trial at once, but not an Ended one: that site
-// is kept only from its server's Upgrade dialog.
+// A card on file pays for an Active trial from its end date. An Ended trial is kept only
+// from its server's Upgrade dialog.
 const trial = computed(() => profile.value?.open_trial ?? null)
 const isEnded = computed(() => trial.value?.state === 'Ended')
 
@@ -25,6 +25,9 @@ const siteName = computed(() =>
 )
 
 const planText = computed(() => {
+	const seats = trial.value?.seats
+	if (seats)
+		return `${plural(seats.seats, 'seat')} at ${money(seats.monthly_rate, seats.currency, { trimTrailingZeros: true })} a month`
 	const plan = trial.value?.plan
 	if (!plan) return 'its paid plan'
 	const price =
@@ -43,7 +46,7 @@ const title = computed(() =>
 const description = computed(() =>
 	isEnded.value
 		? `${siteName.value} is stopped and will be deleted. To keep it, add a payment method and choose Keep this site.`
-		: `Adding a payment method ends the free trial today. ${siteName.value} moves to ${planText.value}, and billing starts.`,
+		: `${siteName.value} stays free until ${formatDate(trial.value?.ends_on) || 'the trial ends'}. Then it moves to ${planText.value}, and billing starts with the card on file.`,
 )
 
 const action = computed(() => {

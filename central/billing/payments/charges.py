@@ -692,6 +692,10 @@ def _mark_invoice_paid(
 		amount=inv.amount_paid,
 	)
 	save_billing_record(inv)
+	if inv.invoice_type == "Prepayment":
+		from central.billing.revenue.invoicing.prepayment import book_as_credit
+
+		book_as_credit(inv, payment_id, adapter_key)
 
 	from central.billing.platform import notifications
 

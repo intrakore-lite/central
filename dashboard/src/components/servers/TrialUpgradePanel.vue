@@ -48,7 +48,7 @@ const title = computed(() =>
 
 const description = computed(() => {
 	if (props.trial.state !== 'Ended' || !props.trial.deletes_on)
-		return 'Choose a plan to keep this site after the trial. Billing starts when you add a payment method.'
+		return `Choose a plan to keep this site after the trial. Your free trial runs until ${formatDate(props.trial.ends_on)}, and billing starts then if a payment method is on file.`
 	const deletesOn = formatDate(props.trial.deletes_on)
 	return props.trial.can_keep
 		? `This site is stopped. Choose a plan and keep the site before ${deletesOn}.`
@@ -58,7 +58,7 @@ const description = computed(() => {
 const facts = computed(() => [
 	{
 		icon: 'lucide-credit-card',
-		text: `Billing starts at ${price.value} a month when your site moves to this plan.`,
+		text: `Billing starts at ${price.value} a month when your free trial ends.`,
 	},
 	// Server access is a staff tool in Managed SaaS mode, so the plan does not promise it.
 	features.managed
@@ -133,9 +133,9 @@ defineExpose({ addMethod, choosePlan, keep, methodAdded, saving, canContinue })
 		/>
 		<Alert
 			v-if="trial.held"
-			theme="amber"
-			title="This site stays on its free trial"
-			description="Your payment method is added, but this plan is above your spending limit. Choose a smaller plan, or contact support to raise the limit."
+			theme="blue"
+			title="Your payment method is on file"
+			:description="`This site stays on its free trial until ${formatDate(trial.ends_on)}. Billing for the plan you choose starts then. A plan above your spending limit cannot start: choose a smaller plan, or contact support to raise the limit.`"
 		/>
 		<Alert
 			v-if="actionError"
