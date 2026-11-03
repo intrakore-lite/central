@@ -182,20 +182,17 @@ class TestOnboardingSecret(IntegrationTestCase):
 			site_onboarding.push_site_seat_limit(site)
 			push.assert_not_called()
 
-	def test_the_site_outgoing_email_is_pushed_from_central_settings(self):
+	def test_the_site_outgoing_email_rides_in_the_boot_config(self):
 		settings = frappe.get_single("Central Settings")
 		saved = {
 			k: settings.get(k)
 			for k in ("site_mail_server", "site_mail_port", "site_mail_login", "site_mail_sender")
 		}
 		self.addCleanup(frappe.db.set_single_value, "Central Settings", saved)
-		site = Mock(server="server-x", get_pilot_site_names=Mock(return_value=["acme.example"]))
 
 		frappe.db.set_single_value("Central Settings", "site_mail_server", "")
 		frappe.clear_document_cache("Central Settings", "Central Settings")
-		with patch("central.integrations.pilot.update_site_config") as update:
-			site_onboarding.push_site_mail(site)
-			update.assert_not_called()
+		self.assertNotIn("mail_server", site_onboarding.get_boot_site_config(self.action))
 
 		frappe.db.set_single_value(
 			"Central Settings",
@@ -208,10 +205,7 @@ class TestOnboardingSecret(IntegrationTestCase):
 			},
 		)
 		frappe.clear_document_cache("Central Settings", "Central Settings")
-		with patch("central.integrations.pilot.update_site_config") as update:
-			site_onboarding.push_site_mail(site)
-		config = update.call_args.args[2]
-		self.assertEqual(update.call_args.args[:2], ("server-x", ["acme.example"]))
+		config = site_onboarding.get_boot_site_config(self.action)
 		self.assertEqual(
 			(
 				config["mail_server"],
@@ -222,6 +216,7 @@ class TestOnboardingSecret(IntegrationTestCase):
 			),
 			("mail.example.com", 2525, 1, "sites@example.com", "sites@example.com"),
 		)
+		self.assertIn("intrakore_onboarding_secret", config)
 
 	def test_the_boot_config_leaves_the_seat_cap_to_the_bootstrap(self):
 		self.assertNotIn("max_system_users", site_onboarding.get_boot_site_config(self.action))

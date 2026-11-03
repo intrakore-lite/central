@@ -98,7 +98,9 @@ def get_boot_site_config(action) -> dict:
 
 	# get_bootstrap_metadata adds the seat cap, max_system_users, for every team with seats. When
 	# the site is ready, push_site_seat_limit writes it into the site's own config as well.
-	return {"intrakore_onboarding_secret": secret, "intrakore_cloud_onboarding": 1}
+	# The site's outgoing email rides in the boot config: Pilot refuses a later config change
+	# to any key that names a password.
+	return {"intrakore_onboarding_secret": secret, "intrakore_cloud_onboarding": 1} | get_site_mail_config()
 
 
 def push_site_seat_limit(site: Site) -> None:
@@ -128,21 +130,6 @@ def get_site_mail_config() -> dict:
 		"email_sender_name": settings.get("site_mail_sender_name") or "Intrakore",
 		"always_use_account_email_id_as_sender": 1,
 	}
-
-
-def push_site_mail(site: Site) -> None:
-	"""Write the shared outgoing email account into the new site's config, so the site can send
-	its own emails, such as the activation emails of the team the owner invites."""
-	from central.integrations.pilot import update_site_config
-
-	if not (config := get_site_mail_config()):
-		return
-	try:
-		update_site_config(site.server, site.get_pilot_site_names(), config)
-	# A sleeping or busy server can miss the call. The operator reads why on the Site.
-	except requests.RequestException:
-		frappe.log_error(title="Site email not sent", reference_doctype="Site", reference_name=site.name)
-		site.add_comment("Info", _("Central could not set the site's outgoing email."))
 
 
 def adopt_action_secret(site: Site, action_name: str | None) -> None:
