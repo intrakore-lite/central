@@ -35,11 +35,11 @@ flowchart TD
         PAY["payments/<br/>charges · collection · mandates · webhooks · refunds"]
     end
     subgraph EDGE["Edges"]
-        GW["gateways/<br/>Stripe · Razorpay · PayPal adapters"]
+        GW["gateways/<br/>Stripe · Razorpay · PayPal · Telr adapters"]
         PLAT["platform/<br/>notifications · sync · alerts · invariants"]
         AUTHZ["authz.py → central.iam"]
     end
-    EXT["Payment gateways<br/>(Stripe/Razorpay/PayPal)"]
+    EXT["Payment gateways<br/>(Stripe/Razorpay/PayPal/Telr)"]
     RA["central.resource_actions<br/>Resource Action → Atlas"]
 
     DASH --> CAT & REV & PAY
@@ -64,7 +64,7 @@ Read top-to-bottom — each layer calls the one below it.
 | **Revenue** | `revenue/` | Turning usage into money: `invoicing/` (draft→open→collect), `metering`, `credits`, `tax`, `commitments` discount, `dunning`, `pricelock`. |
 | **Payments** | `payments/` | Moving the money: `charges`, `collection` (fallback), `collection_mode` (INR ₹15k gate), `mandates` (UPI), `emandate` (RBI), `payments` (cards), `webhooks`, `reconciliation`, `refunds`, `settlement`, `profile`. |
 | **Ingester** | `ingester/` | Every sync with the accounting system: `connection` (HTTP client), `customer` (customer, address, contact), `erpnext_sync` (Sales Invoice push). |
-| **Gateways** | `gateways/` | The adapter seam: `base.GatewayAdapter` + `stripe`/`razorpay`/`paypal` + `registry`. |
+| **Gateways** | `gateways/` | The adapter seam: `base.GatewayAdapter` + `stripe`/`razorpay`/`paypal`/`telr` + `registry`. |
 | **Platform** | `platform/` | `notifications` (sole sender), `sync` (record the runtime billed from), `alerts` (operator alerts, including `held_invoices`), `invariants` (money audit), `constraints` (DB constraints), `metrics`. |
 | **Projection** | `projection/` | Cost projection and scenario engine for the admin `projection` API. |
 | **Authz** | `authz.py` | Capability checks (delegates to `central.iam`). |
@@ -378,7 +378,7 @@ When a Raven post fails, or Raven is not configured, the alert goes to the email
 - `override_doctype_dashboards["Currency"]` → `api.dashboard_overrides.currency_dashboard`.
 
 ### Inbound webhooks (`payments/webhooks.py`)
-`@stripe` / `@razorpay` / `@paypal` (whitelisted, signature-first; PayPal is verified through its verify-webhook-signature API) → `process_webhook` → adapter `verify_webhook_signature`/`parse_webhook_event` → `handle_webhook_event`. Raw payload persisted to **Webhook Event** for dedupe/replay.
+`@stripe` / `@razorpay` / `@paypal` / `@telr` (whitelisted, signature-first; PayPal is verified through its verify-webhook-signature API; Telr posts a form, stored as JSON, and is verified by its SHA1 `tran_check` and, for a hosted order, by reading the order back) → `process_webhook` → adapter `verify_webhook_signature`/`parse_webhook_event` → `handle_webhook_event`. Raw payload persisted to **Webhook Event** for dedupe/replay.
 
 `handle_webhook_event` sends each event to one handler. The handler links the Webhook Event to the Payment Attempt or Payment Method it is about, so the record's Connections show its event history.
 
@@ -392,6 +392,8 @@ When a Raven post fails, or Raven is not configured, the alert goes to the email
 | `mandate.updated` | `mandates.apply_mandate_event` | A revoked mandate cancels its Payment Method. |
 | `payment_method.detached` | `payments.apply_payment_method_event` | The card is cancelled and leaves the charge order. |
 | `setup_intent.setup_failed` | `payments.apply_payment_method_event` | The failure code, decline code and message on the card, its failed attempt count, and a `Payment Method Setup Failed` Billing Event. The card stays Pending Validation, because the customer can retry on the same SetupIntent. Central finds the card by the SetupIntent: an in-app setup keeps it as the Setup Reference, and a hosted setup keeps it as the Setup Intent ID. |
+| `telr.sale.*`, `telr.capture.approved` | `charges.apply_webhook` | A Telr transaction advice. `telr.sale.held` (status H) keeps the attempt open. |
+| `telr.refund.*` | `corrections.apply_refund_event` | Finishes a Telr refund. |
 | `charge.refunded` | none | Stored only. A refund made in the gateway dashboard leaves no Refund record. |
 
 **Subscribed events.** Each adapter's `webhook_events` lists the events Central subscribes to. `test_payment_gateway.TestWebhookEventList` fails when a handled event is not in that list.
@@ -537,6 +539,8 @@ charges.pay_invoice → create_invoice_payment_order (via gateway adapter)
 Reconciliation asks the gateway about the stored order of an unanswered on-session attempt, and fails it only after `CHECKOUT_OPEN_HOURS`. It credits a Top-up Order that was paid but never confirmed, and expires one nobody paid after `TOP_UP_EXPIRES_HOURS`.
 
 **Pre-debit notice.** `collection.collect_invoice` is the one entry for an off-session debit (billing run, dunning retry, webhook fallback, e-mandate cycle). Before it charges a method whose (gateway, currency) row has `requires_predebit_notice`, it asks `emandate.await_predebit`. That function sends the notice through `emandate.schedule_predebit`, and the method waits until `Invoice.predebit_charge_after`. A team not on Auto Charge gets no notice and so no debit on such a rail; dunning escalates instead.
+
+**Telr continuous authority.** A Telr card is a 1 AED hosted-page authorisation that is released at once. Each off-session charge is a Remote API `sale` of class `cont` with `ref` = the card's latest approved transaction, and the approved sale is the next `ref` (stored as the method's Gateway Method ID). When Telr refuses cont on the reference (code 57) or the reference itself (22, 25), the charge fails with a customer-present code (`decline.CUSTOMER_PRESENT_CODES`): the card stays Active with Re-authorisation Required, the team goes to Action Required, and the customer pays that invoice once on the hosted page. That payment rearms the card with its reference (`payments.rearm_customer_present_method`) and returns the team to Auto Charge.
 
 Method resolution is team-wide, not scoped by anything — `collection.ordered_methods`
 returns the team's active methods, priority order. `charges._resolve_method` (manual

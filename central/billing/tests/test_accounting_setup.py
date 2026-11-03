@@ -210,6 +210,25 @@ class TestInvoiceSeries(AccountingSetupTestCase):
 		self._team("United States")
 		self.assertEqual(accounting.invoice_series(self.TEAM), "EXP/.TFY./.#####")
 
+	def test_an_aed_market_uses_the_uae_series_for_every_team(self):
+		self._configure(series_uae="INV/.YYYY./.#####")
+		frappe.db.set_single_value("Billing Settings", "billing_currency", "AED")
+		frappe.clear_document_cache("Billing Settings", "Billing Settings")
+		for country in ("India", "United Arab Emirates"):
+			with self.subTest(country=country):
+				self._team(country, "27AABCT1111T1Z5", "Active")
+				self.assertEqual(accounting.invoice_series(self.TEAM), "INV/.YYYY./.#####")
+
+	def test_an_aed_market_checks_the_company_trn(self):
+		self.remote.records[("Company", COMPANY)]["tax_id"] = "100000000000003"
+		self._configure(company_trn="100000000000009")
+		frappe.db.set_single_value("Billing Settings", "billing_currency", "AED")
+		frappe.clear_document_cache("Billing Settings", "Billing Settings")
+
+		rows = {row["record"]: row for row in setup.check()}
+		self.assertEqual(rows["Company TRN"]["state"], setup.WRONG)
+		self.assertNotIn("Overseas and SEZ supplies", rows)
+
 	def test_default_series_fit_the_gst_limit(self):
 		s = frappe.get_doc("Billing Settings")
 		for series in (s.series_india_b2b, s.series_india_b2c, s.series_overseas, s.series_receipt_voucher):

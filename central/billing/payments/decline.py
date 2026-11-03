@@ -32,6 +32,13 @@ class Failure(TypedDict, total=False):
 # taken, and sending the same request again gets the same answer, so an operator fixes it.
 REQUEST_REFUSED = "request_refused"
 
+# The card is fine but the gateway will not charge it off-session against the stored
+# reference: Telr has no continuous authority on the referenced transaction (code 57),
+# or the reference is invalid or was never authorised (22, 25). The customer pays once
+# on the hosted page, and that payment is the card's next reference.
+CUSTOMER_PRESENT_CODES = ("continuous_authority_unavailable", "reference_invalid")
+
+
 # The card is refused, or the gateway refused to open the charge. Nothing was taken,
 # and charging this rail again in the same round gives the same answer.
 TERMINAL_CODES = (
@@ -43,6 +50,7 @@ TERMINAL_CODES = (
 	"incorrect_cvc",
 	"order_refused",
 	REQUEST_REFUSED,
+	*CUSTOMER_PRESENT_CODES,
 )
 
 # The outcome is unknown: the money may yet move. Never fall back on these.
@@ -100,6 +108,8 @@ _CUSTOMER_REASON = {
 	"india_recurring_payment_mandate_canceled": _lt("Your auto-pay approval was cancelled"),
 	"transaction_not_approved": _lt("Your bank didn't approve the auto-payment"),
 	"check_unfinished": _lt("The card check didn't finish"),
+	"continuous_authority_unavailable": _lt("Your bank needs you to confirm this payment once"),
+	"reference_invalid": _lt("Your bank needs you to confirm this payment once"),
 }
 
 # The same declines when a method is being added, where no payment was being made.
@@ -180,6 +190,11 @@ def _setup_reason(code: str | None, method_type: str) -> str:
 def is_mandate_failure(failure_code: str | None) -> bool:
 	"""True where the mandate, not the card, is what failed."""
 	return (failure_code or "").lower() in MANDATE_CODES
+
+
+def needs_customer_present_payment(failure_code: str | None) -> bool:
+	"""True where the card must be charged once with the customer present."""
+	return (failure_code or "").lower() in CUSTOMER_PRESENT_CODES
 
 
 def is_terminal(failure_code: str | None) -> bool:

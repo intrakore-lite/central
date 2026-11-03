@@ -540,7 +540,7 @@ class TestAddMethodGatewayResolution(IntegrationTestCase):
 		from central.billing.tests.utils import configure_gateway
 
 		# Start from a clean routing table so each test's own config decides.
-		for adapter_key in ("Stripe", "Razorpay", "Paypal"):
+		for adapter_key in ("Stripe", "Razorpay", "Paypal", "Telr"):
 			configure_gateway(adapter_key, [], is_enabled=0)
 
 	def tearDown(self):
