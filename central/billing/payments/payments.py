@@ -205,11 +205,7 @@ def confirm_payment_method(payment_method: str, payment_id: str | None = None) -
 	if method.status != "Pending Validation":
 		return method
 
-	card = (
-		_adapter(method.gateway).read_saved_card(method.setup_reference, payment_id=payment_id)
-		if method.setup_reference
-		else {}
-	)
+	card = _read_saved_card(method, payment_id) if method.setup_reference else {}
 	if error := card.get("setup_error"):
 		frappe.throw(
 			decline.method_failure_message(
@@ -241,6 +237,15 @@ def confirm_payment_method(payment_method: str, payment_id: str | None = None) -
 	densify_priorities(method.team)
 	method.reload()  # pick up priority / is_default set by densify
 	return method
+
+
+def _read_saved_card(method, payment_id: str | None) -> dict:
+	"""The card the method's setup saved. Only a browser hint is passed on, so an adapter
+	that takes none is called as before."""
+	adapter = _adapter(method.gateway)
+	if payment_id:
+		return adapter.read_saved_card(method.setup_reference, payment_id=payment_id)
+	return adapter.read_saved_card(method.setup_reference)
 
 
 def _is_saved_to_another_customer(card: dict, method) -> bool:
