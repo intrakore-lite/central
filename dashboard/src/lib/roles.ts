@@ -1,4 +1,5 @@
 import { describeCapabilities } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import type { TeamRoleRow } from '@/types/api'
 
 // Roles read as labels, not as a colour code: an icon carries the distinction
@@ -17,11 +18,15 @@ const SYSTEM_ROLE_DISPLAY: Record<string, RoleDisplay> = {
 	},
 	Admin: {
 		icon: 'lucide-shield',
-		description: 'Manage servers, sites, services, billing and team members',
+		description: features.managed
+			? 'Manage sites, services, billing and team members'
+			: 'Manage servers, sites, services, billing and team members',
 	},
 	Developer: {
 		icon: 'lucide-code-2',
-		description: 'Create and manage servers and services',
+		description: features.managed
+			? 'Create and manage sites and services'
+			: 'Create and manage servers and services',
 	},
 	Billing: {
 		icon: 'lucide-credit-card',
@@ -29,7 +34,9 @@ const SYSTEM_ROLE_DISPLAY: Record<string, RoleDisplay> = {
 	},
 	Viewer: {
 		icon: 'lucide-eye',
-		description: 'View-only access to servers and services',
+		description: features.managed
+			? 'View-only access to sites and services'
+			: 'View-only access to servers and services',
 	},
 }
 

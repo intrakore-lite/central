@@ -43,6 +43,8 @@ const ALL_TABS = [
 // Networking, SSH access and snapshots are staff tools in Managed SaaS mode. Central
 // refuses their calls too; the tabs go so a customer sees only what they can use.
 const MANAGED_TABS = new Set(['overview', 'settings'])
+const noun = features.managed ? 'site' : 'server'
+const Noun = features.managed ? 'Site' : 'Server'
 const TABS = features.managed
 	? ALL_TABS.filter((tab) => MANAGED_TABS.has(tab.value))
 	: ALL_TABS
@@ -159,7 +161,7 @@ watch(
 	(title) =>
 		setBreadcrumbs([
 			{
-				label: features.managed ? 'Sites' : 'Servers',
+				label: `${Noun}s`,
 				route: { path: '/servers' },
 			},
 			{ label: title || resourceId.value },
@@ -197,15 +199,18 @@ const pendingCommand = ref<PowerCommand | null>(null)
 const commandCopy = computed(() =>
 	pendingCommand.value === 'stop'
 		? {
-				title: 'Stop server',
+				title: `Stop ${noun}`,
 				label: 'Stop',
-				message:
-					'Sites on this server will be unavailable until you start it again.',
+				message: features.managed
+					? 'This site will be unavailable until you start it again.'
+					: 'Sites on this server will be unavailable until you start it again.',
 			}
 		: {
-				title: 'Restart server',
+				title: `Restart ${noun}`,
 				label: 'Restart',
-				message: 'Sites on this server will be unavailable during the restart.',
+				message: features.managed
+					? 'This site will be unavailable during the restart.'
+					: 'Sites on this server will be unavailable during the restart.',
 			},
 )
 
@@ -273,7 +278,7 @@ watch(
 			<EmptyState
 				v-else-if="!server && fleetError"
 				icon="lucide-cloud-off"
-				title="Server couldn't load"
+				:title="`${Noun} couldn't load`"
 				:description="fleetError"
 			>
 				<template #action>
@@ -284,11 +289,11 @@ watch(
 			<EmptyState
 				v-else-if="!server"
 				icon="lucide-server-off"
-				title="Server not found"
+				:title="`${Noun} not found`"
 				description="It may have been terminated, or it belongs to another team."
 			>
 				<template #action>
-					<Button label="Back to servers" route="/servers" />
+					<Button :label="`Back to ${noun}s`" route="/servers" />
 				</template>
 			</EmptyState>
 

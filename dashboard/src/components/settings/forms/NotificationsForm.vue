@@ -14,6 +14,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { API, method } from '@/api/methods'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { teamParams, whenTeamReady } from '@/composables/useTeamScope'
+import { features } from '@/lib/features'
 import { getErrorMessage, successToast } from '@/lib/feedback'
 import { submitOrThrow } from '@/lib/frappeCall'
 import type {
@@ -42,8 +43,10 @@ const CATEGORIES: { key: Category; label: string; hint: string }[] = [
 	},
 	{
 		key: 'Server',
-		label: 'Servers',
-		hint: 'Server lifecycle, resizes and health.',
+		label: features.managed ? 'Sites' : 'Servers',
+		hint: features.managed
+			? 'Site lifecycle, plan changes and health.'
+			: 'Server lifecycle, resizes and health.',
 	},
 	{
 		key: 'Team',

@@ -5,6 +5,7 @@ import signingInHtml from '@/assets/signing-in.html?raw'
 import { useBusyRunner } from '@/composables/useBusyRunner'
 import { useSession } from '@/composables/useSession'
 import type { ServerAccess } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import { reportError } from '@/lib/feedback'
 import { submitOrThrow } from '@/lib/frappeCall'
 import type { RefreshResponse } from '@/types/api'
@@ -146,7 +147,11 @@ async function refreshServers(): Promise<boolean> {
 		await submitOrThrow(refreshCall, { team })
 		return true
 	} catch (error) {
-		reportError(error, { title: "Couldn't refresh servers" })
+		reportError(error, {
+			title: features.managed
+				? "Couldn't refresh sites"
+				: "Couldn't refresh servers",
+		})
 		return false
 	}
 }

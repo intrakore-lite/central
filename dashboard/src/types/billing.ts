@@ -418,6 +418,8 @@ export interface TeamOpenTrial {
 	product: string | null
 	product_title: string
 	plan: TrialPlan | null
+	/** The last day of the trial, as YYYY-MM-DD. */
+	ends_on: string | null
 }
 
 export interface WelcomeCredit {

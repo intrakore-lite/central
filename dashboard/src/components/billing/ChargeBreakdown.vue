@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Badge } from 'frappe-ui'
 import { computed } from 'vue'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import type { BillingLine } from '@/types/billing'
 
@@ -23,6 +24,8 @@ const props = withDefaults(
 	}>(),
 	{ showBasis: false },
 )
+
+const serversLabel = features.managed ? 'Sites' : 'Servers'
 
 // Purely a cosmetic project-wise breakdown — every line lands on the team's one
 // consolidated invoice regardless of whether it's tagged into a Project, so this
@@ -145,7 +148,7 @@ function isEstimated(li: BillingLine): boolean {
 		<section v-if="servers.length">
 			<div class="mb-1 flex items-center justify-between gap-3">
 				<span class="text-sm-medium text-ink-gray-6">
-					{{ serverGroups.length === 1 ? 'Servers' : `Servers · ${serverGroups.length}` }}
+					{{ serverGroups.length === 1 ? serversLabel : `${serversLabel} · ${serverGroups.length}` }}
 				</span>
 				<span class="text-p-sm tabular-nums text-ink-gray-5">
 					{{ money(sum(servers), currency) }}

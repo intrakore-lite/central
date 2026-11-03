@@ -251,3 +251,15 @@ class TestOnboardingSteps(IntegrationTestCase):
 
 		self.assertEqual(owned["onboarding"], ["billing", "start"])
 		self.assertEqual(joined["onboarding"], [])
+
+	def test_my_teams_lists_no_steps_for_a_free_trial_team(self):
+		name = f"onboarding-{frappe.generate_hash(length=8)}.localhost"
+		frappe.get_doc(
+			{"doctype": "Site", "name": name, "site_name": name, "team": self.team, "trial_state": "Active"}
+		).db_insert()
+
+		frappe.set_user(self.owner)
+		owned = next(team for team in my_teams() if team["name"] == self.team)
+
+		self.assertEqual(owned["onboarding"], [])
+		self.assertEqual(set(onboarding_steps(self.team).values()), {"Pending"})

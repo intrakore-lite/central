@@ -3,6 +3,7 @@ import type { VirtualMachineRow } from '@/composables/useServers'
 import { useSupport } from '@/composables/useSupport'
 import { ACCESS_LOCKED_REASON, type ServerActions } from '@/lib/capabilities'
 import { copyToClipboard } from '@/lib/clipboard'
+import { features } from '@/lib/features'
 import { reportError, successToast } from '@/lib/feedback'
 import { canChange, canStart, canStop, isSettingUp } from '@/lib/status'
 
@@ -65,7 +66,7 @@ export function getServerMenuGroups(
 				? [entry('rename', 'Rename', 'lucide-pencil')]
 				: []),
 			{
-				label: 'Copy server ID',
+				label: features.managed ? 'Copy site ID' : 'Copy server ID',
 				icon: 'lucide-copy',
 				onClick: () => copyServerId(server),
 			},
@@ -260,6 +261,8 @@ async function copyServerId(server: VirtualMachineRow): Promise<void> {
 		.filter(Boolean)
 		.join(' · ')
 
-	if (await copyToClipboard(reference)) successToast('Server ID copied')
-	else reportError('Could not copy the server ID.')
+	const noun = features.managed ? 'site' : 'server'
+	if (await copyToClipboard(reference))
+		successToast(features.managed ? 'Site ID copied' : 'Server ID copied')
+	else reportError(`Could not copy the ${noun} ID.`)
 }

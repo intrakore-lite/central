@@ -9,6 +9,7 @@ import {
 	type useBillingReports,
 } from '@/composables/useBillingReports'
 import { useSpendingLimits } from '@/composables/useSpendingLimits'
+import { features } from '@/lib/features'
 import { currencySymbol, money } from '@/lib/format'
 import type { SpendSlice } from '@/types/billing'
 
@@ -24,7 +25,9 @@ const MONTH_OPTIONS = BILLING_REPORT_MONTHS.map((option) => ({
 	...option,
 	label: `${option.value}M`,
 }))
-const DISPLAY_LABEL: Record<string, string> = { 'VM Plans': 'Servers' }
+const DISPLAY_LABEL: Record<string, string> = {
+	'VM Plans': features.managed ? 'Sites' : 'Servers',
+}
 
 const months = computed({
 	get: () => props.reports.months.value,

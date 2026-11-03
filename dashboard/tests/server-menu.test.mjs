@@ -28,6 +28,7 @@ const menu = load('../src/lib/serverMenu.ts', {
 	},
 	'@/lib/capabilities': { ACCESS_LOCKED_REASON: 'Not in the free trial.' },
 	'@/lib/clipboard': { copyToClipboard: async () => true },
+	'@/lib/features': { features: { managed: false } },
 	'@/lib/feedback': { reportError: () => {}, successToast: () => {} },
 	'@/lib/status': load('../src/lib/status.ts'),
 })

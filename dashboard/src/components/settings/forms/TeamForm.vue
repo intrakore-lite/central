@@ -8,6 +8,7 @@ import { useCapabilities } from '@/composables/useCapabilities'
 import { useSession } from '@/composables/useSession'
 import { settingsOpen } from '@/composables/useSettings'
 import { useTeamSettings } from '@/composables/useTeamSettings'
+import { features } from '@/lib/features'
 
 const router = useRouter()
 const { activeTeam, activeTeamLabel, activeTeamLogo } = useSession()
@@ -86,7 +87,7 @@ async function onArchive(): Promise<void> {
 		<div v-if="canDeleteTeam" class="mt-8 border-t border-outline-gray-1">
 			<SettingsRow
 				title="Archive team"
-				description="Close this team for every member. Terminate its servers and pay its invoices first."
+				:description="`Close this team for every member. Terminate its ${features.managed ? 'sites' : 'servers'} and pay its invoices first.`"
 			>
 				<Button
 					theme="red"

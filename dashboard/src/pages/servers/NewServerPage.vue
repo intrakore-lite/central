@@ -97,6 +97,7 @@ const {
 const paymentFlow = ref<InstanceType<typeof PaymentMethodFlow> | null>(null)
 
 const { setBreadcrumbs } = useBreadcrumbs()
+const noun = features.managed ? 'site' : 'server'
 // A customer of a managed console creates a site from a product: one site, one server.
 setBreadcrumbs(
 	features.managed
@@ -150,19 +151,20 @@ watch(
 			<div class="vt-server-form w-full p-4 md:p-6 lg:w-1/2">
 				<p v-if="loading" class="text-p-sm text-ink-gray-5">Loading regions…</p>
 				<p v-else-if="!regions.length" class="text-p-sm text-ink-gray-5">
-					No regions are accepting new servers right now. Try again later, or
-					<ContactSupportLink :context="{ Topic: 'New server' }" />.
+					No regions are accepting new {{ noun }}s right now. Try again later,
+					or
+					<ContactSupportLink :context="{ Topic: `New ${noun}` }" />.
 				</p>
 
 				<div v-else class="space-y-8">
 					<Alert
 						v-if="paymentMethodRequired"
-						title="Add a payment method to create servers"
+						:title="`Add a payment method to create ${noun}s`"
 						icon="lucide-credit-card"
 						:description="
 							welcomeCredit
-								? `Servers are billed monthly. Add a payment method to get ${welcomeCredit}.`
-								: 'Servers are billed monthly to your payment method.'
+								? `${features.managed ? 'Sites' : 'Servers'} are billed monthly. Add a payment method to get ${welcomeCredit}.`
+								: `${features.managed ? 'Sites' : 'Servers'} are billed monthly to your payment method.`
 						"
 						:primary-action="{
 							label: 'Add payment method',
@@ -388,7 +390,7 @@ watch(
 							title="This region is at capacity"
 							:description="
 								[
-									`${selectedRegionName} can't fit a new server right now.`,
+									`${selectedRegionName} can't fit a new ${noun} right now.`,
 									'Try another region, or check back shortly.',
 									'Capacity frees up as machines are removed.',
 								].join(' ')

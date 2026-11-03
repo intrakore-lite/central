@@ -6,6 +6,7 @@ import { useCapabilities } from '@/composables/useCapabilities'
 import { useServerMapData } from '@/composables/useServerMapData'
 import { useServers } from '@/composables/useServers'
 import { useSession } from '@/composables/useSession'
+import { features } from '@/lib/features'
 import { getErrorMessage, successToast } from '@/lib/feedback'
 import { plural } from '@/lib/format'
 
@@ -22,7 +23,8 @@ const running = computed(() =>
 	),
 )
 
-const serverCount = computed(() => plural(running.value.length, 'server'))
+const noun = features.managed ? 'site' : 'server'
+const serverCount = computed(() => plural(running.value.length, noun))
 
 // The servers to stop while the confirmation is open; null closes it.
 const stopTarget = ref<typeof running.value | null>(null)
@@ -51,7 +53,7 @@ const suspendAll = async () => {
 	if (failed.length) {
 		error.value = getErrorMessage(
 			(failed[0] as PromiseRejectedResult).reason,
-			`${plural(failed.length, 'server')} could not be stopped.`,
+			`${plural(failed.length, noun)} could not be stopped.`,
 		)
 
 		return
@@ -71,20 +73,20 @@ const suspendAll = async () => {
 				Stop {{ serverCount }} at once. Data is retained, and you can restart
 				them.
 			</template>
-			<template v-else>No servers are running.</template>
+			<template v-else>No {{ noun }}s are running.</template>
 		</p>
 		<Button
 			v-if="canPowerServer"
 			theme="red"
-			label="Stop all servers"
+			:label="`Stop all ${noun}s`"
 			:disabled="!running.length"
 			@click="openConfirmation"
 		/>
 
 		<ConfirmDialog
 			v-model:target="stopTarget"
-			:title="`Stop ${running.length === 1 ? 'your server' : `all ${serverCount}`}?`"
-			confirm-label="Stop servers"
+			:title="`Stop ${running.length === 1 ? `your ${noun}` : `all ${serverCount}`}?`"
+			:confirm-label="`Stop ${noun}s`"
 			theme="red"
 			:loading="suspending"
 			:error="error"

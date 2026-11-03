@@ -5,6 +5,8 @@ import functools
 import frappe
 from frappe import _
 
+from central.iam import is_managed_customer
+
 # The message key the envelope rides on inside each _server_messages entry.
 ENVELOPE_KEY = "action_error"
 
@@ -45,12 +47,17 @@ class CargoConnectionError(frappe.ValidationError):
 # code -> user-facing copy. Templates are formatted with the call's context (action,
 # region, resource_id, field); a missing placeholder renders empty rather than crashing
 # the error path. `message` may be overridden when Central owns customer-safe copy.
+# `managed` holds the copy a customer of a managed console reads, who sees sites, not servers.
 ERROR_CATALOG: dict[str, dict] = {
 	"PERMISSION_DENIED": {
 		"title": "You don't have access",
 		"message": "Your role on this team isn't allowed to {action} servers.",
 		"remediation": "Ask a team admin to grant you server access, or switch to a team where you have it.",
 		"retriable": False,
+		"managed": {
+			"message": "Your role on this team isn't allowed to {action} sites.",
+			"remediation": "Ask a team admin to grant you site access, or switch to a team where you have it.",
+		},
 	},
 	"INPUT_REQUIRED": {
 		"title": "Missing information",
@@ -63,12 +70,21 @@ ERROR_CATALOG: dict[str, dict] = {
 		"message": "We couldn't find the server '{resource_id}' on this team.",
 		"remediation": "It may have been terminated, or it belongs to another team. Refresh your server list and try again.",
 		"retriable": False,
+		"managed": {
+			"title": "Site not found",
+			"message": "We couldn't find the site '{resource_id}' on this team.",
+			"remediation": "It may have been terminated, or it belongs to another team. Refresh your site list and try again.",
+		},
 	},
 	"SERVER_BUSY_RESIZING": {
 		"title": "Server is resizing",
 		"message": "This server is resizing right now. You can {action} it as soon as the resize finishes.",
 		"remediation": "",
 		"retriable": True,
+		"managed": {
+			"title": "Site is changing plan",
+			"message": "This site is changing plan right now. You can {action} it as soon as the change finishes.",
+		},
 	},
 	"REGION_UNAVAILABLE": {
 		"title": "This region is temporarily unavailable",
@@ -87,30 +103,50 @@ ERROR_CATALOG: dict[str, dict] = {
 		"message": "The selected region has no room for this server size right now.",
 		"remediation": "Choose a smaller size, or try again later.",
 		"retriable": True,
+		"managed": {
+			"message": "The selected region has no room for this site's plan right now.",
+			"remediation": "Choose a smaller plan, or try again later.",
+		},
 	},
 	"RESOURCE_GONE": {
 		"title": "This server is no longer available",
 		"message": "The server may already have been removed.",
 		"remediation": "Refresh your server list to see the current state.",
 		"retriable": False,
+		"managed": {
+			"title": "This site is no longer available",
+			"message": "The site may already have been removed.",
+			"remediation": "Refresh your site list to see the current state.",
+		},
 	},
 	"ACTION_FAILED": {
 		"title": "The {action} didn't complete",
 		"message": "Your server reported a failure while trying to {action}, and it's now in a failed state.",
 		"remediation": "Review the existing server and contact support before submitting another operation.",
 		"retriable": False,
+		"managed": {
+			"message": "Your site reported a failure while trying to {action}, and it's now in a failed state.",
+			"remediation": "Contact support before you submit another operation.",
+		},
 	},
 	"ACTION_TIMED_OUT": {
 		"title": "The {action} is taking too long",
 		"message": "We haven't heard back that the {action} finished. It may still complete on its own.",
 		"remediation": "Refresh your server list in a few minutes. If it still looks stuck, contact support.",
 		"retriable": False,
+		"managed": {
+			"remediation": "Refresh your site list in a few minutes. If it still looks stuck, contact support.",
+		},
 	},
 	"CREATE_NOT_ACCEPTED": {
 		"title": "The server wasn't created",
 		"message": "The selected region did not accept the request. No server was created.",
 		"remediation": "Try again, or select another region if the problem continues.",
 		"retriable": True,
+		"managed": {
+			"title": "The site wasn't created",
+			"message": "The selected region did not accept the request. No site was created.",
+		},
 	},
 	"SNAPSHOT_FAILED": {
 		"title": "The final snapshot didn't complete",
@@ -147,6 +183,10 @@ ERROR_CATALOG: dict[str, dict] = {
 		"message": "Your credit does not cover this server, and your team has no payment method.",
 		"remediation": "Open Billing to add your billing details and a payment method. Ask a team admin if you cannot manage billing.",
 		"retriable": False,
+		"managed": {
+			"title": "Add a payment method to create sites",
+			"message": "Your credit does not cover this site, and your team has no payment method.",
+		},
 	},
 	"PAYMENT_OVERDUE": {
 		"title": "Pay what your team owes to continue",
@@ -165,12 +205,20 @@ ERROR_CATALOG: dict[str, dict] = {
 		"message": "Your trust tier allows {limit} servers, and your team already has {count}.",
 		"remediation": "Terminate a server you no longer need, or contact support to review your trust tier.",
 		"retriable": False,
+		"managed": {
+			"message": "Your trust tier allows {limit} sites, and your team already has {count}.",
+			"remediation": "Terminate a site you no longer need, or contact support to review your trust tier.",
+		},
 	},
 	"MAILBOX_POOL_EMPTY": {
 		"title": "The server wasn't created",
 		"message": "This region has no mailbox ready for a new server. No server was created.",
 		"remediation": "Try again in a few minutes.",
 		"retriable": True,
+		"managed": {
+			"title": "The site wasn't created",
+			"message": "This region has no mailbox ready for a new site. No site was created.",
+		},
 	},
 	"UNEXPECTED": {
 		"title": "We couldn't complete that",
@@ -196,6 +244,8 @@ def build_envelope(
 	`message`/`remediation` override the catalog copy when the caller has better words
 	(e.g. the region's own error sentence)."""
 	entry = ERROR_CATALOG.get(code, ERROR_CATALOG["UNEXPECTED"])
+	if entry.get("managed") and is_managed_customer():
+		entry = {**entry, **entry["managed"]}
 	source = _SafeContext(context)
 
 	return {

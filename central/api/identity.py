@@ -33,7 +33,8 @@ def my_teams(view_as: str | None = None) -> list[dict[str, Any]]:
 	"""Teams the signed-in user can switch between in the console — the teams they
 	are an active member of, each with a display label, the owner email, the
 	caller's own role, how many people are in it, when it was created, and the
-	onboarding steps the caller still has to answer as its owner. A suspended team is listed with
+	onboarding steps the caller still has to answer as its owner. A free trial team has no
+	onboarding steps. A suspended team is listed with
 	its `status`, so the console can say why it cannot open it.
 
 	An operator who impersonates a team owner passes `view_as`, and that team is added
@@ -131,6 +132,10 @@ def _get_impersonated_team(name: str) -> dict[str, Any]:
 
 
 def _pending_onboarding_steps(teams: list[str]) -> list[dict[str, Any]]:
+	# A free trial team starts in its site, not in the console. The console offers the payment
+	# method in a banner and team invitations on the Team page, so it asks no onboarding steps.
+	trial_teams = _get_trial_teams(teams)
+	teams = [team for team in teams if team not in trial_teams]
 	if not teams:
 		return []
 
@@ -147,6 +152,21 @@ def _pending_onboarding_steps(teams: list[str]) -> list[dict[str, Any]]:
 		)
 		.orderby(step.idx)
 	).run(as_dict=True)
+
+
+def _get_trial_teams(teams: list[str]) -> set[str]:
+	"""The teams that have had a free trial site, in any trial state."""
+	if not teams:
+		return set()
+
+	site = frappe.qb.DocType("Site")
+	rows = (
+		frappe.qb.from_(site)
+		.select(site.team)
+		.distinct()
+		.where(site.team.isin(teams) & site.trial_state.isnotnull() & (site.trial_state != ""))
+	).run(pluck=True)
+	return set(rows)
 
 
 # Owner outranks Admin, and any named role outranks none.

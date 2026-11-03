@@ -44,6 +44,15 @@ class TestErrorCatalog(IntegrationTestCase):
 		self.assertEqual(env["message"], "No capacity — retry shortly.")
 		self.assertEqual(env["title"], "This request couldn't be completed")
 
+	def test_a_managed_customer_reads_sites_instead_of_servers(self):
+		with patch("central.errors.is_managed_customer", return_value=True):
+			customer = build_envelope("PAYMENT_METHOD_REQUIRED")
+		operator = build_envelope("PAYMENT_METHOD_REQUIRED")
+
+		self.assertEqual(customer["title"], "Add a payment method to create sites")
+		self.assertIn("Billing", customer["remediation"])
+		self.assertEqual(operator["title"], "Add a payment method to create servers")
+
 	def test_unknown_code_falls_back_to_unexpected(self):
 		self.assertEqual(build_envelope("NOPE")["code"], "UNEXPECTED")
 
