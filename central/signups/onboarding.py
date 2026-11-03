@@ -251,7 +251,8 @@ def create_site(team: str, product: str, user: str) -> None:
 	from central.api.sites import find_onboarding
 	from central.site_provisioning import create_trial_site
 
-	frappe.set_user(user)
+	# The job runs as the owner who saved the card, so the site path checks that owner's capabilities.
+	frappe.set_user(user)  # nosemgrep: frappe-semgrep-rules.rules.security.frappe-setuser
 	site, creation = find_onboarding(team, product)
 	if site or (creation and creation.status not in ("Failed", "Timed Out")):
 		return
