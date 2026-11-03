@@ -14,6 +14,7 @@ from central.infrastructure.doctype.user_mail_account.user_mail_account import U
 from central.integrations.object_storage import ObjectStorageClient, ObjectStorageNotFound
 from central.services.doctype.ai_trial_key.ai_trial_key import AITrialKey
 from central.services.doctype.team_service.team_service import get_bucket_name, get_storage_endpoint_url
+from central.services.trial_ai_budget import get_site_config as get_ai_budget_config
 from central.sso import central_url, jwks_url, mint_bench_login, mint_datum_token, mint_site_login
 
 PILOT_TASK_TIMEOUT_SECONDS = 35
@@ -62,6 +63,8 @@ def get_bootstrap_metadata(action) -> dict[str, str]:
 	# A free trial boots with a Grove key from the pool: AI works before the team holds any key.
 	if trial_key := AITrialKey.assign(action):
 		common_site_config |= trial_key.get_site_config()
+	# A trial or managed site meters its free AI against this monthly budget and stops at it.
+	common_site_config |= get_ai_budget_config(action)
 	metadata["pilot-common-site-config"] = json.dumps(common_site_config)
 
 	common_config = {}
