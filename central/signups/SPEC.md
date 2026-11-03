@@ -4,6 +4,54 @@
 
 The Signups module holds what a new customer gets: the [Product](doctype/product/SPEC.md) they sign up for, the free trial and the welcome credit. Operators start with the [Trials operator guide](../../spec/TRIALS_OPERATOR_GUIDE.md).
 
+## Invite-only access
+
+Central Settings > Trials > **Invite Only** is on by default. When it is on:
+
+- A new email gets no sign-in code unless it has a live Trial Invitation or a pending team invitation. Central answers with the `INVITE_ONLY` message of `central/errors.py`: "Intrakore Cloud is invite-only. Ask your Intrakore contact for an invitation." `central.users.require_invitation` holds this rule, and `create_user` checks it again.
+- An existing user signs in as before.
+- `/try` and `/dashboard/signup` open the sign-in page, and the sign-in page shows no signup link.
+
+Turn it off to restore the public signup and the trial link.
+
+### Trial Invitation
+
+An operator invites a person from the **Trial Invitation** list in Desk (Signups workspace) or through `central.api.trial_invitations`. Saving a new invitation emails a one-time link, `https://intrakore.cloud/dashboard/activate?token=<token>`, from the default outgoing email account.
+
+| Field | Meaning |
+|---|---|
+| Email, Full Name, Company | The invitee. Full Name becomes the account name. |
+| Product, Lead Reference | The product to try, and the lead in the Intrakore CRM. |
+| Status | Sent, Accepted, Expired or Revoked. |
+| Expires On | Now plus Central Settings > Trial Invitation Expiry (Days), 7 by default. |
+| Team | The first team the invitee creates after activation. |
+
+Central stores only the SHA-256 of the token. Accepting, revoking and the daily expiry job clear the hash, so a link works once. Resend issues a new token and a new expiry, and the earlier link stops working. An invitation for an email that already has a Sent invitation updates that invitation and resends it.
+
+### Activation
+
+The activation page shows the invitation and asks the person to activate. A page load does not spend the link, so a mail scanner that opens the link does not use it.
+
+- A new email: the link proves the mailbox as a sign-in code does. Central creates the user, signs them in, marks the invitation Accepted and opens `/dashboard/onboarding/profile`.
+- An email that already has an account: the person signs in with a code first, then the link is spent. A link alone never opens an existing account.
+- A session for another email: the page asks the person to sign out.
+
+A new invitee who signs up with a code instead of the link also accepts the invitation and goes to the same onboarding page.
+
+### Operator API
+
+Call it with the API key and secret of a System Manager. Every method refuses other users. `invite` and `resend` accept 120 calls an hour from one IP address.
+
+| Method | Arguments | Result |
+|---|---|---|
+| `invite` (POST) | `email`, `full_name`, `company`, `product`, `lead_reference` | The invitation summary |
+| `resend` (POST) | `name` | The summary, with the new expiry |
+| `revoke` (POST) | `name` | The summary |
+| `status` (GET) | `email` or `name` | The newest summary for the email, or null |
+| `list` (GET) | `status`, `email`, `lead_reference`, `start`, `page_length` | Invitations, newest first |
+
+Example: `curl -X POST -H "Authorization: token <key>:<secret>" https://intrakore.cloud/api/method/central.api.trial_invitations.invite -d email=jane@acme.ae -d full_name="Jane Doe" -d company="Acme LLC" -d lead_reference=CRM-LEAD-2026-00012`
+
 ## Welcome credit
 
 Grant Welcome Credits is off by default, so no team gets a welcome credit: a product signup gets a free trial site instead, and every other server needs a payment method. When an operator turns it on, a Team gets the welcome credit when its first payment method becomes active, not at signup. The credit is granted once for each owner across all of the owner's Teams.
@@ -41,7 +89,7 @@ Example: Central Settings has Trial Days 7 and Trial Deletion Days 7. Product `r
 
 ### Trial link
 
-`/try` is the short link for the marketing site, for example `https://intrakore.cloud/try?utm_source=intrakore.com`. It sends a 302 redirect to `/dashboard/signup?product=<Default Trial Product>` and keeps every query parameter, so the console records the UTM tags and the referrer as the team's first touch. A `product` in the link wins over the setting. The sign-in page shows **Start your free N-day trial** to a visitor without a product link. Both read `central/signups/trial_offer.py`.
+When Invite Only is off, `/try` is the short link for the marketing site, for example `https://intrakore.cloud/try?utm_source=intrakore.com`. It sends a 302 redirect to `/dashboard/signup?product=<Default Trial Product>` and keeps every query parameter, so the console records the UTM tags and the referrer as the team's first touch. A `product` in the link wins over the setting. The sign-in page shows **Start your free N-day trial** to a visitor without a product link. Both read `central/signups/trial_offer.py`.
 
 ### Operation
 

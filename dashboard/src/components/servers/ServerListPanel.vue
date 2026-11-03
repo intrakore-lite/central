@@ -4,9 +4,11 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ProviderAvatar from '@/components/servers/ProviderAvatar.vue'
 import ServerRowActions from '@/components/servers/ServerRowActions.vue'
+import SiteAvatar from '@/components/servers/SiteAvatar.vue'
 import StatusRing from '@/components/servers/StatusRing.vue'
 import type { ConsoleMode, VirtualMachineRow } from '@/composables/useServers'
 import { features } from '@/lib/features'
+import { customerLine } from '@/lib/managedView'
 import type { ResourceRow } from '@/lib/serverMap'
 
 // The servers list beside the map, always in view. Renders both kinds indistinguishably —
@@ -86,7 +88,11 @@ onBeforeUnmount(() => window.clearTimeout(cascadeTimer))
 		<div class="shrink-0 px-4 pb-3">
 			<TextInput
 				v-model="query"
-				placeholder="Search by name, region or provider"
+				:placeholder="
+					features.managed
+						? 'Search by name, address or product'
+						: 'Search by name, region or provider'
+				"
 				autocomplete="off"
 				class="[&_input]:w-full"
 			>
@@ -135,7 +141,14 @@ onBeforeUnmount(() => window.clearTimeout(cascadeTimer))
 						:color="row.visual.dot"
 						:is-settled="settledIds.has(row.id)"
 					/>
+					<SiteAvatar
+						v-if="features.managed"
+						class="relative"
+						:logo="row.productLogo"
+						:size="32"
+					/>
 					<ProviderAvatar
+						v-else
 						class="relative"
 						:provider="row.provider"
 						:size="32"
@@ -159,7 +172,7 @@ onBeforeUnmount(() => window.clearTimeout(cascadeTimer))
 						/>
 					</span>
 					<span class="mt-0.5 block truncate text-sm text-ink-gray-5"
-						>{{ row.specs || row.regionLabel }}</span
+						>{{ features.managed ? customerLine(row) : row.specs || row.regionLabel }}</span
 					>
 				</span>
 				<span

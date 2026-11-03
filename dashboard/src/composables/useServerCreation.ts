@@ -363,6 +363,7 @@ export function useServerCreation() {
 			price: price.value?.split(' / ')[0] ?? '—',
 			cycle: price.value?.split(' / ')[1],
 			resources: summaryResources.value,
+			product: offeringTitle,
 			apps: (product.value?.apps ?? []).filter((app) => !app.is_core),
 			tags: [
 				region

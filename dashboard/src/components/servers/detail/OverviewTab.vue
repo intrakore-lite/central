@@ -4,9 +4,12 @@ import { computed } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import UsageCard from '@/components/common/UsageCard.vue'
 import { usePlans } from '@/composables/usePlans'
+import type { SiteRow } from '@/composables/useServerMapData'
 import { formatBytes, usagePercent } from '@/lib/bytes'
 import { timeAgo } from '@/lib/datetime'
 import { features } from '@/lib/features'
+import { siteFacts } from '@/lib/managedView'
+import { statusVisual } from '@/lib/serverMap'
 import {
 	formatSampleInterval,
 	getChartTimeGrain,
@@ -14,6 +17,7 @@ import {
 	METRIC_PERIODS,
 } from '@/lib/serverMetrics'
 import { formatVcpu } from '@/lib/units'
+import type { Team } from '@/types/api'
 import type {
 	MetricsRange,
 	ServerMonitoring,
@@ -23,6 +27,9 @@ import ServerMetricChart from './ServerMetricChart.vue'
 
 interface Props {
 	overview: ServerOverview
+	/** The site this server is, for the facts a customer of a managed console reads. */
+	site?: SiteRow | null
+	team?: Team | null
 	metrics: ServerMonitoring | null
 	metricsError: string
 }
@@ -124,6 +131,22 @@ const transferredBytes = computed(
 	() => transferred.value.received + transferred.value.sent,
 )
 
+// A customer of a managed console reads what the site is, not what the machine runs on:
+// no vCPU, memory or disk meters and no charts. Storage used comes from the last sample.
+const customerFacts = computed(() => {
+	const last = points.value[points.value.length - 1]
+	return siteFacts({
+		siteUrl: props.site?.url ?? props.site?.name,
+		productTitle: props.site?.product_title,
+		planTitle: server.value.plan_title,
+		team: props.team,
+		storageUsed: last?.disk_used_bytes
+			? formatBytes(last.disk_used_bytes)
+			: null,
+		status: statusVisual(server.value).label,
+	})
+})
+
 const usage = computed(() => {
 	const now = points.value[points.value.length - 1]
 	if (!now) return []
@@ -178,8 +201,35 @@ const usage = computed(() => {
 </script>
 
 <template>
+	<dl
+		v-if="features.managed"
+		class="grid content-start gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+	>
+		<div
+			v-for="fact in customerFacts"
+			:key="fact.key"
+			class="min-w-0 space-y-2 rounded-6 bg-surface-gray-1 p-4"
+		>
+			<dt class="flex items-center gap-2 text-sm text-ink-gray-6">
+				<span :class="fact.icon" class="size-4 text-ink-gray-5" />
+				{{ fact.label }}
+			</dt>
+			<dd class="truncate text-lg-semibold text-ink-gray-9">
+				<a
+					v-if="fact.href"
+					:href="fact.href"
+					target="_blank"
+					rel="noopener"
+					class="hover:underline"
+					>{{ fact.value }}</a
+				>
+				<template v-else>{{ fact.value }}</template>
+			</dd>
+		</div>
+	</dl>
+
 	<EmptyState
-		v-if="metricsError"
+		v-else-if="metricsError"
 		icon="lucide-cloud-off"
 		title="Usage couldn't load"
 		:description="metricsError"

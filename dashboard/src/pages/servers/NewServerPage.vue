@@ -340,7 +340,7 @@ watch(
 					<section>
 						<div class="mb-3 flex items-center justify-between gap-3">
 							<h2 class="text-base-semibold text-ink-gray-8">Region</h2>
-							<span class="text-xs text-ink-gray-5"
+							<span v-if="!features.managed" class="text-xs text-ink-gray-5"
 								>Or select a region on the map</span
 							>
 						</div>
@@ -459,7 +459,9 @@ watch(
 			<div
 				class="flex flex-col border-b border-outline-gray-1 lg:sticky lg:top-0 lg:h-[calc(100dvh-3rem)] lg:w-1/2 lg:self-start lg:border-b-0 lg:border-l"
 			>
+				<!-- A customer of a managed console picks a region from the list; the map is for operators. -->
 				<div
+					v-if="!features.managed"
 					class="vt-server-map relative m-2 h-72 overflow-hidden rounded-6 border border-outline-gray-1 lg:h-auto lg:flex-1"
 				>
 					<ServerMap

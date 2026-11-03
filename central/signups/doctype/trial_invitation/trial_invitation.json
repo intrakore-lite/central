@@ -1,0 +1,205 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:TRIAL-INV-{#####}",
+ "creation": "2026-11-03 00:00:00.000000",
+ "description": "An invitation to try Intrakore Cloud. Intrakore Cloud is invite-only: an email without an account needs a live invitation to sign up.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "invitation_section",
+  "email",
+  "full_name",
+  "company",
+  "column_break_invitation",
+  "product",
+  "lead_reference",
+  "status_section",
+  "status",
+  "expires_on",
+  "column_break_status",
+  "sent_by",
+  "last_sent_at",
+  "activation_section",
+  "accepted_at",
+  "column_break_activation",
+  "team",
+  "secret_section",
+  "token_hash"
+ ],
+ "fields": [
+  {
+   "fieldname": "invitation_section",
+   "fieldtype": "Section Break",
+   "label": "Invitation"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "options": "Email",
+   "label": "Email",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_invitation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "options": "Product",
+   "label": "Product",
+   "in_standard_filter": 1,
+   "description": "The product the invitee will try. Leave empty for the default trial product."
+  },
+  {
+   "fieldname": "lead_reference",
+   "fieldtype": "Data",
+   "label": "Lead Reference",
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "description": "The lead in the Intrakore CRM, such as CRM-LEAD-2026-00012."
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "options": "Sent\nAccepted\nExpired\nRevoked",
+   "default": "Sent",
+   "label": "Status",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "expires_on",
+   "fieldtype": "Datetime",
+   "label": "Expires On",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "The activation link stops working at this time. Resend sets a new time."
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sent_by",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Sent By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_sent_at",
+   "fieldtype": "Datetime",
+   "label": "Last Sent At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "activation_section",
+   "fieldtype": "Section Break",
+   "label": "Activation"
+  },
+  {
+   "fieldname": "accepted_at",
+   "fieldtype": "Datetime",
+   "label": "Accepted At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_activation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "team",
+   "fieldtype": "Link",
+   "options": "Team",
+   "label": "Team",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "description": "The team the invitee created after activation."
+  },
+  {
+   "fieldname": "secret_section",
+   "fieldtype": "Section Break",
+   "label": "Secret",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "token_hash",
+   "fieldtype": "Data",
+   "label": "Token Hash",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "SHA-256 of the activation token. The token itself is never stored."
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Signups",
+ "name": "Trial Invitation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "email,company,lead_reference",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Sent"
+  },
+  {
+   "color": "Green",
+   "title": "Accepted"
+  },
+  {
+   "color": "Gray",
+   "title": "Expired"
+  },
+  {
+   "color": "Red",
+   "title": "Revoked"
+  }
+ ],
+ "title_field": "full_name",
+ "track_changes": 1
+}

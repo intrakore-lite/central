@@ -3,12 +3,15 @@ import { Badge, Button, Dropdown, Tooltip } from 'frappe-ui'
 import { computed } from 'vue'
 import CopyableValue from '@/components/common/CopyableValue.vue'
 import ProviderAvatar from '@/components/servers/ProviderAvatar.vue'
+import SiteAvatar from '@/components/servers/SiteAvatar.vue'
 import type {
 	ConsoleMode,
 	ServerCommand,
 	VirtualMachineRow,
 } from '@/composables/useServers'
 import type { ServerActions } from '@/lib/capabilities'
+import { features } from '@/lib/features'
+import { siteAddress } from '@/lib/managedView'
 import { formatPlanLabel } from '@/lib/planLabel'
 import { statusVisual } from '@/lib/serverMap'
 import { getServerMenu, type ServerMenuVerb } from '@/lib/serverMenu'
@@ -20,6 +23,9 @@ interface Props {
 	details: ServerOverview['server'] | null
 	actions: ServerActions
 	siteUrl: string | null
+	/** The site's product, which a customer of a managed console sees in place of the provider. */
+	productTitle?: string | null
+	productLogo?: string | null
 	opening: boolean
 	busy: boolean
 	isSavingProtection: boolean
@@ -44,29 +50,32 @@ const isLocked = computed(() => !!props.server.pending_action)
 const isRunning = computed(() => props.server.status === 'Running')
 const isUbuntu = computed(() => props.server.image_offering === 'ubuntu')
 
+// A customer of a managed console reaches the site by its address, never by an IP.
 const addresses = computed(() =>
-	[
-		{
-			label: 'Public IPv4 address',
-			value: props.server.public_ipv4,
-			icon: 'lucide-globe',
-			help: 'Public IPv4',
-		},
-		{
-			label: 'Public IPv6 address',
-			value: props.server.public_ipv6,
-			icon: 'lucide-globe',
-			help: 'Public IPv6',
-		},
-		{
-			label: 'Private address',
-			value: props.server.ipv6_address,
-			icon: 'lucide-lock',
-			help: 'Private address within this region',
-		},
-	]
-		.filter((row): row is typeof row & { value: string } => !!row.value)
-		.slice(0, 1),
+	features.managed
+		? []
+		: [
+				{
+					label: 'Public IPv4 address',
+					value: props.server.public_ipv4,
+					icon: 'lucide-globe',
+					help: 'Public IPv4',
+				},
+				{
+					label: 'Public IPv6 address',
+					value: props.server.public_ipv6,
+					icon: 'lucide-globe',
+					help: 'Public IPv6',
+				},
+				{
+					label: 'Private address',
+					value: props.server.ipv6_address,
+					icon: 'lucide-lock',
+					help: 'Private address within this region',
+				},
+			]
+				.filter((row): row is typeof row & { value: string } => !!row.value)
+				.slice(0, 1),
 )
 
 const isProtected = computed(() => !!props.details?.is_termination_protected)
@@ -76,7 +85,29 @@ const protectionLabel = computed(() =>
 		: 'Turn on termination protection',
 )
 
+const managedFacts = computed(() => {
+	const details = props.details
+	const address = siteAddress(props.siteUrl)
+	return [
+		{ icon: 'lucide-globe', label: address || null, href: address },
+		{ icon: 'lucide-package', label: props.productTitle || null, href: '' },
+		{
+			icon: 'lucide-receipt',
+			label:
+				details &&
+				formatPlanLabel({
+					title: details.plan_title,
+					rate: details.plan_rate,
+					currency: details.plan_currency,
+					billingCycle: details.plan_billing_cycle,
+				}),
+			href: '',
+		},
+	].filter((fact) => fact.label)
+})
+
 const facts = computed(() => {
+	if (features.managed) return managedFacts.value
 	const server = props.server
 	const details = props.details
 	const region = details?.region_details
@@ -85,10 +116,12 @@ const facts = computed(() => {
 		{
 			icon: 'lucide-map-pin',
 			label: region?.display_name || server.region,
+			href: '',
 		},
 		{
 			icon: 'lucide-layers',
 			label: isUbuntu.value ? 'Ubuntu' : null,
+			href: '',
 		},
 		{
 			icon: 'lucide-package',
@@ -102,6 +135,7 @@ const facts = computed(() => {
 					currency: details.plan_currency,
 					billingCycle: details.plan_billing_cycle,
 				}),
+			href: '',
 		},
 	].filter((fact) => fact.label)
 })
@@ -180,7 +214,14 @@ const menu = computed(() => {
 		class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
 	>
 		<div class="flex min-w-0 items-center gap-3">
+			<SiteAvatar
+				v-if="features.managed"
+				:logo="productLogo"
+				:size="40"
+				class="shrink-0"
+			/>
 			<ProviderAvatar
+				v-else
 				:provider="details?.region_details.provider"
 				:size="40"
 				class="shrink-0"
@@ -199,7 +240,7 @@ const menu = computed(() => {
 					/>
 
 					<Tooltip
-						v-if="details?.has_wireguard_access"
+						v-if="!features.managed && details?.has_wireguard_access"
 						text="Your team's WireGuard VPN devices reach this server at its private address."
 					>
 						<RouterLink
@@ -224,7 +265,15 @@ const menu = computed(() => {
 						class="flex items-center gap-1.5"
 					>
 						<span :class="fact.icon" class="size-3.5 shrink-0" />
-						{{ fact.label }}
+						<a
+							v-if="fact.href"
+							:href="fact.href"
+							target="_blank"
+							rel="noopener"
+							class="truncate hover:text-ink-gray-8 hover:underline"
+							>{{ fact.label }}</a
+						>
+						<template v-else>{{ fact.label }}</template>
 					</li>
 
 					<li

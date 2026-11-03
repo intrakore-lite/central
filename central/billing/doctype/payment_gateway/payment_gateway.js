@@ -7,6 +7,18 @@ frappe.ui.form.on("Payment Gateway", {
 		const via_razorpay = frm.doc.adapter_key === "Paypal" && frm.doc.paypal_settlement_mode === "Via Razorpay";
 		if (frm.is_new() || via_razorpay) return;
 
+		// Telr has no webhook API: the Transaction Advice URL is set in the Telr admin.
+		if (frm.doc.adapter_key === "Telr") {
+			const url = `${frappe.urllib.get_base_url()}/api/method/central.billing.payments.webhooks.telr`;
+			frm.set_intro(
+				__("In the Telr admin, set the Transaction Advice URL to {0} and enter its secret as Webhook Secret.", [
+					url,
+				]),
+				"blue"
+			);
+			return;
+		}
+
 		const label = frm.doc.webhook_endpoint_id ? __("Re-register Webhook") : __("Register Webhook");
 		frm.add_custom_button(label, () => reregister(frm));
 

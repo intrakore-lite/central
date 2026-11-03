@@ -1,5 +1,9 @@
 import { nextTick } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+	createRouter,
+	createWebHistory,
+	type RouteLocationNormalized,
+} from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useSession } from '@/composables/useSession'
 import { fetchBillingSetup } from '@/data/billingSetup'
@@ -23,12 +27,22 @@ const routes = [
 		name: 'Signup',
 		component: () => import('@/pages/auth/SignupPage.vue'),
 		meta: { public: true },
+		// Invite-only: there is no public signup, so its links open the sign-in page.
+		beforeEnter: (to: RouteLocationNormalized) =>
+			features.inviteOnly ? { path: '/login', query: to.query } : true,
 	},
 	{
 		path: '/verify',
 		name: 'VerifyEmail',
 		component: () => import('@/pages/auth/VerifyEmailPage.vue'),
 		meta: { public: true },
+	},
+	{
+		// Emailed Intrakore Cloud activation link, open to guests and signed-in users.
+		path: '/activate',
+		name: 'Activate',
+		component: () => import('@/pages/auth/ActivatePage.vue'),
+		meta: { public: true, allowSignedIn: true },
 	},
 	{
 		// Emailed invitation link, open to guests and signed-in users.
@@ -49,25 +63,25 @@ const routes = [
 		name: 'OnboardingProvisioning',
 		component: () => import('@/pages/onboarding/SiteReadyPage.vue'),
 	},
-	// The invited owner's paid onboarding, in the Intrakore design. An activation link opens
+	// The invited owner's paid onboarding, in the Intrakore design. The activation link opens
 	// step 1, so these steps need no product link, unlike the trial site steps above.
 	{
 		path: '/onboarding/profile',
 		name: 'OnboardingProfile',
 		component: () => import('@/pages/onboarding/ProfilePage.vue'),
-		meta: { setupStep: true },
+		meta: { invitedOnboarding: true },
 	},
 	{
 		path: '/onboarding/billing',
 		name: 'OnboardingBilling',
 		component: () => import('@/pages/onboarding/BillingPage.vue'),
-		meta: { setupStep: true },
+		meta: { invitedOnboarding: true },
 	},
 	{
 		path: '/onboarding/team',
 		name: 'OnboardingTeam',
 		component: () => import('@/pages/onboarding/TeamPage.vue'),
-		meta: { setupStep: true },
+		meta: { invitedOnboarding: true },
 	},
 	{
 		path: '/github/connect/:attempt?',
@@ -263,7 +277,11 @@ router.beforeEach((to) => {
 			return '/servers'
 	}
 
-	if (to.path.startsWith('/onboarding') && !productSignup && !to.meta.setupStep)
+	if (
+		to.path.startsWith('/onboarding') &&
+		!productSignup &&
+		!to.meta.invitedOnboarding
+	)
 		return '/servers'
 
 	// Warm the billing-profile completeness cache for the active team, non-blocking

@@ -123,6 +123,21 @@ export interface InvitationSummary {
 	has_account: boolean
 }
 
+/** What an Intrakore Cloud activation link shows (central Trial Invitation). */
+export interface TrialActivation {
+	email: string
+	full_name: string
+	company: string
+	status: 'Sent' | 'Accepted' | 'Expired' | 'Revoked'
+	expires_on: string
+	has_account: boolean
+}
+
+/** The answer to spending an activation link. */
+export type TrialActivationResult =
+	| { user: string; next: string; csrf_token: string }
+	| { needs_sign_in: true; email: string }
+
 /** One bundled resource in a plan (central Plan Includes). */
 export interface PlanInclude {
 	resource_type: 'Compute' | 'Memory' | 'Disk' | 'Transfer' | 'IP' | 'Snapshot'

@@ -19,18 +19,28 @@ def accounting_settings():
 def invoice_series(team: str) -> str:
 	"""The naming series for this team's next statutory invoice.
 
-	Outside India is one series, because those supplies carry no GST. Inside India
-	a live GSTIN makes it B2B, anything else B2C.
+	A market that bills in AED has one UAE series for every team. Otherwise, outside
+	India is one series, because those supplies carry no GST. Inside India a live GSTIN
+	makes it B2B, anything else B2C.
 	"""
 	from central.billing.revenue import gst_status
 
 	settings = accounting_settings()
+	if is_aed_market():
+		return settings.series_uae
 	country = frappe.db.get_value("Billing Profile", team, "country")
 	if country != INDIA:
 		return settings.series_overseas
 	if gst_status.standing(team).gstin:
 		return settings.series_india_b2b
 	return settings.series_india_b2c
+
+
+def is_aed_market() -> bool:
+	"""The market bills every team in AED (UAE VAT), so no Indian GST rule applies."""
+	from central.billing import settings
+
+	return settings.billing_currency() == "AED"
 
 
 def receivable_account(currency: str) -> str:

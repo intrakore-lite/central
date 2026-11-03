@@ -4,6 +4,8 @@ import { useFleetRows } from '@/composables/useFleetRows'
 import { useRegions } from '@/composables/useRegions'
 import { useServerMapData } from '@/composables/useServerMapData'
 import { useSession } from '@/composables/useSession'
+import { features } from '@/lib/features'
+import { capitalise } from '@/lib/format'
 import {
 	flagEmoji,
 	hasMapCoords,
@@ -15,6 +17,14 @@ import {
 	STATUS_FILTERS,
 } from '@/lib/serverMap'
 import type { Region } from '@/types/Region'
+
+// A customer of a managed console searches by what the row shows: name, address, product.
+function searchText(row: ResourceRow): string {
+	const customer = `${row.name} ${row.site?.url ?? ''} ${row.productTitle ?? ''}`
+	return features.managed
+		? customer
+		: `${customer} ${row.id} ${row.regionLabel} ${row.provider ?? ''}`
+}
 
 export function useServerFleet() {
 	const fleet = useServerMapData()
@@ -107,11 +117,7 @@ export function useServerFleet() {
 			: filteredRows.value
 		const term = query.value.trim().toLowerCase()
 		if (!term) return visible
-		return visible.filter((row) =>
-			`${row.name} ${row.id} ${row.regionLabel} ${row.provider ?? ''}`
-				.toLowerCase()
-				.includes(term),
-		)
+		return visible.filter((row) => searchText(row).toLowerCase().includes(term))
 	})
 
 	const listTitle = computed(() => {
@@ -119,7 +125,8 @@ export function useServerFleet() {
 			statusFilter.value ||
 			regionFilter.value.provider ||
 			regionFilter.value.region
-		return filtered ? 'Servers' : 'All servers'
+		const noun = features.managed ? 'sites' : 'servers'
+		return filtered ? capitalise(noun) : `All ${noun}`
 	})
 
 	const pins = computed<MapPin[]>(() =>

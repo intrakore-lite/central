@@ -169,6 +169,11 @@ class GatewayAdapter(ABC):
 	# default is "can't charge off-session", so a new adapter opts in explicitly.
 	supports_off_session_charge: bool = False
 
+	# Whether a customer-present payment on this gateway gives a saved card a new
+	# reference to charge off-session (Telr continuous authority). See
+	# payments.payments.rearm_customer_present_method.
+	rearms_on_customer_present_payment: bool = False
+
 	def can_charge_silently(self, amount: float, currency: str) -> bool:
 		"""True if this gateway may pull `amount` (major units) in `currency`
 		off-session, without sending the customer back to authenticate."""

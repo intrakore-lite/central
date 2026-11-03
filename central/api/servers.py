@@ -88,7 +88,7 @@ def registry(team: str | None = None) -> dict:
 	rows = frappe.get_list(
 		"Site",
 		filters={"team": team},
-		fields=["name", "server", "subdomain", "renamed_at"],
+		fields=["name", "server", "subdomain", "renamed_at", "product"],
 		order_by="name asc",
 		limit_page_length=0,
 	)
@@ -111,6 +111,7 @@ def _sites(rows: list[dict], servers: list[dict], pending: dict[str, str]) -> li
 	"""The sites on the machines already loaded, with each machine's state. A terminated
 	machine's site is left out."""
 	machines = {server["name"]: server for server in servers}
+	products = _products({row["product"] for row in rows if row.get("product")})
 	return [
 		{
 			"name": row["name"],
@@ -121,10 +122,28 @@ def _sites(rows: list[dict], servers: list[dict], pending: dict[str, str]) -> li
 			"region": machine["region"],
 			# A site's actions run against its machine, so its in-flight label is the machine's.
 			"pending_action": pending.get(row["server"]),
+			# A customer of a managed console knows a site by its product, not its machine.
+			"product": row.get("product"),
+			"product_title": products.get(row.get("product"), {}).get("title"),
+			"product_logo": products.get(row.get("product"), {}).get("logo"),
 		}
 		for row in rows
 		if (machine := machines.get(row["server"])) and machine["status"] != "Terminated"
 	]
+
+
+def _products(names: set[str]) -> dict[str, dict]:
+	"""The title and logo of each product the team's sites run."""
+	if not names:
+		return {}
+	# Product is a catalog record a customer has no read on. The names come from the
+	# team's own Site rows, read under the caller's permissions above.
+	rows = frappe.get_all(
+		"Product",
+		filters={"name": ["in", sorted(names)]},
+		fields=["name", "title", "logo"],
+	)
+	return {row.name: {"title": row.title, "logo": row.logo} for row in rows}
 
 
 @frappe.whitelist(methods=["GET"])

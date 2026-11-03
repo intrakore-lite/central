@@ -7,7 +7,8 @@ import { useSession } from '@/composables/useSession'
 import { methodUrl, postFrappe } from '@/lib/auth'
 import { productOnboarding, signInDestination } from '@/lib/authRedirect'
 
-export type SignedIn = { user: string; csrf_token: string }
+/** `next` is where an invited signup starts, such as the invited onboarding. */
+export type SignedIn = { user: string; csrf_token: string; next?: string }
 
 /** A new email has no account until a name arrives with its code. */
 export type VerifyCodeResponse = SignedIn | { needs_name: true }
@@ -48,6 +49,8 @@ export function useEmailSignIn() {
 		signedIn: SignedIn,
 		query: LocationQuery,
 	): Promise<void> {
+		if (signedIn.next) return window.location.replace(signedIn.next)
+
 		const destination = signInDestination(query)
 		const onboarding = productOnboarding(query)
 		if (!onboarding) return window.location.replace(destination)

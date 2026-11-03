@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Badge } from 'frappe-ui'
+import { computed } from 'vue'
+import { features } from '@/lib/features'
 import type { ProductApp } from '@/types/serverCreation'
 
 interface Resource {
@@ -13,18 +15,56 @@ interface Props {
 	price: string
 	cycle?: string
 	resources: Resource[]
+	/** The product or image the site starts with. */
+	product?: string
 	/** The apps of the chosen product, without the core apps. */
 	apps?: ProductApp[]
 	tags: string[]
 }
 
-withDefaults(defineProps<Props>(), { apps: () => [] })
+const props = withDefaults(defineProps<Props>(), { apps: () => [] })
 
-const tiles = [
-	{ type: 'Compute', label: 'vCPU', icon: 'lucide-cpu' },
-	{ type: 'Memory', label: 'Memory', icon: 'lucide-memory-stick' },
-	{ type: 'Disk', label: 'SSD', icon: 'lucide-database' },
-]
+const resource = (type: string): string | undefined =>
+	props.resources.find((r) => r.type === type)?.value
+
+// A customer of a managed console reads the product and its storage, not vCPU and memory.
+const tiles = computed(() =>
+	features.managed
+		? [
+				{
+					key: 'product',
+					label: 'Product',
+					icon: 'lucide-package',
+					value: props.product,
+				},
+				{
+					key: 'storage',
+					label: 'Storage',
+					icon: 'lucide-database',
+					value: resource('Disk'),
+				},
+			]
+		: [
+				{
+					key: 'Compute',
+					label: 'vCPU',
+					icon: 'lucide-cpu',
+					value: resource('Compute'),
+				},
+				{
+					key: 'Memory',
+					label: 'Memory',
+					icon: 'lucide-memory-stick',
+					value: resource('Memory'),
+				},
+				{
+					key: 'Disk',
+					label: 'SSD',
+					icon: 'lucide-database',
+					value: resource('Disk'),
+				},
+			],
+)
 </script>
 
 <template>
@@ -44,11 +84,12 @@ const tiles = [
 		</div>
 
 		<dl
-			class="grid grid-cols-2 divide-outline-gray-2 rounded-6 border border-outline-gray-2 md:grid-cols-3 md:divide-x"
+			class="grid grid-cols-2 divide-outline-gray-2 rounded-6 border border-outline-gray-2 md:divide-x"
+			:class="tiles.length === 3 && 'md:grid-cols-3'"
 		>
 			<div
 				v-for="tile in tiles"
-				:key="tile.type"
+				:key="tile.key"
 				class="flex items-center gap-3 px-4 py-4"
 			>
 				<span
@@ -59,7 +100,7 @@ const tiles = [
 				</span>
 				<div class="min-w-0">
 					<dd class="truncate text-xl-semibold text-ink-gray-9">
-						{{ resources.find((r) => r.type === tile.type)?.value ?? '—' }}
+						{{ tile.value ?? '—' }}
 					</dd>
 					<dt class="text-base text-ink-gray-5">{{ tile.label }}</dt>
 				</div>

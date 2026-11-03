@@ -1,0 +1,26 @@
+{% extends "templates/emails/base.html" %}
+{% import "templates/emails/macros.html" as ui %}
+
+{% block content %}
+<tr>
+	<td class="fc-body">
+		{{ ui.heading(_("You are invited to {0}").format(get_brand_name()) | e) }}
+		{{ ui.paragraph(_("Hello {0}, your Intrakore contact invited you to set up {1} for {2}.").format(full_name, get_brand_name(), company) | e) }}
+		{{ ui.paragraph(_("Open the link to activate your account. It works once, so you do not need a sign-in code.") | e) }}
+
+		{{ ui.button(_("Activate your account"), activation_url | e) }}
+
+		<p class="fc-muted pt-6">
+			{{ _("This link expires on {0}. Do not forward this email: the link signs in as you.").format(expires_on) | e }}
+		</p>
+		<p class="fc-muted pt-4">
+			{{ _("If the button does not work, open this link:") }}<br />
+			{{ ui.link(activation_url | e, activation_url | e) }}
+		</p>
+	</td>
+</tr>
+{% endblock %}
+
+{% block footer %}
+<b>{{ _("Note") }}:</b> {{ _("You are receiving this because Intrakore invited this email to {0}. If you did not expect it, you can ignore this email.").format(get_brand_name()) | e }}
+{% endblock %}

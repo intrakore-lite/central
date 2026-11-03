@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import frappe
 
 from central.billing.ingester import connection
-from central.billing.ingester.settings import accounting_settings
+from central.billing.ingester.settings import accounting_settings, is_aed_market
 
 OK = "OK"
 MISSING = "Missing"
@@ -35,6 +35,8 @@ def check() -> list[dict]:
 
 
 def steps(s) -> list[Step]:
+	if is_aed_market():
+		return uae_steps(s)
 	return [
 		_exists("Company", "Company", s.company),
 		Step("Company address", "Address", s.company_address, lambda: _company_address(s)),
@@ -58,7 +60,40 @@ def steps(s) -> list[Step]:
 	]
 
 
+def uae_steps(s) -> list[Step]:
+	"""The same records for a market that bills in AED. UAE VAT needs the company TRN on
+	the tax invoice, not a GSTIN, a SAC code, the GST templates or the Indian export
+	setting. The Sales Invoice sync still writes its tax rows the GST way (`ingester.gst`)."""
+	return [
+		_exists("Company", "Company", s.company),
+		Step("Company TRN", "Company", s.company, lambda: _company_trn(s)),
+		_exists("Company address", "Address", s.company_address),
+		*[_receivable(row) for row in s.receivable_accounts],
+		*[_wallet_clearing(row) for row in s.receivable_accounts],
+		Step("Advance account", "Account", s.advance_account, lambda: _advance_account(s)),
+		_exists("Income account", "Account", s.income_account),
+		_exists("Cost center", "Cost Center", s.cost_center),
+		_exists("Promotional credit account", "Account", s.promotional_credit_account),
+		*[step for row in s.gateways for step in _gateway(row)],
+		_exists("Service item", "Item", s.service_item),
+		_series("Sales Invoice", [s.series_uae, s.series_credit_note]),
+		_series("Payment Entry", [s.series_receipt_voucher]),
+		_print_format(s.invoice_print_format, "Sales Invoice"),
+		_print_format(s.receipt_voucher_print_format, "Payment Entry"),
+	]
+
+
 # --- checks -------------------------------------------------------------------
+
+
+def _company_trn(s) -> tuple[str, str]:
+	"""The TRN on Billing Settings and the Company's Tax ID in the accounting system agree."""
+	company = _fetch("Company", s.company) or {}
+	if not s.company_trn:
+		return MISSING, "Set Company TRN on Billing Settings."
+	if company.get("tax_id") != s.company_trn:
+		return WRONG, f"The company's Tax ID is {company.get('tax_id') or 'empty'}, not {s.company_trn}."
+	return OK, f"TRN {s.company_trn}"
 
 
 def _exists(record: str, doctype: str, name: str | None) -> Step:
