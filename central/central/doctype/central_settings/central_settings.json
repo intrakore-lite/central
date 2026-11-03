@@ -700,7 +700,7 @@
    "fieldname": "site_mail_section",
    "fieldtype": "Section Break",
    "label": "Site Outgoing Email",
-   "description": "SMTP account every new customer site sends its own emails with (team activation, password reset, notifications). Written into the site's config when it is first ready. Leave Server empty to send none."
+   "description": "SMTP account every new customer site sends its own emails with (team activation, password reset, notifications). Sent in the site's boot config when the site is created. Leave Server empty to send none."
   },
   {
    "fieldname": "site_mail_server",
