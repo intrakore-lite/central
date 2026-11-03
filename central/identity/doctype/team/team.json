@@ -32,7 +32,10 @@
   "business_type",
   "headcount_bracket",
   "column_break_organisation",
-  "turnover_band"
+  "turnover_band",
+  "column_break_setup",
+  "setup_team_done_at",
+  "setup_completed_at"
  ],
  "fields": [
   {
@@ -212,6 +215,24 @@
    "fieldtype": "Select",
    "label": "Annual Turnover (AED)",
    "options": "\n< 5M\n5\u201325M\n25\u2013100M\n100\u2013500M\n500M+"
+  },
+  {
+   "fieldname": "column_break_setup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "When the owner left onboarding step 3 (team invitations).",
+   "fieldname": "setup_team_done_at",
+   "fieldtype": "Datetime",
+   "label": "Team Step Done At",
+   "read_only": 1
+  },
+  {
+   "description": "When the owner finished onboarding step 4 (master setup). The console then opens on its sites.",
+   "fieldname": "setup_completed_at",
+   "fieldtype": "Datetime",
+   "label": "Setup Completed At",
+   "read_only": 1
   }
  ],
  "links": [

@@ -54,6 +54,8 @@ class Team(TeamLifecycle, Document):
 		owner_user: DF.Link
 		referrer: DF.SmallText | None
 		seats: DF.Int
+		setup_completed_at: DF.Datetime | None
+		setup_team_done_at: DF.Datetime | None
 		status: DF.Literal["Active", "Suspended", "Archived"]
 		subscription_ends_on: DF.Date | None
 		team_logo: DF.AttachImage | None

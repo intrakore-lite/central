@@ -15,6 +15,7 @@ from central.integrations.object_storage import ObjectStorageClient, ObjectStora
 from central.services.doctype.ai_trial_key.ai_trial_key import AITrialKey
 from central.services.doctype.team_service.team_service import get_bucket_name, get_storage_endpoint_url
 from central.services.trial_ai_budget import get_site_config as get_ai_budget_config
+from central.signups.site_onboarding import get_boot_site_config
 from central.sso import central_url, jwks_url, mint_bench_login, mint_datum_token, mint_site_login
 
 PILOT_TASK_TIMEOUT_SECONDS = 35
@@ -68,6 +69,9 @@ def get_bootstrap_metadata(action) -> dict[str, str]:
 		common_site_config |= trial_key.get_site_config()
 	# A trial or managed site meters its free AI against this monthly budget and stops at it.
 	common_site_config |= get_ai_budget_config(action)
+	# A site that Central onboards: its API secret and seat cap. Pilot's site configuration API
+	# refuses secret-like keys, so the secret travels here. The machine runs only this site.
+	common_site_config |= get_boot_site_config(action)
 	metadata["pilot-common-site-config"] = json.dumps(common_site_config)
 
 	common_config = {}

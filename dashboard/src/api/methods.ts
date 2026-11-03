@@ -147,6 +147,11 @@ export const API = {
 	getOnboarding: 'central.api.onboarding.get_onboarding',
 	saveOnboardingProfile: 'central.api.onboarding.save_profile',
 	startOnboardingSite: 'central.api.onboarding.start_site',
+	onboardingSiteState: 'central.api.onboarding.site_state',
+	completeSiteSetup: 'central.api.onboarding.complete_site_setup',
+	inviteSiteMembers: 'central.api.onboarding.invite_members',
+	finishTeamStep: 'central.api.onboarding.finish_team_step',
+	applyMasterSetup: 'central.api.onboarding.apply_master_setup',
 
 	getBenchLink: 'central.api.sso.get_bench_link',
 
