@@ -6,8 +6,10 @@ from frappe.utils import add_days, get_last_day, getdate, nowdate
 
 from central.billing.catalog import seats
 from central.billing.catalog.pricing import set_catalog_rate
+from central.billing.revenue.invoicing import prepayment
 from central.billing.revenue.invoicing.lines import compute_line_items
 from central.billing.tests.utils import make_plan
+from central.signups import trial
 from central.tests.test_trial_lifecycle import TrialOnAMachine
 
 
@@ -206,7 +208,8 @@ class TestSeatTrial(SeatsOnATrial):
 		ends_on = getdate(self.site().trial_ends_on)
 		self.assertEqual(context["seats"], 4)
 		self.assertEqual(
-			context["first_payment_on"], frappe.utils.formatdate(add_days(get_last_day(ends_on), 1))
+			(context["first_payment_on"], context["first_payment_to"]),
+			(frappe.utils.formatdate(ends_on), frappe.utils.formatdate(get_last_day(ends_on))),
 		)
 		self.assertTrue(context["first_payment"])
 
@@ -271,3 +274,105 @@ class TestSeatTrial(SeatsOnATrial):
 		from central.signups.trial import get_trial_status
 
 		return get_trial_status(self.server.name)
+
+
+class TestFirstPayment(SeatsOnATrial):
+	"""A converted trial billed per seat pays its first period on the trial end date."""
+
+	def setUp(self):
+		super().setUp()
+		vat = {"output_tax_type": "VAT", "output_tax_rate": 5}
+		if frappe.db.exists("Tax Profile", self.team.name):
+			frappe.db.set_value("Tax Profile", self.team.name, vat)
+		else:
+			frappe.get_doc({"doctype": "Tax Profile", "team": self.team.name, **vat}).insert(
+				ignore_permissions=True
+			)
+
+	def quote(self):
+		return seats.get_seat_quote(self.team.name)
+
+	def test_the_first_period_is_the_seats_to_the_month_end_by_the_day_plus_vat(self):
+		period = prepayment.get_first_period(self.quote(), "2026-11-16")
+
+		# 4 seats bill 200 a month; 15 of November's 30 days, then 5% VAT.
+		self.assertEqual((period.net, period.tax, period.total), (100, 5, 105))
+		self.assertEqual((str(period.period_start), str(period.period_end)), ("2026-11-16", "2026-11-30"))
+
+	def test_the_end_date_converts_the_trial_and_queues_the_first_payment(self):
+		with patch("central.signups.trial.has_active_payment_method", return_value=True):
+			site = self.run_on(14)
+
+		self.assertEqual(site.trial_state, "Converted")
+		frappe.enqueue.assert_any_call(
+			trial.charge_first_payment,
+			site=site.name,
+			queue="long",
+			enqueue_after_commit=True,
+			job_id=f"trial-first-payment:{site.name}",
+			deduplicate=True,
+		)
+
+	def test_the_first_payment_is_one_open_prepayment_charged_to_the_card(self):
+		self.site().db_set("trial_state", "Converted")
+		with patch("central.billing.payments.collection.collect_invoice") as collect_invoice:
+			prepayment.charge_first_payment(self.site().name)
+			prepayment.charge_first_payment(self.site().name)
+
+		invoices = frappe.get_all(
+			"Invoice",
+			filters={"team": self.team.name, "invoice_type": "Prepayment"},
+			fields=["name", "status", "total", "expected_collection"],
+		)
+		self.assertEqual(len(invoices), 1)
+		self.assertEqual(invoices[0].status, "Open")
+		self.assertEqual(invoices[0].total, invoices[0].expected_collection)
+		self.assertEqual(collect_invoice.call_count, 2)
+		collect_invoice.assert_called_with(invoices[0].name)
+
+	def test_a_paid_first_payment_settles_the_first_invoice_with_no_card_charge(self):
+		from central.billing.payments.charges import _mark_invoice_paid
+		from central.billing.revenue import credits
+		from central.billing.revenue.invoicing.lifecycle import open_and_collect
+
+		paid = prepayment.create_prepayment(self.quote(), "2026-11-16")
+		with patch("central.billing.ingester.advance.enqueue_sync"):
+			_mark_invoice_paid(frappe._dict(invoice=paid.name), 105, "USD", "pay_first_1", "stripe")
+
+		self.assertEqual(frappe.db.get_value("Invoice", paid.name, "status"), "Paid")
+		self.assertEqual(credits.get_balance(self.team.name, "USD")["balance"], 100)
+		self.assertEqual(credits.advance_gst_balance(self.team.name, "USD"), 5)
+
+		# The arrears invoice bills the hours from the conversion, a little under the full days.
+		arrears = frappe.get_doc(
+			{
+				"doctype": "Invoice",
+				"team": self.team.name,
+				"invoice_type": "Billable",
+				"status": "Draft",
+				"period_start": "2026-11-01",
+				"period_end": "2026-11-30",
+				"currency": "USD",
+				"subtotal": 96,
+				"total": 96,
+				"expected_collection": 96,
+			}
+		).insert(ignore_permissions=True)
+		with patch("central.billing.payments.collection.collect_invoice") as collect_invoice:
+			result = open_and_collect(arrears.name)
+
+		collect_invoice.assert_not_called()
+		self.assertEqual(result["status"], "Paid")
+		self.assertEqual(result["expected_collection"], 0)
+		self.assertAlmostEqual(credits.get_balance(self.team.name, "USD")["balance"], 4, places=2)
+
+	def test_a_failed_first_payment_is_dunned_and_the_monthly_invoice_replaces_it(self):
+		from central.billing.revenue import dunning
+
+		unpaid = prepayment.create_prepayment(self.quote(), "2026-11-16")
+		with patch.object(dunning, "process_invoice_dunning") as process_invoice_dunning:
+			dunning.run_dunning(now="2026-11-20")
+
+		process_invoice_dunning.assert_any_call(unpaid.name, now="2026-11-20")
+		self.assertEqual(prepayment.cancel_unpaid_prepayments(self.team.name, "2026-11-30"), [unpaid.name])
+		self.assertEqual(frappe.db.get_value("Invoice", unpaid.name, "status"), "Cancelled")

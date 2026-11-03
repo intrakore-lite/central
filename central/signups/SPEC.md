@@ -110,7 +110,7 @@ The `Trial` class in `central/signups/trial.py` owns these states. Every change 
 | Event | Sent |
 |---|---|
 | `trial_unopened` | Once, from the day after the site is ready, when nobody has opened it. Not sent when a warning is due. |
-| `trial_expiring` | Trial Notice Days before Trial Ends On, and again on the last day. A Team with a card on file gets it only on the last day, with its first payment: the seats, the amount before tax and the date. Its button opens Settings > Billing. |
+| `trial_expiring` | Trial Notice Days before Trial Ends On, and again on the last day. A Team with a card on file gets it only on the last day, with its first payment: the seats, the amount before VAT, the month end it pays to, and the date it is charged. Its button opens Settings > Billing. |
 | `trial_ended` | When the stop job has stopped the server, not when the trial ends |
 | `trial_deletion_soon` | Trial Notice Days before Trial Deletes On |
 | `trial_deleted` | When the server is terminated. Its button opens the signup page of the same product. |
@@ -218,8 +218,23 @@ A product site of a Team with seats is billed per seat, not by its server plan. 
 | A seat change on a paid site | A Plan Changed segment at the new price, from now. The billing run bills each segment by the day. A larger count must fit the spending limit. |
 | Any seat change | A background job writes `max_system_users` = Seats into the site's config through Pilot (`PATCH /api/v1/sites/<site>/configuration`), and resizes the server as the system when the seat band changes: 1 to 5 seats `plan-1vcpu`, 6 to 15 `plan-2vcpu`, 16 to 40 `plan-4vcpu`, 41 or more `plan-8vcpu`. The disk never shrinks. A failed write is a comment on the Site and an Error Log. |
 | A new server | Its boot config carries `max_system_users` when the Team has seats. |
+| The trial converts on its end date | The first payment is charged that day. See [First payment](#first-payment). |
 | Cancel during the trial | Subscription Ends On is the trial end date. The trial ends on that date with no charge, and the normal end, stop and delete steps follow. |
 | Cancel on a paid site | Subscription Ends On is the last day of this month. The daily job `run_cancellations` closes billing at the end of that day and stops the server. It terminates the server after the trial deletion days. Keep subscription clears the date before then. |
+
+#### First payment
+
+Billing runs in arrears, on the 1st of each month. A site billed per seat is charged its first period on the trial end date instead, through wallet credit, so nothing is billed twice:
+
+1. On conversion, the job `trial.charge_first_payment` creates one Open invoice of type Prepayment (`central/billing/revenue/invoicing/prepayment.py`). It holds the seats from the end date to the month end, by the day (`seats.get_prorated_amount`, the day count the billing run uses), plus VAT. Its period key does not take the slot of the monthly invoice.
+2. Central charges it at once to the card on file, through the normal off-session collection (`collection.collect_invoice`).
+3. When the payment is captured, the Prepayment invoice is Paid and its subtotal becomes wallet credit, with its VAT kept as advance tax, as for a top-up (`prepayment.book_as_credit`). A Prepayment invoice is not a sale: it is not sent to the accounting system as an invoice, and revenue reports leave it out. Its money is booked as an advance.
+4. On the 1st, the monthly invoice bills the real usage from the conversion. The credits-then-card waterfall pays it from that credit and the advance tax, so the card is not charged again. The monthly invoice bills the conversion day by the hours it ran, so a small credit can stay for the next month.
+5. From then on, each month is billed in arrears on the 1st and charged to the card.
+
+When the charge fails, the Prepayment invoice stays Open. The customer is asked for another way to pay, and dunning runs on it as on any unpaid invoice, so the site keeps running for the dunning window. When the monthly invoice of that period opens, Central cancels the unpaid Prepayment invoice and the monthly invoice is collected and dunned instead. A charge still in flight keeps its invoice, and a late capture goes to the wallet.
+
+A site billed by its server plan has no Prepayment invoice. Its first invoice is the monthly one on the 1st.
 
 The console routes are `billing.api.dashboard.get_seats`, `change_seats` and `set_subscription_cancelled`. Reads need `billing:view`, changes need `billing:manage`. A customer never needs `server:resize`.
 

@@ -246,7 +246,9 @@ class Trial:
 		days_left = date_diff(self.site.trial_ends_on, today)
 		is_paying = has_active_payment_method(self.site.team) and not is_cancelled(self.site.team)
 		if days_left <= 0:
-			if not (is_paying and self.convert_within_limit()):
+			if is_paying and self.convert_within_limit():
+				self.enqueue_job(charge_first_payment, "trial-first-payment")
+			else:
 				self.end(today)
 		elif is_paying:
 			# One reminder of the first payment, on the last day.
@@ -542,9 +544,10 @@ class Trial:
 		}
 
 	def get_first_payment(self) -> dict:
-		"""The first payment of a trial that converts with its card on file. Billing is in arrears,
-		so the first invoice is charged on the 1st of the next month, for the days from the trial
-		end date, before tax. Empty when the team has no card or the site has no price."""
+		"""The first payment of a trial that converts with its card on file: the days from the trial
+		end date to the end of that month, before tax. A site billed per seat is charged on the end
+		date (`prepayment.charge_first_payment`). A site on a plan is billed in arrears, on the 1st
+		of the next month. Empty when the team has no card or the site has no price."""
 		seat_quote = get_seat_quote(self.site.team)
 		plan = None if seat_quote else self.get_plan()
 		currency = seat_quote.currency if seat_quote else (plan or {}).get("currency")
@@ -552,11 +555,14 @@ class Trial:
 			return {}
 
 		ends_on = getdate(self.site.trial_ends_on)
-		amount = get_prorated_amount(0, self.get_monthly_rate(), ends_on)
+		month_end = get_last_day(ends_on)
 		return {
 			"seats": seat_quote.seats if seat_quote else None,
-			"first_payment": fmt_money(amount, currency=currency),
-			"first_payment_on": formatdate(add_days(get_last_day(ends_on), 1)),
+			"first_payment": fmt_money(
+				get_prorated_amount(0, self.get_monthly_rate(), ends_on), currency=currency
+			),
+			"first_payment_to": formatdate(month_end),
+			"first_payment_on": formatdate(ends_on if seat_quote else add_days(month_end, 1)),
 		}
 
 	def queue_server_action(self, action: str) -> None:
@@ -589,6 +595,13 @@ class Trial:
 		"""Leave the reason on the Site, where the operator looks, and the traceback in an Error Log."""
 		frappe.log_error(title="Trial step failed", reference_doctype="Site", reference_name=self.site.name)
 		frappe.db.set_value("Site", self.site.name, "trial_error", reason)
+
+
+def charge_first_payment(site: str) -> None:
+	"""Background job: see `prepayment.charge_first_payment`."""
+	from central.billing.revenue.invoicing.prepayment import charge_first_payment as charge
+
+	charge(site)
 
 
 def finish_conversion(site: str) -> None:
