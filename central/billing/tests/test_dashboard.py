@@ -509,6 +509,23 @@ class TestBillingCurrency(CustomerDataBase):
 		with self.assertRaises(frappe.ValidationError):
 			dashboard.save_billing_profile(TEAM, currency="XYZ")  # no gateway → rejected
 
+	def test_a_platform_currency_needs_no_gateway_to_save_the_billing_details(self):
+		from central.billing import settings
+		from central.billing.gateways.registry import supported_currencies
+
+		saved = frappe.db.get_single_value(settings.SETTINGS, "billing_currency")
+		self.addCleanup(frappe.db.set_single_value, settings.SETTINGS, "billing_currency", saved)
+		frappe.db.set_single_value(settings.SETTINGS, "billing_currency", "AED")
+		self.assertNotIn("AED", supported_currencies())  # no gateway is set up for it yet
+
+		dashboard.save_billing_profile(TEAM, legal_name="Acme", country="United Arab Emirates")
+
+		self.assertEqual(frappe.db.get_value("Billing Profile", TEAM, "currency"), "AED")
+		self.assertEqual(dashboard.get_billing_profile(TEAM)["fixed_currency"], "AED")
+		# Only the platform's currency skips the gateway check.
+		with self.assertRaises(frappe.ValidationError):
+			dashboard.save_billing_profile(TEAM, currency="XYZ")
+
 	def test_currency_follows_country(self):
 		from central.billing.tests.test_razorpay_adapter import make_razorpay_gateway
 		from central.billing.tests.test_stripe_adapter import make_stripe_gateway

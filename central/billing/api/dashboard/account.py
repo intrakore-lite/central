@@ -51,6 +51,7 @@ def get_billing_profile(team: str | None = None) -> dict:
 	The stored fields (currency, legal name, address, GSTIN, …) come straight off
 	the doc for the edit forms; the derived fields drive routing and locking.
 	"""
+	from central.billing import settings
 	from central.billing.gateways.registry import supported_currencies
 	from central.signups.credit import get_purchase_state
 
@@ -68,6 +69,7 @@ def get_billing_profile(team: str | None = None) -> dict:
 			"missing_labels": _missing_profile_labels(team),
 			"currency_locked": _has_money_activity(team),
 			"supported_currencies": supported_currencies(),
+			"fixed_currency": settings.billing_currency(),
 			"gst_lapsed": gst_status.standing(team).lapsed,
 			**get_purchase_state(team),
 		}
@@ -110,10 +112,14 @@ def _validate_currency(team: str, currency: str | None):
 	"""Currency must be gateway-supported, and is locked once money has moved."""
 	if not currency:
 		return
+	from central.billing import settings
 	from central.billing.gateways.registry import supported_currencies
 
+	# A platform that bills every team in one currency (Billing Settings, Billing Currency)
+	# leaves the team no choice, so no gateway is needed to save the address. A gateway
+	# that is not set up yet stops the card step later, with its own message.
 	supported = supported_currencies()
-	if currency not in supported:
+	if currency not in supported and currency != settings.billing_currency():
 		frappe.throw(
 			_("{0} is not a supported billing currency. Choose one of: {1}.").format(
 				currency, ", ".join(supported) or "none configured"
