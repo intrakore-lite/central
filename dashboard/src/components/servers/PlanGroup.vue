@@ -3,7 +3,9 @@ import { Badge } from 'frappe-ui'
 import { computed, nextTick } from 'vue'
 import ConfigDesigner from '@/components/servers/ConfigDesigner.vue'
 import { configSpecs, estimateConfig } from '@/lib/composed'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
+import { planName } from '@/lib/managedView'
 import {
 	formatTransfer,
 	planAllowances,
@@ -11,7 +13,12 @@ import {
 	planSize,
 	presetPrice,
 } from '@/lib/plans'
-import { formatMemory, formatVcpu, gigabytesToMegabytes } from '@/lib/units'
+import {
+	formatGb,
+	formatMemory,
+	formatVcpu,
+	gigabytesToMegabytes,
+} from '@/lib/units'
 import type {
 	Capacity,
 	ComposedConfig,
@@ -82,6 +89,18 @@ function diskFor(plan: Plan): number {
 		: planQuantity(plan, 'Disk')
 }
 
+// A customer of a managed console picks a plan by name and storage, never by vCPU and RAM.
+function planHeading(plan: Plan): string {
+	return features.managed ? planName(plan.title) || 'Plan' : planSize(plan)
+}
+
+function planDetail(plan: Plan): string {
+	if (!features.managed)
+		return planAllowances(plan, { diskGigabytes: diskFor(plan) })
+	const disk = diskFor(plan)
+	return disk ? `${formatGb(disk)} GB storage` : ''
+}
+
 function priceFor(plan: Plan): number | null {
 	return presetPrice(plan, props.rateCard, diskFor(plan))
 }
@@ -116,7 +135,7 @@ const matchingPreset = computed<Plan | null>(() => {
 			>
 				<span class="flex w-full items-center justify-between gap-2">
 					<span class="text-sm-medium text-ink-gray-7"
-						>{{ planSize(plan) }}</span
+						>{{ planHeading(plan) }}</span
 					>
 					<Badge
 						v-if="currentPlan === plan.plan"
@@ -133,7 +152,7 @@ const matchingPreset = computed<Plan | null>(() => {
 					>
 				</span>
 				<span class="mt-2 block text-p-sm text-ink-gray-5">
-					{{ planAllowances(plan, { diskGigabytes: diskFor(plan) }) }}
+					{{ planDetail(plan) }}
 				</span>
 				<span
 					v-if="diskTooSmall(plan)"
@@ -156,7 +175,7 @@ const matchingPreset = computed<Plan | null>(() => {
 			</button>
 
 			<button
-				v-if="profile"
+				v-if="profile && !features.managed"
 				type="button"
 				:aria-pressed="isCustom"
 				class="flex items-center gap-4 rounded-6 border border-outline-gray-2 p-4 text-start transition-colors hover:bg-surface-gray-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-outline-gray-4 aria-pressed:border-outline-gray-6 sm:col-span-2"
@@ -190,7 +209,7 @@ const matchingPreset = computed<Plan | null>(() => {
 		</div>
 
 		<div
-			v-if="profile && isCustom"
+			v-if="profile && isCustom && !features.managed"
 			class="rounded-6 border border-outline-gray-2 p-4"
 		>
 			<ConfigDesigner
@@ -216,7 +235,7 @@ const matchingPreset = computed<Plan | null>(() => {
 		</div>
 
 		<p v-if="includedTransferGigabytes" class="text-p-sm text-ink-gray-5">
-			Every server includes
+			Every {{ features.managed ? 'site' : 'server' }} includes
 			{{ formatTransfer(includedTransferGigabytes) }}
 			of transfer a month.
 		</p>
