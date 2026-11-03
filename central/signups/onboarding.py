@@ -36,6 +36,25 @@ DEFAULT_TRUST_CONTENT = {
 	],
 	"quote": None,
 	"help": {"title": "Questions before you start?", "text": "Our team answers billing and setup questions."},
+	# Steps 3 and 4. A key set to None shows nothing until Central Settings gives it a value.
+	"team_badge": "Invitations are sent by your own workspace",
+	"team_features": [
+		{
+			"title": "Access by module",
+			"text": "Give each member CRM, Estimation or both, with a role that fits their work.",
+		},
+		{
+			"title": "Activation by email",
+			"text": "Your workspace emails each member a link to set a password and sign in.",
+		},
+		{
+			"title": "One seat per member",
+			"text": "Each active member uses one of the seats you chose in step 1.",
+		},
+	],
+	"team_stat": None,
+	"team_caption": None,
+	"setup_footer_line": "You can change every setting later in your workspace.",
 }
 
 
@@ -52,6 +71,7 @@ def get_onboarding(team: str, product: str | None) -> dict:
 		"pricing": get_seat_pricing(product),
 		"trust": get_trust_content(),
 		"has_payment_method": has_active_payment_method(team),
+		"progress": get_progress(team),
 	}
 
 
@@ -322,3 +342,193 @@ def free_subdomain(organisation: str) -> str:
 			return f"{base}{suffix}"
 
 	return f"{base}-{frappe.generate_hash(length=5)}"
+
+
+# --- steps 3 and 4: the customer's site -------------------------------------------------------
+
+# Where the owner is in the four steps. 5 means onboarding is done.
+STEP_DONE = 5
+# A rough share of the wait for each stage of the site, for the progress bar.
+STAGE_PROGRESS = {"waiting": 0, "building": 30, "starting": 60, "setting_up": 85, "ready": 100, "failed": 100}
+FAILED_CREATION_STATES = ("Failed", "Timed Out")
+
+
+def get_progress(team: str) -> dict:
+	"""The step the owner resumes at: 1 profile, 2 card and site, 3 team, 4 master setup, 5 done."""
+	values = frappe.db.get_value(
+		"Team",
+		team,
+		["seats", "business_type", "setup_team_done_at", "setup_completed_at"],
+		as_dict=True,
+	)
+	if values.setup_completed_at:
+		step = STEP_DONE
+	elif not (values.seats and values.business_type):
+		step = 1
+	elif not (has_active_payment_method(team) and get_site_creation(team)):
+		step = 2
+	elif not values.setup_team_done_at:
+		step = 3
+	else:
+		step = 4
+
+	return {"step": step, "done": step == STEP_DONE}
+
+
+def get_onboarding_site(team: str):
+	"""The team's newest site on a live server, or None."""
+	names = frappe.get_list(
+		"Site",
+		filters={"team": team, "server.status": ["!=", "Terminated"]},
+		pluck="name",
+		order_by="creation desc",
+		limit=1,
+	)
+	return frappe.get_doc("Site", names[0]) if names else None
+
+
+def get_site_creation(team: str) -> frappe._dict | None:
+	"""The newest site creation request of the team."""
+	rows = frappe.get_list(
+		"Resource Action",
+		filters={"team": team, "resource_type": "Site", "action": "create"},
+		fields=["name", "status", "server", "error_message"],
+		order_by="creation desc",
+		limit=1,
+	)
+	return rows[0] if rows else None
+
+
+def get_site_state(team: str) -> dict:
+	"""Where the team's site is: waiting for the card, building, starting, setting up its company,
+	ready or failed. Once the site answers and its setup has not started, this starts it, so the
+	customer never sees Frappe's setup wizard."""
+	from central.integrations.pilot import is_site_reachable
+	from central.signups.site_onboarding import SiteOnboardingClient, SiteOnboardingError
+
+	site = get_onboarding_site(team)
+	if not site:
+		creation = get_site_creation(team)
+		if not creation:
+			return site_answer("waiting")
+		if creation.status in FAILED_CREATION_STATES:
+			return site_answer("failed", message=_("Your workspace could not be created. Contact support."))
+		return site_answer("building")
+
+	if not is_site_reachable(site.url):
+		return site_answer("starting", site)
+	site.record_ready()
+
+	try:
+		client = SiteOnboardingClient.for_site(site)
+		state = client.get_state()
+		job = state.get("setup_job") or {}
+		if not state.get("setup_complete") and not job:
+			client.complete_setup(site_profile_of(team))
+			return site_answer("setting_up", site, state)
+	except SiteOnboardingError as error:
+		return site_answer("starting" if is_retryable(error) else "failed", site, message=error.message)
+
+	if state.get("setup_complete"):
+		return site_answer("ready", site, state)
+	if job.get("status") == "failed":
+		return site_answer("failed", site, state, message=job.get("error") or _("Your company setup failed."))
+	return site_answer("setting_up", site, state)
+
+
+def start_site_setup(team: str, site: str | None = None) -> None:
+	"""Job, when a site is first ready: write its seat cap into its config, then start its company
+	setup. The job runs as the system: it only reads the team's own site and sends the owner's
+	saved answers."""
+	from central.signups.site_onboarding import push_site_seat_limit
+
+	if site:
+		push_site_seat_limit(frappe.get_doc("Site", site))
+	get_site_state(team)
+
+
+def site_answer(stage: str, site=None, state: dict | None = None, message: str | None = None) -> dict:
+	state = state or {}
+	return {
+		"stage": stage,
+		"progress": STAGE_PROGRESS[stage],
+		"message": message,
+		"site": {"name": site.name, "url": site.primary_url} if site else None,
+		"seats": state.get("seats"),
+		"company": (state.get("company") or {}).get("company_name"),
+		"master_setup": state.get("master_setup"),
+	}
+
+
+def is_retryable(error) -> bool:
+	from central.signups.site_onboarding import SiteRateLimited, SiteUnavailable
+
+	return isinstance(error, SiteUnavailable | SiteRateLimited)
+
+
+def site_profile_of(team: str) -> dict:
+	from central.signups.site_onboarding import site_profile
+
+	return site_profile(team)
+
+
+def complete_site_setup(team: str) -> dict:
+	"""Run the site's setup wizard again from the step 1 answers, such as after a failure."""
+	return call_site(team, "complete_setup", site_profile_of(team))
+
+
+def invite_members(team: str, rows: list) -> dict:
+	"""Invite members to the team's site. Each row gets its own result; the site sends the emails."""
+	from central.signups.site_onboarding import validated_rows
+
+	owner = frappe.db.get_value("Team", team, "owner_user")
+	rows = [row for row in validated_rows(rows) if row["email"] != owner]
+	if not rows:
+		frappe.throw(_("You are already the owner of this workspace."), frappe.ValidationError)
+	return call_site(team, "invite_members", rows)
+
+
+def finish_team_step(team: str) -> dict:
+	"""Record that the owner left step 3, with or without invitations."""
+	if not frappe.db.get_value("Team", team, "setup_team_done_at"):
+		frappe.db.set_value("Team", team, "setup_team_done_at", frappe.utils.now_datetime())
+	return get_progress(team)
+
+
+def apply_master_setup(team: str, config: dict) -> dict:
+	"""Send the CRM and Estimation defaults to the site, then mark onboarding done. Keys the site
+	has no place for come back under `skipped`: the page shows them as saved for later."""
+	from central.signups.site_onboarding import validated_config
+
+	report = call_site(team, "apply_master_setup", validated_config(config))
+	frappe.db.set_value(
+		"Team",
+		team,
+		{
+			"setup_team_done_at": frappe.db.get_value("Team", team, "setup_team_done_at")
+			or frappe.utils.now_datetime(),
+			"setup_completed_at": frappe.utils.now_datetime(),
+		},
+	)
+	site = get_onboarding_site(team)
+	return {**(report or {}), "site": site.name if site else None}
+
+
+def call_site(team: str, method: str, payload) -> dict:
+	"""Call the team's site, or refuse with the reason in the customer's words."""
+	from central.signups.site_onboarding import SiteOnboardingClient, SiteOnboardingError
+
+	site = get_onboarding_site(team)
+	if not site:
+		frappe.throw(
+			_("Your workspace is still being created. Try again in a minute."), frappe.ValidationError
+		)
+
+	try:
+		return getattr(SiteOnboardingClient.for_site(site), method)(payload)
+	except SiteOnboardingError as error:
+		frappe.log_error(
+			title=f"Site onboarding {method} failed: {site.name}",
+			message=f"{type(error).__name__} status={error.status}",
+		)
+		frappe.throw(error.message, frappe.ValidationError)

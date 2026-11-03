@@ -27,7 +27,9 @@
   "conversion_plan",
   "trial_cost",
   "trial_currency",
-  "trial_error"
+  "trial_error",
+  "onboarding_section",
+  "onboarding_secret"
  ],
  "fields": [
   {
@@ -211,6 +213,19 @@
    "fieldtype": "Small Text",
    "label": "Trial Error",
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "onboarding_section",
+   "fieldtype": "Section Break",
+   "label": "Onboarding"
+  },
+  {
+   "description": "The key Central sends to the site's onboarding API. The machine's boot config carries it as intrakore_onboarding_secret.",
+   "fieldname": "onboarding_secret",
+   "fieldtype": "Password",
+   "label": "Onboarding Secret",
+   "read_only": 1
   }
  ],
  "links": [
@@ -220,7 +235,7 @@
    "link_fieldname": "site"
   }
  ],
- "modified": "2026-10-28 12:00:00.000000",
+ "modified": "2026-11-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Infrastructure",
  "name": "Site",

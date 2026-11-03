@@ -7,6 +7,7 @@ from frappe.model.document import Document
 
 from central.infrastructure.doctype.blocked_domain.blocked_domain import BlockedDomain, normalize_domain
 from central.signups.funnel import capture_trial_event
+from central.signups.site_onboarding import adopt_action_secret
 
 if TYPE_CHECKING:
 	from central.infrastructure.doctype.resource_action.resource_action import ResourceAction
@@ -28,6 +29,7 @@ class Site(Document):
 
 		claimed_at: DF.Datetime | None
 		conversion_plan: DF.Link | None
+		onboarding_secret: DF.Password | None
 		product: DF.Link | None
 		ready_at: DF.Datetime | None
 		rename_completed_at: DF.Datetime | None
@@ -123,6 +125,8 @@ class Site(Document):
 				"server": server,
 			}
 		)
+		# The machine booted with the onboarding secret of its creation request.
+		adopt_action_secret(site, action_name)
 		# The verified regional server report owns creation of this system mirror.
 		site.insert(ignore_permissions=True)
 
@@ -182,6 +186,7 @@ class Site(Document):
 
 		self.db_set("ready_at", frappe.utils.now_datetime())
 		self.capture_ready()
+		self.enqueue_onboarding_setup()
 		from central.notification.engine import queue_event
 
 		product = frappe.db.get_value("Product", self.product, "title") if self.product else None
@@ -191,6 +196,24 @@ class Site(Document):
 			context={"product": product} if product else None,
 			reference_doctype=self.doctype,
 			reference_name=self.name,
+		)
+
+	def enqueue_onboarding_setup(self) -> None:
+		"""Write the seat cap of a site Central onboards and start its company setup, so its owner
+		never sees Frappe's setup wizard. The onboarding pages start the setup too, if this job
+		finds the site still busy."""
+		if not self.get_password("onboarding_secret", raise_exception=False):
+			return
+
+		frappe.enqueue(
+			"central.signups.onboarding.start_site_setup",
+			queue="short",
+			timeout=120,
+			enqueue_after_commit=True,
+			job_id=f"site-onboarding-setup:{self.name}",
+			deduplicate=True,
+			team=self.team,
+			site=self.name,
 		)
 
 	def capture_ready(self) -> None:

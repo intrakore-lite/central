@@ -32,6 +32,7 @@ const {
 	quoteFor,
 	saveBillingDetails,
 	startSite,
+	resume,
 } = useSetupOnboarding()
 const cardFrame = useTemplateRef<InstanceType<typeof PaymentCardFrame>>('card')
 
@@ -72,6 +73,7 @@ const canSubmit = computed(
 onMounted(async () => {
 	void loadCountries()
 	await load()
+	if (await resume(2)) return
 	const profile = onboarding.value?.profile
 	if (!profile) return
 	if (!profile.organisation) {

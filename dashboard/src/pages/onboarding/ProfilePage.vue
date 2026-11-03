@@ -20,8 +20,16 @@ import { DIAL_CODES, joinMobile, splitMobile } from '@/lib/dialCodes'
 const route = useRoute()
 const router = useRouter()
 const { currentUser, logout } = useAuth()
-const { onboarding, pricing, loading, loadError, load, quoteFor, saveProfile } =
-	useSetupOnboarding()
+const {
+	onboarding,
+	pricing,
+	loading,
+	loadError,
+	load,
+	quoteFor,
+	saveProfile,
+	resume,
+} = useSetupOnboarding()
 
 const form = reactive({
 	full_name: '',
@@ -62,6 +70,7 @@ const hasErrors = computed(() => Object.values(errors.value).some(Boolean))
 
 onMounted(async () => {
 	await load()
+	if (await resume(1)) return
 	const profile = onboarding.value?.profile
 	if (!profile) return
 	const mobile = splitMobile(profile.mobile)

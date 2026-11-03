@@ -92,6 +92,12 @@ const routes = [
 		meta: { invitedOnboarding: true },
 	},
 	{
+		path: '/onboarding/modules-setup',
+		name: 'OnboardingModulesSetup',
+		component: () => import('@/pages/onboarding/ModulesSetupPage.vue'),
+		meta: { setupStep: true },
+	},
+	{
 		path: '/github/connect/:attempt?',
 		name: 'ConnectGitHub',
 		component: () => import('@/pages/github/ConnectGitHubPage.vue'),
