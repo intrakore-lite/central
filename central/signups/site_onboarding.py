@@ -111,6 +111,40 @@ def push_site_seat_limit(site: Site) -> None:
 		push_user_limit(site, seats)
 
 
+def get_site_mail_config() -> dict:
+	"""The SMTP keys Frappe reads from site config for its outgoing account, from Central
+	Settings, Site Outgoing Email. Empty when no server is set."""
+	settings = frappe.get_cached_doc("Central Settings")
+	if not settings.get("site_mail_server"):
+		return {}
+	login = settings.get("site_mail_login")
+	return {
+		"mail_server": settings.site_mail_server,
+		"mail_port": settings.get("site_mail_port") or 587,
+		"use_tls": 1 if settings.get("site_mail_use_tls") else 0,
+		"mail_login": login,
+		"mail_password": settings.get_password("site_mail_password", raise_exception=False),
+		"auto_email_id": settings.get("site_mail_sender") or login,
+		"email_sender_name": settings.get("site_mail_sender_name") or "Intrakore",
+		"always_use_account_email_id_as_sender": 1,
+	}
+
+
+def push_site_mail(site: Site) -> None:
+	"""Write the shared outgoing email account into the new site's config, so the site can send
+	its own emails, such as the activation emails of the team the owner invites."""
+	from central.integrations.pilot import update_site_config
+
+	if not (config := get_site_mail_config()):
+		return
+	try:
+		update_site_config(site.server, site.get_pilot_site_names(), config)
+	# A sleeping or busy server can miss the call. The operator reads why on the Site.
+	except requests.RequestException:
+		frappe.log_error(title="Site email not sent", reference_doctype="Site", reference_name=site.name)
+		site.add_comment("Info", _("Central could not set the site's outgoing email."))
+
+
 def adopt_action_secret(site: Site, action_name: str | None) -> None:
 	"""Move the secret of the creation request onto its new Site record."""
 	if not action_name:
