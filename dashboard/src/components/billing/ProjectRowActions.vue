@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import RowActionsMenu from '@/components/common/RowActionsMenu.vue'
+import { features } from '@/lib/features'
 import type { Project } from '@/types/billing'
 
 // The management menu for one Project row — mirrors SubscriptionRowActions.
@@ -31,8 +32,8 @@ const options = computed<ActionItem[]>(() => {
 	if (!props.canManage) return []
 	return [
 		{
-			label: 'Manage servers',
-			icon: 'lucide-server',
+			label: features.managed ? 'Manage sites' : 'Manage servers',
+			icon: features.managed ? 'lucide-globe' : 'lucide-server',
 			onClick: () => emit('manageMembers', props.project),
 		},
 		{

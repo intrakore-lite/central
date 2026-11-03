@@ -81,6 +81,7 @@ def get_team_open_trial(team: str) -> dict | None:
 		"product": trial.site.product,
 		"product_title": get_product_branding(trial.site.product)["product_title"],
 		"plan": trial.get_plan(),
+		"ends_on": trial.site.trial_ends_on,
 	}
 
 

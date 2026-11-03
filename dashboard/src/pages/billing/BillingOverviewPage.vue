@@ -21,6 +21,7 @@ import TopupDialog from '@/components/TopupDialog.vue'
 import { useBillingOverview } from '@/composables/useBillingOverview'
 import { useBillingReports } from '@/composables/useBillingReports'
 import { useBillingSetup } from '@/composables/useBillingSetup'
+import { features } from '@/lib/features'
 
 const { complete, setupDialogOpen, requireSetup } = useBillingSetup()
 const { currency, reloadMoney } = useBillingOverview()
@@ -77,7 +78,7 @@ const onAddCredits = () => {
 				v-if="!complete"
 				theme="amber"
 				title="Add your billing details"
-				description="Currency, legal name, and address are needed to add credit, save a payment method, and provision servers."
+				:description="`Currency, legal name, and address are needed to add credit, save a payment method, ${features.managed ? 'and create sites' : 'and provision servers'}.`"
 				:primary-action="{ label: 'Add billing details', onClick: () => { setupDialogOpen = true } }"
 			/>
 			<OutstandingAlert

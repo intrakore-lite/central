@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils.translations import _lt
 
-from central.iam import user_has_operator_bypass
+from central.iam import is_managed_customer, user_has_operator_bypass
 from central.signups.trial import OPEN_STATES, get_server_trial_state
 
 SERVER_ACCESS_LOCKED = _lt(
@@ -27,7 +27,9 @@ def require_service_access(team: str) -> None:
 	"""Refuse LLM and buckets to a team on an open trial, because they cost money. Operators keep access."""
 	if find_locked_servers(frappe.get_all, {"team": team}) and not user_has_operator_bypass():
 		frappe.throw(
-			_("LLM and object storage are not part of the free trial. Upgrade your server to use them."),
+			_("LLM and object storage are not part of the free trial. Upgrade your site to use them.")
+			if is_managed_customer()
+			else _("LLM and object storage are not part of the free trial. Upgrade your server to use them."),
 			frappe.PermissionError,
 		)
 

@@ -3,6 +3,7 @@ import BillingStep from '@/components/onboarding/BillingStep.vue'
 import InviteStep from '@/components/onboarding/InviteStep.vue'
 import StartStep from '@/components/onboarding/StartStep.vue'
 import TeamStep from '@/components/onboarding/TeamStep.vue'
+import { features } from '@/lib/features'
 import type { OnboardingStepKey } from '@/types/api'
 
 /** What a step component exposes, so the dialog footer can drive it. A step may
@@ -29,8 +30,9 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 	{
 		key: 'team',
 		title: 'Create your team',
-		description:
-			'A team holds your servers, sites and billing. You are its owner.',
+		description: features.managed
+			? 'A team holds your sites and billing. You are its owner.'
+			: 'A team holds your servers, sites and billing. You are its owner.',
 		component: TeamStep,
 		isRequired: true,
 	},

@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { API, method } from '@/api/methods'
 import { useBillingOverview } from '@/composables/useBillingOverview'
 import { teamParams, whenTeamReady } from '@/composables/useTeamScope'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import { planPrice } from '@/lib/plans'
 import type { ProvisionablePlans } from '@/types/api'
@@ -35,22 +36,25 @@ const creditsNote = computed(() => {
 			`Your team has ${money(balance, credit.data?.currency, { trimTrailingZeros: true })} in credits.`,
 		)
 	if (cheapestPlan.value)
-		parts.push(`Servers start at ${planPrice(cheapestPlan.value)}.`)
+		parts.push(
+			`${features.managed ? 'Sites' : 'Servers'} start at ${planPrice(cheapestPlan.value)}.`,
+		)
 	return parts.join(' ')
 })
 
+const noun = features.managed ? 'site' : 'server'
 const MAP_GUIDE = [
 	{ icon: 'lucide-circle-dot', text: 'Each dot on the map is a region.' },
-	{ icon: 'lucide-plus', text: 'A + means you can create a server there.' },
+	{ icon: 'lucide-plus', text: `A + means you can create a ${noun} there.` },
 	{
 		icon: 'lucide-mouse-pointer-click',
-		text: 'Click a server to open it.',
+		text: `Click a ${noun} to open it.`,
 	},
 ]
 
 defineExpose({
 	canSubmit: true,
-	submitLabel: 'Go to servers',
+	submitLabel: `Go to ${noun}s`,
 	saving: false,
 	submit: async () => true,
 })

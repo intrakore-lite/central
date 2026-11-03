@@ -6,6 +6,7 @@ import StatusRing from '@/components/servers/StatusRing.vue'
 import WorldDots from '@/components/servers/WorldDots.vue'
 import { useMapHoverCard } from '@/composables/useMapHoverCard'
 import { useMapViewport } from '@/composables/useMapViewport'
+import { features } from '@/lib/features'
 import {
 	computeNodes,
 	type MapNode,
@@ -61,6 +62,8 @@ const props = withDefaults(defineProps<ServerMapProps>(), {
 	opening: null,
 	compact: false,
 })
+
+const noun = features.managed ? 'site' : 'server'
 
 const emit = defineEmits<{
 	open: [id: string]
@@ -231,7 +234,7 @@ function clickNode(node: MapNode): void {
 						<button
 							v-else-if="node.type === 'cluster'"
 							class="group relative block rounded-full outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-4"
-							:aria-label="`${node.members.length} servers in ${node.title}`"
+							:aria-label="`${node.members.length} ${noun}s in ${node.title}`"
 							@click="clickNode(node)"
 							@mouseenter="enter(node.key)"
 							@mouseleave="leave"
@@ -291,7 +294,7 @@ function clickNode(node: MapNode): void {
 							v-else
 							class="group relative grid size-7 place-items-center rounded-full border border-[var(--sm-node-border)] bg-[var(--sm-node-bg)] text-[var(--sm-node-ink)] shadow-sm transition-[transform,box-shadow] duration-150 ease-out hover:shadow-md active:scale-95"
 							:class="isHot(node) && 'scale-110 shadow-md'"
-							:aria-label="`New server in ${node.title}`"
+							:aria-label="`New ${noun} in ${node.title}`"
 							@click="clickNode(node)"
 							@mouseenter="enter(node.key)"
 							@mouseleave="leave"

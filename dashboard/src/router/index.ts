@@ -70,7 +70,7 @@ const routes = [
 				path: 'servers',
 				name: 'Servers',
 				component: () => import('@/pages/servers/ServersPage.vue'),
-				meta: { title: 'Servers' },
+				meta: { title: features.managed ? 'Sites' : 'Servers' },
 			},
 			// Team-wide snapshots, including those of terminated servers. Reached only
 			// from the archive-team checks, which list the snapshots still billing.
@@ -84,13 +84,13 @@ const routes = [
 				path: 'servers/new',
 				name: 'NewServer',
 				component: () => import('@/pages/servers/NewServerPage.vue'),
-				meta: { title: 'New server' },
+				meta: { title: features.managed ? 'New site' : 'New server' },
 			},
 			{
 				path: 'servers/:id/:tab(networking|access|snapshots|settings)?',
 				name: 'Server',
 				component: () => import('@/pages/servers/ServerPage.vue'),
-				meta: { title: 'Servers' },
+				meta: { title: features.managed ? 'Sites' : 'Servers' },
 			},
 			{
 				path: 'llm',

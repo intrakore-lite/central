@@ -4,10 +4,12 @@ import BillingCountryField from '@/components/billing/BillingCountryField.vue'
 import PaymentMethodFlow from '@/components/billing/PaymentMethodFlow.vue'
 import TrialBillingBanner from '@/components/billing/TrialBillingBanner.vue'
 import { useBillingSetup } from '@/composables/useBillingSetup'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import type { WelcomeCredit } from '@/types/billing'
 
 const { profile } = useBillingSetup()
+const noun = features.managed ? 'site' : 'server'
 const flow = ref<InstanceType<typeof PaymentMethodFlow> | null>(null)
 const hasMethod = ref(false)
 
@@ -50,8 +52,8 @@ const steps = computed(() => [
 		icon: 'lucide-wallet',
 		title: 'Credit pays first',
 		text: offer.value
-			? `Your ${offerAmount.value} credit pays for your servers before your card does.`
-			: 'Any credit in your wallet pays for your servers before your card does.',
+			? `Your ${offerAmount.value} credit pays for your ${noun}s before your card does.`
+			: `Any credit in your wallet pays for your ${noun}s before your card does.`,
 	},
 	{
 		icon: 'lucide-receipt',
@@ -93,7 +95,7 @@ defineExpose({
 				>
 				{{ offer
 						? `Your ${offerAmount} credit is in your wallet.`
-						: 'You can now create servers.' }}
+						: `You can now create ${noun}s.` }}
 			</p>
 		</div>
 		<div v-else-if="offer" class="rounded-6 bg-surface-gray-2 p-4">

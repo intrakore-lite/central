@@ -2,6 +2,7 @@
 import { Badge, Button, ScrollArea } from 'frappe-ui'
 import { computed } from 'vue'
 import ProviderAvatar from '@/components/servers/ProviderAvatar.vue'
+import { features } from '@/lib/features'
 import type { MapNode, MapPin } from '@/lib/serverMap'
 
 // The map's hover card, split out of ServerMap so the map component keeps just
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 	'new-server': [region: string]
 }>()
 
+const noun = features.managed ? 'site' : 'server'
 const hasManyTargets = computed(
 	() => props.node.type === 'plus' && props.node.targets.length > 1,
 )
@@ -103,13 +105,13 @@ function canOpenBench(server: NonNullable<MapPin['server']>): boolean {
 			<span class="min-w-0 truncate text-xs-medium text-ink-gray-5">
 				{{ node.members[0].flag }} {{ node.title }} ·
 				{{ node.members.length }}
-				servers
+				{{ noun }}s
 			</span>
 			<button
 				v-if="allowCreate"
 				class="grid size-5 shrink-0 place-items-center rounded-5 text-ink-gray-6 transition-colors hover:bg-surface-gray-2 hover:text-ink-gray-8 active:scale-95"
-				:title="`New server in ${node.title}`"
-				:aria-label="`New server in ${node.title}`"
+				:title="`New ${noun} in ${node.title}`"
+				:aria-label="`New ${noun} in ${node.title}`"
 				@click="emit('new-server', node.members[0].cluster)"
 			>
 				<span class="lucide-plus size-3.5" />
@@ -185,7 +187,7 @@ function canOpenBench(server: NonNullable<MapPin['server']>): boolean {
 			{{ node.targets.length === 1 ? node.targets[0].flag : '' }}
 			{{ node.title }}
 		</div>
-		<div class="mt-0.5 text-sm text-ink-gray-5">No servers here yet</div>
+		<div class="mt-0.5 text-sm text-ink-gray-5">No {{ noun }}s here yet</div>
 
 		<div class="-mx-1.5 mt-3 space-y-0.5">
 			<component
@@ -195,7 +197,7 @@ function canOpenBench(server: NonNullable<MapPin['server']>): boolean {
 				class="group flex w-full items-center gap-2.5 rounded-6 p-1.5 text-left"
 				:class="hasManyTargets && 'transition-colors enabled:hover:bg-surface-gray-2 disabled:cursor-not-allowed'"
 				:disabled="hasManyTargets ? !target.isReachable : undefined"
-				:aria-label="hasManyTargets ? `New server in ${target.regionLabel}` : undefined"
+				:aria-label="hasManyTargets ? `New ${noun} in ${target.regionLabel}` : undefined"
 				@click="hasManyTargets && emit('new-server', target.id)"
 			>
 				<ProviderAvatar :provider="target.provider" :size="24" />
@@ -223,7 +225,7 @@ function canOpenBench(server: NonNullable<MapPin['server']>): boolean {
 			v-if="!hasManyTargets"
 			class="mt-3 w-full"
 			variant="solid"
-			label="New server"
+			:label="`New ${noun}`"
 			icon-left="lucide-plus"
 			:disabled="!node.targets[0].isReachable"
 			@click="emit('new-server', node.targets[0].id)"

@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue'
 import { useServers, type VirtualMachineRow } from '@/composables/useServers'
+import { features } from '@/lib/features'
 import { getErrorMessage } from '@/lib/feedback'
 
 /**
@@ -30,7 +31,7 @@ export function useTerminateServer(onTerminated: () => void) {
 		} catch (failure) {
 			terminateError.value = getErrorMessage(
 				failure,
-				"We couldn't terminate this server.",
+				`We couldn't terminate this ${features.managed ? 'site' : 'server'}.`,
 			)
 		}
 	}

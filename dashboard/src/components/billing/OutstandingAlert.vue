@@ -3,6 +3,7 @@ import { Button } from 'frappe-ui'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { billingPeriod } from '@/lib/date'
+import { features } from '@/lib/features'
 import { formatDate, money, plural } from '@/lib/format'
 import { attemptStory } from '@/lib/status'
 import type { PaymentAttempt, Statement } from '@/types/billing'
@@ -66,12 +67,13 @@ const title = computed(() => {
 		earlier.value > 0 && rows.length ? ' and earlier invoices' : ''
 	return `${head} ${label}${andEarlier}`
 })
+const noun = features.managed ? 'site' : 'server'
 const detail = computed(() => {
 	const inFlight = story.value.inFlight ?? preWindowInFlight.value
 	if (inFlight) return `Payment processing since ${formatDate(inFlight.at)}.`
 	if (story.value.failed)
-		return `${plural(story.value.failed, 'payment attempt')} failed. Pay now to keep your servers running.`
-	return isOverdue.value ? 'Pay now to keep your servers running.' : ''
+		return `${plural(story.value.failed, 'payment attempt')} failed. Pay now to keep your ${noun}s running.`
+	return isOverdue.value ? `Pay now to keep your ${noun}s running.` : ''
 })
 
 const action = computed(() => ({

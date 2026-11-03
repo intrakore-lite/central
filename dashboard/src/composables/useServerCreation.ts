@@ -71,7 +71,9 @@ export function useServerCreation() {
 	// Shown only after a submit, so an empty form does not open with an error.
 	const isNameChecked = ref(false)
 	const nameError = computed(() =>
-		isNameChecked.value && !name.value.trim() ? 'Enter a server name.' : '',
+		isNameChecked.value && !name.value.trim()
+			? `Enter a ${features.managed ? 'site' : 'server'} name.`
+			: '',
 	)
 	const selectedRegion = ref<string | null>(null)
 

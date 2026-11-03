@@ -9,6 +9,7 @@ import {
 	estimateConfig,
 	rateCardComplete,
 } from '@/lib/composed'
+import { features } from '@/lib/features'
 import { getErrorMessage, isAbortError, successToast } from '@/lib/feedback'
 import { money } from '@/lib/format'
 import { planQuantity, presetPrice } from '@/lib/plans'
@@ -278,9 +279,13 @@ export function useResizeServer(
 
 	const downtimeNote = computed(() => {
 		if (server.value?.status === 'Stopped')
-			return 'The server will start after the resize.'
+			return features.managed
+				? 'The site will start after the plan change.'
+				: 'The server will start after the resize.'
 		if (needsRestart.value)
-			return 'Your site goes offline for a few minutes while the server restarts.'
+			return features.managed
+				? 'Your site goes offline for a few minutes while it restarts.'
+				: 'Your site goes offline for a few minutes while the server restarts.'
 		return 'No restart needed.'
 	})
 
@@ -397,7 +402,12 @@ export function useResizeServer(
 	// selection changes so a fresh attempt starts clean.
 	const resizeError = computed(() =>
 		resizeCall.error
-			? getErrorMessage(resizeCall.error, "Couldn't resize the server.")
+			? getErrorMessage(
+					resizeCall.error,
+					features.managed
+						? "Couldn't change the site's plan."
+						: "Couldn't resize the server.",
+				)
 			: '',
 	)
 	watch([selectedPlan, composedConfig, computeOnly], () => resizeCall.reset())
@@ -438,7 +448,7 @@ export function useResizeServer(
 		const name = currentServer.title || currentServer.resource_id
 		successToast(
 			resizeCall.data?.queued
-				? `Resizing ${name}. The server list shows its progress.`
+				? `Resizing ${name}. The ${features.managed ? 'site' : 'server'} list shows its progress.`
 				: `Resized ${name}.`,
 		)
 		callbacks.resized()

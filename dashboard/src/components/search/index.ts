@@ -133,12 +133,12 @@ export function useSearchIndex() {
 		// Records, not menu entries: searchable, but they'd bury the verbs above
 		// if the whole fleet/roster/ledger listed on every open.
 		if (canViewServers.value && servers.value.length) {
-			groups.Servers = {
+			groups[features.managed ? 'Sites' : 'Servers'] = {
 				searchOnly: true,
 				items: servers.value.map((server) => ({
 					name: server.title || server.resource_id,
 					description: server.region,
-					icon: 'lucide-server',
+					icon: features.managed ? 'lucide-globe' : 'lucide-server',
 					onSelect:
 						canOpenConsole.value && !server.is_access_locked
 							? () => openServer(server)
@@ -186,7 +186,10 @@ export function useSearchIndex() {
 				}))
 		})
 		if (canViewServers.value && serverActions.length)
-			groups['Server actions'] = { searchOnly: true, items: serverActions }
+			groups[features.managed ? 'Site actions' : 'Server actions'] = {
+				searchOnly: true,
+				items: serverActions,
+			}
 
 		if (isMember.value && members.value.length) {
 			groups['Team members'] = {

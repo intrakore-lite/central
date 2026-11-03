@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { API, method } from '@/api/methods'
 import RowActionsMenu from '@/components/common/RowActionsMenu.vue'
 import { useBillingOverview } from '@/composables/useBillingOverview'
+import { features } from '@/lib/features'
 import { getErrorMessage, successToast } from '@/lib/feedback'
 import { subscriptionTitle } from '@/lib/subscriptions'
 import type { Project, SubscriptionRow } from '@/types/billing'
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const noun = features.managed ? 'site' : 'server'
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ changed: [] }>()
 
@@ -72,7 +74,7 @@ async function addMember(): Promise<void> {
 		reloadSubscriptionGrouping()
 		emit('changed')
 	} catch (e) {
-		formError.value = getErrorMessage(e, "The server couldn't be added.")
+		formError.value = getErrorMessage(e, `The ${noun} couldn't be added.`)
 	} finally {
 		busy.value = ''
 	}
@@ -87,7 +89,7 @@ async function removeMember(sub: SubscriptionRow): Promise<void> {
 		reloadSubscriptionGrouping()
 		emit('changed')
 	} catch (e) {
-		formError.value = getErrorMessage(e, "The server couldn't be removed.")
+		formError.value = getErrorMessage(e, `The ${noun} couldn't be removed.`)
 	} finally {
 		busy.value = ''
 	}
@@ -95,7 +97,7 @@ async function removeMember(sub: SubscriptionRow): Promise<void> {
 </script>
 
 <template>
-	<Dialog v-model="open" :title="project ? `${project.title} — servers` : ''">
+	<Dialog v-model="open" :title="project ? `${project.title} — ${noun}s` : ''">
 		<template #default>
 			<div class="space-y-4">
 				<Alert v-if="formError" theme="red" :title="formError" />
@@ -130,8 +132,8 @@ async function removeMember(sub: SubscriptionRow): Promise<void> {
 					<Select
 						v-if="candidates.length"
 						v-model="toAdd"
-						:options="[{ label: 'Choose a server…', value: NONE }, ...candidates]"
-						label="Add a server"
+						:options="[{ label: `Choose a ${noun}…`, value: NONE }, ...candidates]"
+						:label="`Add a ${noun}`"
 						class="flex-1"
 					/>
 					<p v-else class="text-p-sm text-ink-gray-5">

@@ -4,6 +4,7 @@ import { API, method } from '@/api/methods'
 import { useBillingOverview } from '@/composables/useBillingOverview'
 import { useSession } from '@/composables/useSession'
 import { whenTeamReady } from '@/composables/useTeamScope'
+import { features } from '@/lib/features'
 import { reportError, successToast } from '@/lib/feedback'
 import type {
 	PayingForItem,
@@ -121,10 +122,18 @@ export function usePayingFor() {
 		},
 		confirmPause: (sub: SubscriptionRow) => {
 			pendingPause.value = null
-			return runVerb(sub, pause, 'Billing paused, server stopping…')
+			return runVerb(
+				sub,
+				pause,
+				`Billing paused, ${features.managed ? 'site' : 'server'} stopping…`,
+			)
 		},
 		onResume: (sub: SubscriptionRow) =>
-			runVerb(sub, resume, 'Billing resumed, server starting…'),
+			runVerb(
+				sub,
+				resume,
+				`Billing resumed, ${features.managed ? 'site' : 'server'} starting…`,
+			),
 		askAssignProject: (sub: SubscriptionRow) => {
 			pendingAssignProject.value = sub
 		},

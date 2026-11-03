@@ -136,14 +136,15 @@ def _sites(rows: list[dict], servers: list[dict], pending: dict[str, str]) -> li
 def server_overview(team: str | None = None, resource_id: str | None = None) -> dict:
 	"""Return one server's Central mirror."""
 	if not resource_id:
-		frappe.throw(_("Select a server to continue."), frappe.ValidationError)
+		frappe.throw(
+			_("Select a site to continue.") if is_managed_customer() else _("Select a server to continue."),
+			frappe.ValidationError,
+		)
 
 	row = _overview_server_row(resource_id, team)
 	if not row:
 		frappe.throw(
-			_("Server '{0}' is not available on this team. Return to Servers and refresh the list.").format(
-				resource_id
-			),
+			_get_unavailable_message().format(resource_id),
 			frappe.DoesNotExistError,
 		)
 
@@ -216,9 +217,7 @@ def server_metrics(
 	)
 	if not server:
 		frappe.throw(
-			_("Server '{0}' is not available on this team. Return to Servers and refresh the list.").format(
-				resource_id
-			),
+			_get_unavailable_message().format(resource_id),
 			frappe.DoesNotExistError,
 		)
 
@@ -836,3 +835,9 @@ def retry_action(name: str) -> dict:
 	from central.resource_actions import retry
 
 	return retry(name)
+
+
+def _get_unavailable_message() -> str:
+	if is_managed_customer():
+		return _("Site '{0}' is not available on this team. Return to Sites and refresh the list.")
+	return _("Server '{0}' is not available on this team. Return to Servers and refresh the list.")

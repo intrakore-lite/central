@@ -2,6 +2,7 @@
 import { Alert, Button, Spinner, TabButtons } from 'frappe-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import TrialPaymentBanner from '@/components/billing/TrialPaymentBanner.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import MapHealthStrips from '@/components/servers/MapHealthStrips.vue'
 import ResizeServerDialog from '@/components/servers/ResizeServerDialog.vue'
@@ -24,6 +25,7 @@ import { canChange } from '@/lib/status'
 
 const router = useRouter()
 const route = useRoute()
+const noun = features.managed ? 'site' : 'server'
 
 const {
 	sites,
@@ -123,14 +125,22 @@ useServerLink(
 		overview: showServer,
 		resize: (server) => {
 			if (!canChange(server))
-				infoToast("This server can't be resized right now.")
+				infoToast(
+					features.managed
+						? "This site's plan can't be changed right now."
+						: "This server can't be resized right now.",
+				)
 			else if (!getServerActions(server, teamActions.value).resize)
-				infoToast("You can't resize this server.")
+				infoToast(
+					features.managed
+						? "You can't change this site's plan."
+						: "You can't resize this server.",
+				)
 			else openResize(server)
 		},
 		'open-bench': (server) => {
 			if (!getServerActions(server, teamActions.value).open)
-				infoToast("You can't open this server.")
+				infoToast(`You can't open this ${noun}.`)
 			else void openBench(server, { inPlace: true })
 		},
 	},
@@ -151,13 +161,14 @@ useServerLink(
 			<Button
 				v-if="activeTeam && canCreateServer && !isFleetEmpty"
 				variant="solid"
-				:label="features.managed ? 'New site' : 'New server'"
+				:label="`New ${noun}`"
 				icon-left="lucide-plus"
 				@click="$router.push('/servers/new')"
 			/>
 		</Teleport>
 
 		<TrialOfferBanner v-if="activeTeam" :team="activeTeam" />
+		<TrialPaymentBanner />
 
 		<!-- The list stays in view on the right. Below lg, it stacks over a short map. -->
 		<div class="flex min-h-0 flex-1 flex-col lg:flex-row-reverse">
@@ -288,7 +299,7 @@ useServerLink(
 					<Alert
 						class="pointer-events-auto w-full max-w-md shadow-lg"
 						theme="red"
-						title="Couldn't load your servers"
+						:title="`Couldn't load your ${noun}s`"
 						:description="error"
 						:primary-action="{ label: 'Retry', onClick: reload }"
 					/>
@@ -298,7 +309,7 @@ useServerLink(
 
 		<ConfirmDialog
 			v-model:target="pendingRestart"
-			title="Restart server"
+			:title="`Restart ${noun}`"
 			confirm-label="Restart"
 			:loading="busy === pendingRestart?.resource_id"
 			@confirm="confirmRestart"

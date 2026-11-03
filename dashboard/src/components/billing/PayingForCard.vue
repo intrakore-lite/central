@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useCapabilities } from '@/composables/useCapabilities'
 import { usePayingFor } from '@/composables/usePayingFor'
 import { useProjects } from '@/composables/useProjects'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import { subscriptionTitle } from '@/lib/subscriptions'
 
@@ -153,7 +154,7 @@ const goToObjectStorage = () => router.push({ name: 'ObjectStorage' })
 		<ConfirmDialog
 			v-model:target="pendingPause"
 			title="Pause billing"
-			:message="`Pause billing for ${pendingPause ? subscriptionTitle(pendingPause) : ''}? This stops the server/VM and the site(s)/services running on it, and stops charges until you resume.`"
+			:message="`Pause billing for ${pendingPause ? subscriptionTitle(pendingPause) : ''}? ${features.managed ? 'This stops the site' : 'This stops the server/VM and the site(s)/services running on it'}, and stops charges until you resume.`"
 			confirm-label="Pause billing"
 			:loading="busy === pendingPause?.name"
 			@confirm="confirmPause"

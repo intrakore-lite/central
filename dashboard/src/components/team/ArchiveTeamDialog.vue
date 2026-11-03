@@ -11,6 +11,7 @@ import {
 	type ArchiveCheckKey,
 	useTeamArchiveChecks,
 } from '@/composables/useTeamArchiveChecks'
+import { features } from '@/lib/features'
 import { money, plural } from '@/lib/format'
 
 interface ArchiveTeamDialogProps {
@@ -44,11 +45,12 @@ const {
 	reload,
 } = useTeamArchiveChecks()
 
+const noun = features.managed ? 'site' : 'server'
 const CHECK_COPY: Record<ArchiveCheckKey, CheckCopy> = {
 	servers: {
-		passed: 'All servers are terminated',
-		failed: (count) => `${plural(count, 'server')} not terminated`,
-		action: 'Open servers',
+		passed: `All ${noun}s are terminated`,
+		failed: (count) => `${plural(count, noun)} not terminated`,
+		action: `Open ${noun}s`,
 		route: '/servers',
 	},
 	snapshots: {

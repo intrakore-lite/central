@@ -1,6 +1,7 @@
 import { call, frappeRequest } from 'frappe-ui'
 import { onBeforeUnmount, type Ref, ref, watch } from 'vue'
 import { API, methodV1 } from '@/api/methods'
+import { features } from '@/lib/features'
 import { getErrorMessage } from '@/lib/feedback'
 import type { ActionStatus } from '@/types/serverCreation'
 
@@ -60,7 +61,7 @@ export function useProvisioningAction(
 			if (current !== generation) return
 			error.value = getErrorMessage(
 				failure,
-				'Progress could not be read just now. The server may still be building.',
+				`Progress could not be read just now. The ${features.managed ? 'site' : 'server'} may still be building.`,
 			)
 		} finally {
 			if (current === generation) {

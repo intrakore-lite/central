@@ -5,6 +5,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useServerHostnames } from '@/composables/useServerHostnames'
 import type { VirtualMachineRow } from '@/composables/useServers'
 import { useSnapshotPricing } from '@/composables/useSnapshots'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 
 interface TerminateServerDialogProps {
@@ -35,6 +36,7 @@ const {
 	error: listError,
 } = useServerHostnames(computed(() => props.target))
 const name = computed(() => props.target?.title || props.target?.resource_id)
+const noun = features.managed ? 'site' : 'server'
 
 const takeSnapshot = ref(false)
 watch(
@@ -60,7 +62,7 @@ const snapshotNote = computed(() => {
 <template>
 	<ConfirmDialog
 		v-model:target="target"
-		title="Terminate server"
+		:title="`Terminate ${noun}`"
 		confirm-label="Yes, terminate"
 		theme="red"
 		size="md"
@@ -73,15 +75,17 @@ const snapshotNote = computed(() => {
 		<p v-if="isProtected" class="text-p-base text-ink-gray-7">
 			<span class="text-p-base-semibold text-ink-gray-9">{{ name }}</span>
 			has termination protection on. Turn it off with the lock button next to
-			Actions, then terminate the server.
+			Actions, then terminate the {{ noun }}.
 		</p>
 
 		<div v-else class="space-y-3">
 			<p class="text-p-base text-ink-gray-7">
 				Permanently destroy
 				<span class="text-p-base-semibold text-ink-gray-9">{{ name }}</span>?
-				The server and all data on its disk will be deleted. This can't be
-				undone.
+				{{ features.managed
+						? 'The site and all its data will be deleted.'
+						: 'The server and all data on its disk will be deleted.' }}
+				This can't be undone.
 			</p>
 
 			<div
@@ -96,7 +100,7 @@ const snapshotNote = computed(() => {
 				routes.
 			</p>
 			<p v-else-if="!hostnames.length" class="text-p-sm text-ink-gray-5">
-				No sites or custom domains point to this server.
+				No sites or custom domains point to this {{ noun }}.
 			</p>
 			<div v-else class="space-y-1.5">
 				<p class="text-p-sm text-ink-gray-7">

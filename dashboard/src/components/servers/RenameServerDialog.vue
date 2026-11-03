@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { API, method } from '@/api/methods'
 import type { VirtualMachineRow } from '@/composables/useServers'
 import { useSession } from '@/composables/useSession'
+import { features } from '@/lib/features'
 import { getErrorMessage, successToast } from '@/lib/feedback'
 
 interface Props {
@@ -15,6 +16,7 @@ const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ renamed: [] }>()
 
 const { activeTeam } = useSession()
+const noun = features.managed ? 'site' : 'server'
 const title = ref('')
 
 const renameCall = useCall<
@@ -40,7 +42,7 @@ const canSave = computed(() => {
 
 const error = computed(() =>
 	renameCall.error
-		? getErrorMessage(renameCall.error, "Couldn't rename the server.")
+		? getErrorMessage(renameCall.error, `Couldn't rename the ${noun}.`)
 		: '',
 )
 
@@ -54,7 +56,7 @@ async function save(): Promise<void> {
 	})
 	if (renameCall.error) return
 
-	successToast('Server renamed')
+	successToast(features.managed ? 'Site renamed' : 'Server renamed')
 	open.value = false
 	emit('renamed')
 }
@@ -63,7 +65,7 @@ async function save(): Promise<void> {
 <template>
 	<Dialog
 		v-model="open"
-		title="Rename server"
+		:title="`Rename ${noun}`"
 		:actions="[
 			{
 				label: 'Save',

@@ -64,7 +64,7 @@ const facts = computed(() => [
 	features.managed
 		? {
 				icon: 'lucide-life-buoy',
-				text: 'We run the server under your site. Contact support for anything beyond the site.',
+				text: 'We run and maintain your site for you. Contact support for anything beyond the site.',
 			}
 		: {
 				icon: 'lucide-terminal',

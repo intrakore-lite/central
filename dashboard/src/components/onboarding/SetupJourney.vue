@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import WorldDots from '@/components/servers/WorldDots.vue'
 import type { SetupStage } from '@/composables/useSiteSetup'
+import { features } from '@/lib/features'
 import { flagEmoji, hasMapCoords, project } from '@/lib/serverMap'
 import type { SetupJourney } from '@/types/api'
 
@@ -42,8 +43,10 @@ const current = computed(() =>
 
 const statusLine = computed(() => {
 	const lines: Record<SetupStage, string> = {
-		booking: 'Reserving a server',
-		server: 'Starting your server',
+		booking: features.managed
+			? 'Reserving space for your site'
+			: 'Reserving a server',
+		server: features.managed ? 'Preparing your site' : 'Starting your server',
 		app: `Starting ${props.appTitle ?? 'your site'}`,
 		signing: 'Signing you in',
 		arrived: 'Ready',

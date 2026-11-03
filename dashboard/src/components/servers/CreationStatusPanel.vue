@@ -2,6 +2,7 @@
 import { Alert } from 'frappe-ui'
 import { computed, onUnmounted, ref } from 'vue'
 import { useSupport } from '@/composables/useSupport'
+import { features } from '@/lib/features'
 import { getCreationStage } from '@/lib/status'
 import type { ActionStatus } from '@/types/serverCreation'
 
@@ -75,7 +76,7 @@ const failureDescription = computed(() =>
 const unresolvedDescription = computed(
 	() =>
 		props.action?.error?.message ??
-		'The region has not confirmed this server yet. Checking again never creates a second one.',
+		`The region has not confirmed this ${features.managed ? 'site' : 'server'} yet. Checking again never creates a second one.`,
 )
 const checkAction = computed(() => ({
 	label: 'Check now',

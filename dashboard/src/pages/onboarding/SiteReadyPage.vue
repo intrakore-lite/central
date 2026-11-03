@@ -12,6 +12,7 @@ import SetupJourney from '@/components/onboarding/SetupJourney.vue'
 import { useProduct } from '@/composables/useProduct'
 import { useSiteSetup } from '@/composables/useSiteSetup'
 import { carriedQuery } from '@/lib/authRedirect'
+import { features } from '@/lib/features'
 
 const route = useRoute()
 const router = useRouter()
@@ -134,7 +135,7 @@ function tryAgain() {
 				v-if="stage === 'failed'"
 				class="mt-4"
 				theme="red"
-				title="We couldn't start your server"
+				:title="`We couldn't start your ${features.managed ? 'site' : 'server'}`"
 				:primary-action="{ label: 'Try again', onClick: tryAgain }"
 			>
 				<template #description>

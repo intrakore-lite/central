@@ -16,6 +16,7 @@ import { useResizeServer } from '@/composables/useResizeServer'
 import type { VirtualMachineRow } from '@/composables/useServers'
 import { useTrialConversion } from '@/composables/useTrialConversion'
 import { configSpecs } from '@/lib/composed'
+import { features } from '@/lib/features'
 import { formatGb } from '@/lib/units'
 
 interface Props {
@@ -76,6 +77,7 @@ const { convertedPlan, awaitConversion } = useTrialConversion(
 	model,
 )
 
+const noun = features.managed ? 'site' : 'server'
 const trialPanel = ref<InstanceType<typeof TrialUpgradePanel> | null>(null)
 
 const open = computed({
@@ -89,7 +91,13 @@ const open = computed({
 <template>
 	<Dialog
 		v-model="open"
-		:title="trial ? 'Upgrade from free trial' : 'Resize server'"
+		:title="
+			trial
+				? 'Upgrade from free trial'
+				: features.managed
+					? 'Change plan'
+					: 'Resize server'
+		"
 		size="3xl"
 	>
 		<template #default>
@@ -101,7 +109,7 @@ const open = computed({
 				<LoadingIndicator class="h-6 w-6 text-ink-gray-5" />
 				<p class="text-p-base-medium text-ink-gray-8">Starting resize…</p>
 				<p class="max-w-xs text-p-sm text-ink-gray-5">
-					Follow progress in the server list.
+					Follow progress in the {{ noun }} list.
 				</p>
 			</div>
 			<div
@@ -142,13 +150,15 @@ const open = computed({
 				v-else-if="starting"
 				theme="blue"
 				title="Your payment method is confirmed"
-				description="We are moving your server to its paid plan. This takes a few minutes, then the plans show here."
+				:description="`We are moving your ${noun} to its paid plan. This takes a few minutes, then the plans show here.`"
 			/>
 			<p
 				v-else-if="!resizable || nothingToShow"
 				class="text-p-sm text-ink-gray-5"
 			>
-				This server can't be resized right now.
+				{{ features.managed
+						? "This site's plan can't be changed right now."
+						: "This server can't be resized right now." }}
 			</p>
 			<div v-else class="space-y-4">
 				<Alert

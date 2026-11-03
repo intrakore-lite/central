@@ -14,6 +14,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Scrollbar from '@/components/common/Scrollbar.vue'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useNotifications } from '@/composables/useNotifications'
+import { features } from '@/lib/features'
 import type { NotificationSeverity, TeamNotification } from '@/types/billing'
 
 const {
@@ -49,7 +50,11 @@ const activeTab = computed({
 const CATEGORIES = [
 	{ label: 'All categories', value: '', icon: 'lucide-list' },
 	{ label: 'Billing', value: 'Billing', icon: 'lucide-credit-card' },
-	{ label: 'Server', value: 'Server', icon: 'lucide-server' },
+	{
+		label: features.managed ? 'Site' : 'Server',
+		value: 'Server',
+		icon: features.managed ? 'lucide-globe' : 'lucide-server',
+	},
 	{ label: 'Team', value: 'Team', icon: 'lucide-users' },
 	{ label: 'Trial', value: 'Trial', icon: 'lucide-hourglass' },
 ]
@@ -220,7 +225,7 @@ const onRowClick = async (notification: TeamNotification): Promise<void> => {
 					v-else
 					icon="lucide-bell-off"
 					title="Nothing here yet"
-					description="Billing and server alerts for your team will show up here."
+					:description="`Billing and ${features.managed ? 'site' : 'server'} alerts for your team will show up here.`"
 				/>
 			</div>
 

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import RowActionsMenu from '@/components/common/RowActionsMenu.vue'
 import type { ConsoleMode, VirtualMachineRow } from '@/composables/useServers'
 import { getServerActions } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import { getServerMenu, type ServerMenuVerb } from '@/lib/serverMenu'
 
 // The lifecycle menu for one server row. Presentational: it emits the chosen verb and
@@ -68,7 +69,7 @@ const options = computed(() =>
 <template>
 	<RowActionsMenu
 		:options="options"
-		label="Server actions"
+		:label="features.managed ? 'Site actions' : 'Server actions'"
 		:busy="busy || opening"
 	/>
 </template>

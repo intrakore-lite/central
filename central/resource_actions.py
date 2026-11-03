@@ -118,7 +118,9 @@ def submit_request(
 	)
 	if not can(frappe.session.user, server_input.team, "server:create"):
 		frappe.throw(
-			_("You cannot create servers for this Team. Ask a team admin to review your access."),
+			_("You cannot create sites for this Team. Ask a team admin to review your access.")
+			if is_managed_customer()
+			else _("You cannot create servers for this Team. Ask a team admin to review your access."),
 			frappe.PermissionError,
 		)
 	_require_managed_creation(server_input, site)
@@ -166,7 +168,9 @@ def submit_command(
 		frappe.session.user, team, ACTION_CAPABILITIES[action], server=resource_id
 	):
 		frappe.throw(
-			_("You cannot perform this server action. Ask a team admin to review your access."),
+			_("You cannot perform this site action. Ask a team admin to review your access.")
+			if is_managed_customer()
+			else _("You cannot perform this server action. Ask a team admin to review your access."),
 			frappe.PermissionError,
 		)
 	if take_snapshot and (
@@ -189,19 +193,30 @@ def submit_command(
 			)
 		)
 	if action == "restart" and server.status != "Running":
-		frappe.throw(_("Only a running server can be restarted."))
+		frappe.throw(
+			_("Only a running site can be restarted.")
+			if is_managed_customer()
+			else _("Only a running server can be restarted.")
+		)
 	if action == "start" and frappe.db.exists(
 		"Subscription", {"server_id": server.name, "account_standing": "Suspended"}
 	):
 		throw_action_error(
-			"PAYMENT_OVERDUE", message=_("This server is suspended because an invoice is unpaid.")
+			"PAYMENT_OVERDUE",
+			message=_("This site is suspended because an invoice is unpaid.")
+			if is_managed_customer()
+			else _("This server is suspended because an invoice is unpaid."),
 		)
 	if action == "start" and frappe.db.exists("Site", {"server": server.name, "trial_state": "Ended"}):
 		if has_active_payment_method(team):
 			frappe.throw(_("This trial has ended. Choose Keep this site to start it on its paid plan."))
 		frappe.throw(_("This trial has ended. Add a payment method to start it again."))
 	if action == "terminate" and server.is_termination_protected:
-		frappe.throw(_("Turn off termination protection before you terminate this server."))
+		frappe.throw(
+			_("Turn off termination protection before you terminate this site.")
+			if is_managed_customer()
+			else _("Turn off termination protection before you terminate this server.")
+		)
 	if take_snapshot:
 		server.require_server_access()
 
@@ -520,7 +535,7 @@ def require_payment_method_or_credit(team: str, rate: float) -> None:
 		return
 
 	if not frappe.get_cached_value("Central Settings", "Central Settings", "require_payment_method"):
-		require_billing_profile(team, "create servers")
+		require_billing_profile(team, _("create sites") if is_managed_customer() else _("create servers"))
 		return
 
 	if is_complete(team) and (has_active_payment_method(team) or has_paid_by_hand(team)):
@@ -554,7 +569,12 @@ def validate_trial(team: str) -> None:
 		frappe.throw(_("Your trial credits are used up. Add a payment method to continue."))
 	limit = cint(frappe.get_cached_value("Central Settings", "Central Settings", "trial_servers_per_team"))
 	if server_count(team) >= limit:
-		frappe.throw(_("Trial Teams can have at most {0} active or pending servers.").format(limit))
+		message = (
+			_("Trial Teams can have at most {0} active or pending sites.")
+			if is_managed_customer()
+			else _("Trial Teams can have at most {0} active or pending servers.")
+		)
+		frappe.throw(message.format(limit))
 
 
 def validate_trial_site(team: str) -> None:

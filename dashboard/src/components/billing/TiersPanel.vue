@@ -4,6 +4,7 @@ import ContactSupportLink from '@/components/common/ContactSupportLink.vue'
 import SideSheet from '@/components/common/SideSheet.vue'
 import Table from '@/components/common/Table.vue'
 import { useSpendingLimits } from '@/composables/useSpendingLimits'
+import { features } from '@/lib/features'
 import { money } from '@/lib/format'
 import type { TierLevel } from '@/types/billing'
 
@@ -105,7 +106,9 @@ const requirementText = (level: TierLevel) =>
 			>
 				<span class="text-ink-gray-8">Resource</span>
 				<span
-					>Anything that bills while it runs: a server or a subscribed service.</span
+					>Anything that bills while it runs: a
+					{{ features.managed ? 'site' : 'server' }}
+					or a subscribed service.</span
 				>
 
 				<span class="text-ink-gray-8">Limit</span>

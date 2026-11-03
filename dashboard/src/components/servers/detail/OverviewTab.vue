@@ -6,6 +6,7 @@ import UsageCard from '@/components/common/UsageCard.vue'
 import { usePlans } from '@/composables/usePlans'
 import { formatBytes, usagePercent } from '@/lib/bytes'
 import { timeAgo } from '@/lib/datetime'
+import { features } from '@/lib/features'
 import {
 	formatSampleInterval,
 	getChartTimeGrain,
@@ -33,6 +34,7 @@ const range = defineModel<MetricsRange>('range', { required: true })
 const emit = defineEmits<{ refresh: [] }>()
 
 const server = computed(() => props.overview.server)
+const noun = features.managed ? 'site' : 'server'
 const monitoring = computed(
 	() => props.metrics ?? { available: false, points: [] },
 )
@@ -281,7 +283,7 @@ const usage = computed(() => {
 			v-else
 			icon="lucide-chart-area"
 			title="No samples in this period"
-			description="The region has no measurements for this server in the chosen period. Choose another period, or wait for the next update if the server has just started."
+			:description="`The region has no measurements for this ${noun} in the chosen period. Choose another period, or wait for the next update if the ${noun} has just started.`"
 		/>
 	</div>
 
@@ -289,7 +291,7 @@ const usage = computed(() => {
 		v-else
 		icon="lucide-chart-area"
 		title="No usage yet"
-		description="Charts appear while the server runs. The region samples it every 5 minutes."
+		:description="`Charts appear while the ${noun} runs. The region samples it every 5 minutes.`"
 	/>
 </template>
 
