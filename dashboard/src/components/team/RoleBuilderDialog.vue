@@ -13,6 +13,7 @@ import {
 	capabilityLabel,
 	groupCapabilitiesByCategory,
 } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import { getErrorMessage } from '@/lib/feedback'
 
 interface RoleBuilderDialogProps {
@@ -49,7 +50,9 @@ watch(open, (isOpen) => {
 })
 watch([roleName, picked], () => (formError.value = ''), { deep: true })
 
-const groups = computed(() => groupCapabilitiesByCategory(capabilities.value))
+const groups = computed(() =>
+	groupCapabilitiesByCategory(capabilities.value, features.managed),
+)
 
 function toggle(cap: string, checked: boolean) {
 	if (checked) {
@@ -144,7 +147,7 @@ async function submit() {
 							<ul class="space-y-2.5">
 								<li v-for="cap in group.caps" :key="cap.name">
 									<Checkbox
-										:label="capabilityLabel(cap)"
+										:label="capabilityLabel(cap, features.managed)"
 										:disabled="creating"
 										:model-value="picked.includes(cap.name)"
 										@update:model-value="toggle(cap.name, Boolean($event))"

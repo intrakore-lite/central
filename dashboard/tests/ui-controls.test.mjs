@@ -179,6 +179,7 @@ test('permission loading, empty, retry, and saving states stay inside the role d
 		{
 			'frappe-ui': ui,
 			'@/lib/capabilities': capabilities,
+			'@/lib/features': { features: { managed: false } },
 			'@/lib/feedback': { getErrorMessage: (error) => String(error) },
 			'@/composables/useTeamRoles': {
 				useTeamRoles: () => ({

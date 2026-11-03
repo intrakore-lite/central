@@ -11,7 +11,14 @@ from central.api.servers import _is_managed_plan_change, open_console
 from central.api.sites import login_site, resolve_trial_product, trial_offer
 from central.api.ssh_keys import create_team_ssh_key
 from central.api.wireguard import list_wireguard_devices
-from central.iam import MANAGED_STAFF_CAPABILITIES, can, clear_grants_cache, is_managed_customer
+from central.errors import AtlasResourceGone, to_error_response
+from central.iam import (
+	MANAGED_STAFF_CAPABILITIES,
+	can,
+	clear_grants_cache,
+	is_managed_customer,
+	is_managed_team,
+)
 from central.infrastructure.doctype.site.site import Site
 from central.integrations.images import list_images, list_offerings
 from central.resource_actions import submit_request
@@ -170,6 +177,43 @@ class TestManagedCreation(ManagedTeam):
 			self.assertIsInstance(list_offerings(self.team.name), list)
 			with patch("central.integrations.images.frappe.get_list", return_value=[{"name": "pilot"}]):
 				self.assertEqual(list_offerings(self.team.name), [{"name": "pilot"}])
+
+
+class TestManagedJobCopy(ManagedTeam):
+	"""A background job runs as a system user, so the team decides the copy it stores."""
+
+	def action_for(self, team: str):
+		return frappe.get_doc({"doctype": "Resource Action", "action": "start", "team": team})
+
+	def test_a_job_stores_site_copy_for_a_customer_team(self):
+		with managed():
+			self.assertFalse(is_managed_customer())
+			action = self.action_for(self.team.name)
+			self.assertTrue(action.reads_as_site)
+			self.assertEqual(
+				action.build_envelope("RESOURCE_GONE")["title"], "This site is no longer available"
+			)
+			envelope = to_error_response(AtlasResourceGone(), managed=action.reads_as_site)
+			self.assertEqual(envelope["remediation"], "Refresh your site list to see the current state.")
+
+	def test_a_team_an_operator_owns_keeps_server_copy(self):
+		operator_team = frappe.get_doc(
+			{"doctype": "Team", "team_name": f"Operator {self.team.name}", "owner_user": "Administrator"}
+		).insert(ignore_permissions=True)
+		with managed():
+			self.assertFalse(is_managed_team(operator_team.name))
+			action = self.action_for(operator_team.name)
+			self.assertEqual(
+				action.build_envelope("RESOURCE_GONE")["title"], "This server is no longer available"
+			)
+
+	def test_without_the_mode_a_customer_team_keeps_server_copy(self):
+		with managed(False):
+			self.assertFalse(is_managed_team(self.team.name))
+			self.assertEqual(
+				self.action_for(self.team.name).build_envelope("RESOURCE_GONE")["title"],
+				"This server is no longer available",
+			)
 
 
 class TestManagedSiteLogin(SiteOnAMachine):

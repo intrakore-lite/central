@@ -238,13 +238,21 @@ class _SafeContext(dict):
 
 
 def build_envelope(
-	code: str, *, message: str | None = None, remediation: str | None = None, **context
+	code: str,
+	*,
+	message: str | None = None,
+	remediation: str | None = None,
+	managed: bool | None = None,
+	**context,
 ) -> dict:
 	"""Shape one catalog entry into an envelope, filling templates from `context`.
 	`message`/`remediation` override the catalog copy when the caller has better words
-	(e.g. the region's own error sentence)."""
+	(e.g. the region's own error sentence). `managed` picks the managed customer copy; it
+	defaults to the session user, so a background job that stores the envelope passes it."""
 	entry = ERROR_CATALOG.get(code, ERROR_CATALOG["UNEXPECTED"])
-	if entry.get("managed") and is_managed_customer():
+	if managed is None:
+		managed = is_managed_customer()
+	if entry.get("managed") and managed:
 		entry = {**entry, **entry["managed"]}
 	source = _SafeContext(context)
 
@@ -269,30 +277,33 @@ def throw_action_error(code: str, *, exc: type[Exception] = ResourceActionError,
 	raise error
 
 
-def to_error_response(exc: Exception) -> dict:
-	"""Shape an already-raised exception into a customer-safe envelope."""
+def to_error_response(exc: Exception, *, managed: bool | None = None) -> dict:
+	"""Shape an already-raised exception into a customer-safe envelope. `managed` is passed
+	on to `build_envelope`."""
 	if getattr(exc, "envelope", None):
 		return exc.envelope
 
+	envelope = functools.partial(build_envelope, managed=managed)
+
 	if isinstance(exc, AtlasRequestUncertain):
-		return build_envelope("OUTCOME_UNKNOWN")
+		return envelope("OUTCOME_UNKNOWN")
 	if isinstance(exc, AtlasResourceGone):
-		return build_envelope("RESOURCE_GONE")
+		return envelope("RESOURCE_GONE")
 	if isinstance(exc, AtlasRejected):
-		return build_envelope("REGION_AT_CAPACITY" if exc.code in ATLAS_CAPACITY_CODES else "ATLAS_REJECTED")
+		return envelope("REGION_AT_CAPACITY" if exc.code in ATLAS_CAPACITY_CODES else "ATLAS_REJECTED")
 	if isinstance(exc, AtlasConnectionError):
-		return build_envelope("REGION_UNAVAILABLE")
+		return envelope("REGION_UNAVAILABLE")
 
 	if isinstance(exc, frappe.PermissionError):
-		return build_envelope("PERMISSION_DENIED", message=str(exc) or None)
+		return envelope("PERMISSION_DENIED", message=str(exc) or None)
 
 	if isinstance(exc, frappe.DoesNotExistError):
-		return build_envelope("SERVER_NOT_FOUND", message=str(exc) or None)
+		return envelope("SERVER_NOT_FOUND", message=str(exc) or None)
 
 	if isinstance(exc, frappe.ValidationError):
-		return build_envelope("VALIDATION_ERROR", message=str(exc) or None)
+		return envelope("VALIDATION_ERROR", message=str(exc) or None)
 
-	return build_envelope("UNEXPECTED")
+	return envelope("UNEXPECTED")
 
 
 def handle_resource_operation(func):

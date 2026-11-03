@@ -2,15 +2,36 @@ import { capitalise } from '@/lib/format'
 import type { CapabilityInfo } from '@/types/api'
 
 // Display-only grouping by capability prefix; the slugs sent to the backend are
-// unchanged.
+// unchanged. The server area reads "Sites" for a customer of a managed console.
+// The caller passes `managed` (features.managed), because node tests load this
+// file without the `@/lib/features` boot data.
 const CATEGORY_LABEL: Record<string, string> = {
 	billing: 'Billing',
 	team: 'Team',
 	service: 'Services',
-	server: 'Servers',
-	cluster: 'Servers',
 }
-const CATEGORY_ORDER = ['Billing', 'Team', 'Services', 'Servers']
+const SERVER_PREFIXES = ['server', 'cluster']
+
+function serverArea(managed: boolean): string {
+	return managed ? 'Sites' : 'Servers'
+}
+
+function categoryOrder(managed: boolean): string[] {
+	return ['Billing', 'Team', 'Services', serverArea(managed)]
+}
+
+// The copy a customer of a managed console reads for a server capability. A
+// capability not listed here, such as the network or SSH tools, keeps the
+// backend description.
+const MANAGED_CAPABILITY_LABEL: Record<string, string> = {
+	'cluster:view': 'View the regions sites can be created in',
+	'server:create': 'Create new sites',
+	'server:power': 'Start, stop, and restart sites',
+	'server:resize': 'Change the plan of sites',
+	'server:site-login': 'Sign in to selected sites as yourself',
+	'server:terminate': 'Permanently delete sites',
+	'server:view': 'View sites, their status, and their metrics',
+}
 
 /** The capabilities Central can grant on one server rather than the whole team. */
 export type ServerCapability =
@@ -79,22 +100,26 @@ export interface CapabilityCategory {
 }
 
 /** Bucket `palette` by capability prefix (billing / team / services / servers).
- *  Unknown prefixes get their own bucket after the known ones. */
+ *  Unknown prefixes get their own bucket after the known ones. Pass `managed`
+ *  for a customer of a managed console, who reads "Sites" for servers. */
 export function groupCapabilitiesByCategory(
 	palette: CapabilityInfo[],
+	managed = false,
 ): CapabilityCategory[] {
+	const order = categoryOrder(managed)
 	const byLabel = new Map<string, CapabilityInfo[]>()
 	for (const cap of palette) {
 		const prefix = cap.name.split(':')[0]
-		const label =
-			CATEGORY_LABEL[prefix] ??
-			capitalise(prefix.replace(/_/g, ' ').toLowerCase())
+		const label = SERVER_PREFIXES.includes(prefix)
+			? serverArea(managed)
+			: (CATEGORY_LABEL[prefix] ??
+				capitalise(prefix.replace(/_/g, ' ').toLowerCase()))
 		const list = byLabel.get(label) ?? []
 		list.push(cap)
 		byLabel.set(label, list)
 	}
-	const known = CATEGORY_ORDER.filter((l) => byLabel.has(l))
-	const rest = [...byLabel.keys()].filter((l) => !CATEGORY_ORDER.includes(l))
+	const known = order.filter((l) => byLabel.has(l))
+	const rest = [...byLabel.keys()].filter((l) => !order.includes(l))
 	return [...known, ...rest].map((label) => ({
 		label,
 		caps: byLabel.get(label)!,
@@ -102,8 +127,11 @@ export function groupCapabilitiesByCategory(
 }
 
 /** Backend capability descriptions end with a full stop; in the role builder
- *  and the capability panel they read as list items, so drop it for display. */
-export function capabilityLabel(cap: CapabilityInfo): string {
+ *  and the capability panel they read as list items, so drop it for display.
+ *  Pass `managed` for a customer of a managed console, who reads sites. */
+export function capabilityLabel(cap: CapabilityInfo, managed = false): string {
+	const managedLabel = managed ? MANAGED_CAPABILITY_LABEL[cap.name] : undefined
+	if (managedLabel) return managedLabel
 	const label = cap.description.replace(/\.\s*$/, '')
 	return /^[A-Z][A-Z_]+$/.test(label)
 		? capitalise(label.replace(/_/g, ' ').toLowerCase())
@@ -115,10 +143,8 @@ const CATEGORY_NOUN: Record<string, string> = {
 	billing: 'billing',
 	team: 'team',
 	service: 'services',
-	server: 'servers',
-	cluster: 'servers',
 }
-const NOUN_ORDER = ['billing', 'team', 'services', 'servers']
+const NOUN_ORDER = ['billing', 'team', 'services', 'servers', 'sites']
 
 function listOf(items: string[]): string {
 	if (items.length <= 2) return items.join(' and ')
@@ -126,12 +152,15 @@ function listOf(items: string[]): string {
 }
 
 /** One sentence for a capability set — "Manage servers; view billing". An area
- *  with any act-on capability reads "manage", a view-only area reads "view". */
-export function describeCapabilities(caps: string[]): string {
+ *  with any act-on capability reads "manage", a view-only area reads "view".
+ *  Pass `managed` for a customer of a managed console, who reads "sites". */
+export function describeCapabilities(caps: string[], managed = false): string {
 	const level = new Map<string, 'manage' | 'view'>()
 	for (const cap of caps) {
 		const [prefix, action] = cap.split(':')
-		const noun = CATEGORY_NOUN[prefix] ?? prefix
+		const noun = SERVER_PREFIXES.includes(prefix)
+			? serverArea(managed).toLowerCase()
+			: (CATEGORY_NOUN[prefix] ?? prefix)
 		const manages = action !== 'view' || level.get(noun) === 'manage'
 		level.set(noun, manages ? 'manage' : 'view')
 	}
@@ -140,11 +169,11 @@ export function describeCapabilities(caps: string[]): string {
 		return i === -1 ? NOUN_ORDER.length : i
 	}
 	const nouns = [...level.keys()].sort((a, b) => rank(a) - rank(b))
-	const managed = nouns.filter((n) => level.get(n) === 'manage')
+	const managedNouns = nouns.filter((n) => level.get(n) === 'manage')
 	const viewed = nouns.filter((n) => level.get(n) === 'view')
 	const parts: string[] = []
-	if (managed.length) parts.push(`Manage ${listOf(managed)}`)
+	if (managedNouns.length) parts.push(`Manage ${listOf(managedNouns)}`)
 	if (viewed.length)
-		parts.push(`${managed.length ? 'view' : 'View'} ${listOf(viewed)}`)
+		parts.push(`${managedNouns.length ? 'view' : 'View'} ${listOf(viewed)}`)
 	return parts.join('; ') || 'No capabilities'
 }
