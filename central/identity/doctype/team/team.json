@@ -17,6 +17,10 @@
   "members",
   "onboarding_section",
   "onboarding_steps",
+  "seats_section",
+  "seats",
+  "column_break_seats",
+  "subscription_ends_on",
   "attribution_section",
   "utm_source",
   "utm_medium",
@@ -28,8 +32,7 @@
   "business_type",
   "headcount_bracket",
   "column_break_organisation",
-  "turnover_band",
-  "seats"
+  "turnover_band"
  ],
  "fields": [
   {
@@ -115,6 +118,30 @@
    "read_only": 1
   },
   {
+   "fieldname": "seats_section",
+   "fieldtype": "Section Break",
+   "label": "Seats",
+   "description": "The paid user seats of the team's product site. The site allows this many enabled system users."
+  },
+  {
+   "description": "The seats the owner chose at onboarding.",
+   "fieldname": "seats",
+   "fieldtype": "Int",
+   "label": "Seats",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "column_break_seats",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subscription_ends_on",
+   "fieldtype": "Date",
+   "label": "Subscription Ends On",
+   "read_only": 1,
+   "description": "The last day the team cancelled to. A trial ends on its trial end date, and a paid site stops after this day and is terminated after the trial deletion days."
+  },
+  {
    "collapsible": 1,
    "description": "How the owner first found the platform. Written once when the team is created at signup.",
    "fieldname": "attribution_section",
@@ -185,13 +212,6 @@
    "fieldtype": "Select",
    "label": "Annual Turnover (AED)",
    "options": "\n< 5M\n5\u201325M\n25\u2013100M\n100\u2013500M\n500M+"
-  },
-  {
-   "description": "The seats the owner chose at onboarding.",
-   "fieldname": "seats",
-   "fieldtype": "Int",
-   "label": "Seats",
-   "non_negative": 1
   }
  ],
  "links": [
@@ -316,7 +336,7 @@
    "link_fieldname": "team"
   }
  ],
- "modified": "2026-11-04 10:00:00.000000",
+ "modified": "2026-11-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Identity",
  "name": "Team",

@@ -8,7 +8,7 @@ This guide is for the person who runs free trials and welcome credit from Desk. 
 2. The trial ends after **Trial Days**. Central stops the server.
 3. **Trial Deletion Days** later, Central deletes the server and its data.
 4. Central emails the team before the end, at the end, before deletion and at deletion.
-5. If the team adds a payment method at any time, the trial becomes a paid site. Billing starts, and a stopped server starts again.
+5. A team can add a payment method at any time. The trial still runs to its end date. On that date the trial becomes a paid site and billing starts, unless the team cancelled in Settings > Billing. The day before, Central emails the first payment. After the end date, **Keep this site** converts an ended trial and starts its server.
 
 A team without a payment method can only have free trial sites. To create any other server, it must add a payment method.
 
@@ -21,12 +21,13 @@ A team without a payment method can only have free trial sites. To create any ot
 | Billing Settings | Validity (Days) | 60 |
 | Billing Settings | Provision Teams as Trial | Off. This is for staging only. |
 | Plan | Available on Trial | On for each active plan that signup may select. The cheapest eligible marked plan is selected. Its disk must fit the trial image. A marked plan is a trial plan: no paid server is created on it or resized to it, and the customer never sees its price. |
-| Central Settings, Trials tab | Trial Days | 7 |
+| Central Settings, Trials tab | Trial Days | 30 |
 | Central Settings, Trials tab | Trial Deletion Days | 7 |
 | Central Settings, Trials tab | Trial Notice Days | 2 |
 | Central Settings, Trials tab | Trial Servers Limit | 1, counted across all teams of one owner |
 | Central Settings, Limits tab | Require Payment Method for Servers | On |
 | Central Settings, Trials tab | Trial Idle Shutdown (Minutes) | 10 |
+| Central Settings, Trials tab | Seat Price, Included Seats, Storage Price per GB, Included Storage (GB) | The seat billing of a product site. See [Seats](../central/signups/SPEC.md#seats). |
 | Region | FrappeMail Service | Enabled. Keep enough free mailboxes, because an empty pool stops new trials. |
 
 A Product can have its own Trial Days and Trial Deletion Days. Leave them at 0 to use Central Settings.
@@ -58,6 +59,6 @@ Only a product signup gets a free trial. A direct Central signup adds a card and
 | New Server page, no payment method | A note at the top: add a payment method to create servers, and get the welcome credit when it is on. Create is off. **Add payment method** opens the payment dialog on the same page. |
 | Onboarding, payment step | A **Billing country** field, saved when picked, which sets the currency. Then the welcome credit offer in that currency when it is on, that adding a payment method does not charge it, and an **Add payment method** button. It asks for the other billing details first when they are missing. |
 | Trial ending, ended, deletion soon, deleted | An email and a notice in the **Trial** category. Customers can turn the email off for the Trial category, or send it as a digest, in their notification settings. Trial ended, deletion soon and deleted are critical. They are always emailed at once, even when the customer picks a digest or turns the email off. |
-| Site's in-app billing panel | A notice above the plan with the days left and the end date, and one **Upgrade** button. Upgrade shows the paid plans with the cheapest one selected, then the billing details when they are missing, then the payment step. Adding a payment method converts the trial: the server moves to the chosen plan, billing for that plan starts, and full server access opens. |
+| Site's in-app billing panel | A notice above the plan with the days left and the end date, and one **Upgrade** button. Upgrade shows the paid plans with the cheapest one selected, then the billing details when they are missing, then the payment step. Adding a payment method does not end the trial. On the trial end date the server moves to the chosen plan, billing for that plan starts, and full server access opens. |
 | Console resize dialog on a trial server | The same plan list, then an **Add payment method** button. |
 | Console resize dialog on an ended trial, team has a card | The deletion date and, for a member with `billing:manage`, a **Keep this site** button. A card does not restart an ended trial by itself. Keep this site moves the site to the chosen plan and starts it. |

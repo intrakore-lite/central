@@ -5,20 +5,18 @@ from central.billing import settings
 from central.billing.payments.provisioning import grant_welcome_credits, has_owner_received_welcome_credits
 from central.billing.revenue.credits import get_balance, grant_promotional_credits
 from central.signups.eligibility import get_team_open_trial, has_active_payment_method
-from central.signups.trial import convert_team
 
 
 def on_payment_method_update(doc, method: str | None = None) -> None:
-	"""Grant the welcome credit and convert the team's trials when its payment method becomes active. A gateway
-	creates every method as Pending Validation, so activation is always a status change."""
+	"""Grant the welcome credit when the team's payment method becomes active. A gateway creates
+	every method as Pending Validation, so activation is always a status change. An active trial
+	keeps running: its card is charged after the trial end date (`Trial.advance_active`)."""
 	before = doc.get_doc_before_save()
 	if doc.status != "Active" or not before or before.status == "Active":
 		return
 
-	# Checked before the conversion, which closes the team's open trials.
 	if is_welcome_credit_due(doc.team):
 		grant_welcome_credits(doc.team)
-	convert_team(doc.team)
 
 
 def is_welcome_credit_due(team: str) -> bool:
@@ -46,8 +44,8 @@ def grant_credit(team: str, amount: float, validity_days: int, note: str) -> dic
 
 def get_purchase_state(team: str) -> dict:
 	"""What the console shows before a server is bought: whether a payment method is needed,
-	the welcome credit the first one adds, and the open trial it converts. The server checks
-	again on create."""
+	the welcome credit the first one adds, and the open trial it pays for after the trial end
+	date. The server checks again on create."""
 	collection_mode = frappe.db.get_value("Billing Profile", team, "collection_mode")
 	is_required = bool(
 		frappe.get_cached_value("Central Settings", "Central Settings", "require_payment_method")

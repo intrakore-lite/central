@@ -55,6 +55,7 @@ class Team(TeamLifecycle, Document):
 		referrer: DF.SmallText | None
 		seats: DF.Int
 		status: DF.Literal["Active", "Suspended", "Archived"]
+		subscription_ends_on: DF.Date | None
 		team_logo: DF.AttachImage | None
 		team_name: DF.Data
 		tenant_id: DF.Int

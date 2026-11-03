@@ -72,8 +72,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Invoice Type",
-   "options": "Billable\nCost Report",
-   "description": "cost_report = free/trial true-cost (compute, don't charge)"
+   "options": "Billable\nCost Report\nPrepayment",
+   "description": "cost_report = free/trial true-cost (compute, don't charge). Prepayment = the first period of a converted trial, charged on the trial end date and booked as wallet credit; not a sale."
   },
   {
    "fieldname": "column_break_head",

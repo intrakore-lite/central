@@ -79,13 +79,15 @@
   "trial_invitation_days",
   "trial_signup_section",
   "default_trial_product",
-  "onboarding_tab",
-  "seat_pricing_section",
+  "seat_billing_section",
   "seat_price_currency",
   "seat_price",
   "included_seats",
-  "column_break_seat_pricing",
+  "column_break_seat_billing",
   "storage_price_per_gb",
+  "included_storage_gb",
+  "onboarding_tab",
+  "onboarding_trial_section",
   "trial_ai_cap",
   "trust_content_section",
   "onboarding_trust_content",
@@ -461,7 +463,7 @@
    "label": "Trial Period"
   },
   {
-   "default": "7",
+   "default": "30",
    "description": "Days a trial site runs. A Product can override it.",
    "fieldname": "trial_days",
    "fieldtype": "Int",
@@ -528,15 +530,10 @@
    "options": "Product"
   },
   {
-   "fieldname": "onboarding_tab",
-   "fieldtype": "Tab Break",
-   "label": "Onboarding"
-  },
-  {
-   "description": "Placeholder prices for the onboarding seat counter and plan summary. Seat billing does not read them yet.",
-   "fieldname": "seat_pricing_section",
+   "fieldname": "seat_billing_section",
    "fieldtype": "Section Break",
-   "label": "Seat Pricing"
+   "label": "Seat Billing",
+   "description": "A product site of a team with seats is billed per seat, not by its server plan. A Catalog Rate on the Product, then on the Users resource type, overrides the seat price in its currency."
   },
   {
    "default": "AED",
@@ -563,7 +560,7 @@
    "non_negative": 1
   },
   {
-   "fieldname": "column_break_seat_pricing",
+   "fieldname": "column_break_seat_billing",
    "fieldtype": "Column Break"
   },
   {
@@ -575,7 +572,24 @@
    "options": "seat_price_currency"
   },
   {
-   "description": "The free AI budget of a trial site.",
+   "fieldname": "included_storage_gb",
+   "fieldtype": "Int",
+   "label": "Included Storage (GB)",
+   "non_negative": 1,
+   "description": "The storage that the seat price includes. Storage above it is not billed yet."
+  },
+  {
+   "fieldname": "onboarding_tab",
+   "fieldtype": "Tab Break",
+   "label": "Onboarding"
+  },
+  {
+   "fieldname": "onboarding_trial_section",
+   "fieldtype": "Section Break",
+   "label": "Trial Limits"
+  },
+  {
+   "description": "The free AI budget of a trial site, in the Seat Price Currency. The onboarding pages show it; the AI cap does not read it yet.",
    "fieldname": "trial_ai_cap",
    "fieldtype": "Currency",
    "label": "Trial AI Cap",
@@ -678,7 +692,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 10:00:00.000000",
+ "modified": "2026-11-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",

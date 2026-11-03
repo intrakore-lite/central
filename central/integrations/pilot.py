@@ -14,6 +14,7 @@ from central.infrastructure.doctype.user_mail_account.user_mail_account import U
 from central.integrations.object_storage import ObjectStorageClient, ObjectStorageNotFound
 from central.services.doctype.ai_trial_key.ai_trial_key import AITrialKey
 from central.services.doctype.team_service.team_service import get_bucket_name, get_storage_endpoint_url
+from central.services.trial_ai_budget import get_site_config as get_ai_budget_config
 from central.sso import central_url, jwks_url, mint_bench_login, mint_datum_token, mint_site_login
 
 PILOT_TASK_TIMEOUT_SECONDS = 35
@@ -57,11 +58,16 @@ def get_bootstrap_metadata(action) -> dict[str, str]:
 	common_site_config = frappe.get_cached_doc("Central Settings").get_common_site_config() | {
 		"fc_team": action.team
 	}
+	# A site billed per seat allows as many enabled system users as the team has seats.
+	if seats := frappe.db.get_value("Team", action.team, "seats"):
+		common_site_config["max_system_users"] = seats
 	if mailbox := UserMailAccount.assign(action):
 		common_site_config |= mailbox.get_site_config()
 	# A free trial boots with a Grove key from the pool: AI works before the team holds any key.
 	if trial_key := AITrialKey.assign(action):
 		common_site_config |= trial_key.get_site_config()
+	# A trial or managed site meters its free AI against this monthly budget and stops at it.
+	common_site_config |= get_ai_budget_config(action)
 	metadata["pilot-common-site-config"] = json.dumps(common_site_config)
 
 	common_config = {}
@@ -266,6 +272,24 @@ def get_site_apps(server: str, site_names: list[str]) -> tuple[str, list[str]]:
 			raise
 
 		return site, [app["name"] for app in result.get("apps", [])]
+
+	frappe.throw(_("The site has no name that its server knows."))
+
+
+def update_site_config(server: str, site_names: list[str], values: dict) -> dict:
+	"""Merge `values` into one site's `site_config.json` through its Pilot. The bench may know the
+	site by any of `site_names`, so each is tried in order. Returns the site's public config."""
+	base_url = _expected_gateway_url(frappe.get_doc("Virtual Machine", server))
+	for site in site_names:
+		try:
+			return _request_pilot(
+				"PATCH", server, base_url, f"/api/v1/sites/{quote(site, safe='')}/configuration", values
+			)
+		except requests.HTTPError as error:
+			# Before its rename lands, the bench knows the site only by its image name.
+			if error.response is not None and error.response.status_code == 404 and site != site_names[-1]:
+				continue
+			raise
 
 	frappe.throw(_("The site has no name that its server knows."))
 

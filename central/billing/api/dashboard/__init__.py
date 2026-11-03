@@ -79,6 +79,11 @@ from central.billing.api.dashboard.reports import (
 	get_tax_summary,
 	list_refunds,
 )
+from central.billing.api.dashboard.seats import (
+	change_seats,
+	get_seats,
+	set_subscription_cancelled,
+)
 from central.billing.api.dashboard.services import (
 	get_metered_services,
 	subscribe_metered_service,
@@ -88,6 +93,7 @@ from central.billing.api.dashboard.spend import (
 )
 
 __all__ = [
+	"change_seats",
 	"confirm_card",
 	"confirm_invoice_checkout",
 	"confirm_payment_method_order",
@@ -112,6 +118,7 @@ __all__ = [
 	"get_next_payment",
 	"get_payment_method_options",
 	"get_payment_schedule",
+	"get_seats",
 	"get_spend_history",
 	"get_statement",
 	"get_tax_summary",
@@ -139,6 +146,7 @@ __all__ = [
 	"set_default_payment_method",
 	"set_project_enabled",
 	"set_project_spending_limit",
+	"set_subscription_cancelled",
 	"set_subscription_project",
 	"setup_payment_method_order",
 	"subscribe_metered_service",

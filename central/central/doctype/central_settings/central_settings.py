@@ -44,6 +44,7 @@ class CentralSettings(Document):
 		github_private_key: DF.Password | None
 		github_webhook_secret: DF.Password | None
 		included_seats: DF.Int
+		included_storage_gb: DF.Int
 		included_transfer_gb: DF.Int
 		invitation_expiry_days: DF.Int
 		invitation_resend_cooldown_minutes: DF.Int

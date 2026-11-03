@@ -79,3 +79,5 @@ central.patches.v0_0.enable_managed_saas_mode
 central.patches.v0_0.grant_site_login_to_console_roles
 # Intrakore Cloud is invite-only: a new email needs a Trial Invitation to sign up.
 central.patches.v0_0.enable_invite_only
+# Trials run 30 days with a card on file, and every Product inherits the length.
+central.patches.v0_0.set_thirty_day_trials

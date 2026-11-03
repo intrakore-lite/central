@@ -581,9 +581,10 @@ class TestSiteRoutes(SiteOnAMachine):
 	def test_a_new_product_site_says_whether_it_is_free(self):
 		product = self.signup_product("raven-terms")
 
-		with patch("central.signups.eligibility.has_active_payment_method", return_value=False):
-			self.assertTrue(onboarding_status(self.team.name, product)["is_free_trial"])
+		# A card stored first does not end the trial: only a team that has paid buys its site.
 		with patch("central.signups.eligibility.has_active_payment_method", return_value=True):
+			self.assertTrue(onboarding_status(self.team.name, product)["is_free_trial"])
+		with patch("central.signups.eligibility.has_paid_before", return_value=True):
 			self.assertFalse(onboarding_status(self.team.name, product)["is_free_trial"])
 
 	def test_a_disabled_product_refuses_a_new_site_but_resumes_a_started_one(self):

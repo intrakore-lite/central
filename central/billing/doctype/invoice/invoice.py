@@ -99,6 +99,9 @@ class Invoice(Document):
 		"""
 		if self.status == CANCELLED:
 			self.period_key = f"{CANCELLED}|{self.name}"
+		elif self.invoice_type == "Prepayment":
+			# An advance for part of a period; the arrears invoice still takes the period's slot.
+			self.period_key = f"Prepayment|{period_key_for(self.team, self.period_start, self.period_end)}"
 		else:
 			self.period_key = period_key_for(self.team, self.period_start, self.period_end)
 

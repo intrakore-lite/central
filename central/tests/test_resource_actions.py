@@ -186,10 +186,10 @@ class TestResourceActions(IntegrationTestCase):
 			self.client.return_value.create_vm.call_args.args[0]["sleep_after_idle_seconds"], 600
 		)
 
-	def test_a_site_for_a_team_that_pays_never_sleeps(self):
+	def test_a_site_for_a_team_that_paid_before_never_sleeps(self):
 		frappe.db.set_single_value("Central Settings", "trial_idle_shutdown_minutes", 10)
 		frappe.clear_cache(doctype="Central Settings")
-		with patch("central.signups.eligibility.has_active_payment_method", return_value=True):
+		with patch("central.signups.eligibility.has_paid_before", return_value=True):
 			name = self.submit(resource_type="Site", subdomain="awake", site=self.trial_site())["action"]
 			_process_locked(name)
 

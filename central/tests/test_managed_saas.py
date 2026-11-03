@@ -305,7 +305,7 @@ class TestTrialOffer(ManagedTeam):
 
 	def test_a_paying_team_or_an_open_trial_gets_none(self):
 		self.as_user(self.owner)
-		with patch("central.signups.eligibility.has_active_payment_method", return_value=True):
+		with patch("central.signups.eligibility.has_paid_before", return_value=True):
 			self.assertIsNone(trial_offer(self.team.name))
 		with patch("central.signups.eligibility.get_open_trial_of_owner", return_value=object()):
 			self.assertIsNone(trial_offer(self.team.name))
