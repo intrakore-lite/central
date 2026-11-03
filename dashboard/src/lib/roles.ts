@@ -48,7 +48,7 @@ export function roleDisplay(role: TeamRoleRow): RoleDisplay {
 	// never drift from what the role does.
 	return {
 		icon: 'lucide-shield-check',
-		description: describeCapabilities(role.capabilities),
+		description: describeCapabilities(role.capabilities, features.managed),
 	}
 }
 

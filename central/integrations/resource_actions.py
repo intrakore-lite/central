@@ -13,7 +13,6 @@ from central.errors import (
 	AtlasRejected,
 	AtlasRequestUncertain,
 	AtlasResourceGone,
-	build_envelope,
 	to_error_response,
 )
 from central.infrastructure.doctype.pilot_credential.pilot_credential import PilotCredential
@@ -54,18 +53,20 @@ def process_request(name: str) -> None:
 				frappe.db.rollback()
 				action = frappe.get_doc("Resource Action", name, for_update=True)
 				if action.status == "Queued":
-					action.transition("Failed", envelope=build_envelope("UNEXPECTED"), diagnostic=diagnostic)
+					action.transition(
+						"Failed", envelope=action.build_envelope("UNEXPECTED"), diagnostic=diagnostic
+					)
 				elif action.action == "resize" and action.status == "Dispatching":
 					action.transition(
-						"Uncertain", envelope=build_envelope("OUTCOME_UNKNOWN"), diagnostic=diagnostic
+						"Uncertain", envelope=action.build_envelope("OUTCOME_UNKNOWN"), diagnostic=diagnostic
 					)
 				elif action.remote_vm_id:
 					action.transition(
-						"Sent", envelope=build_envelope("FINALIZATION_FAILED"), diagnostic=diagnostic
+						"Sent", envelope=action.build_envelope("FINALIZATION_FAILED"), diagnostic=diagnostic
 					)
 				else:
 					action.transition(
-						"Uncertain", envelope=build_envelope("OUTCOME_UNKNOWN"), diagnostic=diagnostic
+						"Uncertain", envelope=action.build_envelope("OUTCOME_UNKNOWN"), diagnostic=diagnostic
 					)
 	except LockNotOwnedError:
 		# Ours expired while the region was still answering. The work ran unguarded and may
@@ -106,13 +107,22 @@ def _process_locked(name: str) -> None:
 		return
 
 	try:
+		# The stored message is read by the team, and this job runs as a system user.
+		managed = request.reads_as_site
 		if not request.is_allowed():
 			frappe.throw(
-				_("The requester no longer has permission to create this server."), frappe.PermissionError
+				_("The requester no longer has permission to create this site.")
+				if managed
+				else _("The requester no longer has permission to create this server."),
+				frappe.PermissionError,
 			)
 
 		if frappe.db.get_value("Region", request.region, "status") != "Active":
-			frappe.throw(_("This region is not accepting server creation."))
+			frappe.throw(
+				_("This region is not accepting site creation.")
+				if managed
+				else _("This region is not accepting server creation.")
+			)
 		client = _client(request)
 		payload = _create_payload(request)
 		request.transition("Dispatching", notify=False)
@@ -153,14 +163,16 @@ def recover_unanswered(request) -> None:
 	except AtlasConnectionError:
 		request.transition(
 			"Uncertain",
-			envelope=build_envelope("OUTCOME_UNKNOWN"),
+			envelope=request.build_envelope("OUTCOME_UNKNOWN"),
 			diagnostic=frappe.get_traceback(),
 			diagnostic_title="Atlas create recovery failed",
 		)
 		return
 
 	if not remote_vm_id:
-		request.transition("Failed", envelope=build_envelope("CREATE_NOT_ACCEPTED", action=request.action))
+		request.transition(
+			"Failed", envelope=request.build_envelope("CREATE_NOT_ACCEPTED", action=request.action)
+		)
 		return
 
 	request.db_set("remote_vm_id", remote_vm_id)
@@ -281,7 +293,7 @@ def _finalize(request) -> None:
 		request.reload()
 		request.transition(
 			"Sent",
-			envelope=build_envelope("FINALIZATION_FAILED"),
+			envelope=request.build_envelope("FINALIZATION_FAILED"),
 			diagnostic=diagnostic,
 			diagnostic_title="Server finalization failed",
 		)
@@ -292,7 +304,7 @@ def _finalize(request) -> None:
 	except AtlasConnectionError:
 		request.transition(
 			"Sent",
-			envelope=build_envelope("REFRESH_FAILED"),
+			envelope=request.build_envelope("REFRESH_FAILED"),
 			diagnostic=frappe.get_traceback(),
 			diagnostic_title="Atlas server refresh failed",
 		)
@@ -310,14 +322,14 @@ def process_resize(action) -> None:
 		or server.atlas_vm_id != action.remote_vm_id
 	):
 		action.transition(
-			"Failed", envelope=build_envelope("SERVER_NOT_FOUND", resource_id=action.resource_id)
+			"Failed", envelope=action.build_envelope("SERVER_NOT_FOUND", resource_id=action.resource_id)
 		)
 		return
 
 	first_dispatch = action.status == "Queued"
 	if first_dispatch:
 		if not action.is_allowed():
-			action.transition("Failed", envelope=build_envelope("PERMISSION_DENIED", action="resize"))
+			action.transition("Failed", envelope=action.build_envelope("PERMISSION_DENIED", action="resize"))
 			return
 		action.transition("Dispatching", notify=False)
 		frappe.db.commit()  # nosemgrep: frappe-manual-commit -- record the dispatch before calling Atlas
@@ -340,7 +352,7 @@ def process_resize(action) -> None:
 		# A resize sets absolute values, so recovery can safely run it again.
 		action.transition(
 			"Uncertain",
-			envelope=build_envelope("OUTCOME_UNKNOWN"),
+			envelope=action.build_envelope("OUTCOME_UNKNOWN"),
 			diagnostic=frappe.get_traceback(),
 			diagnostic_title="Atlas resize result was uncertain",
 		)
@@ -359,7 +371,7 @@ def process_resize(action) -> None:
 		action.reload()
 		action.transition(
 			"Sent",
-			envelope=build_envelope("FINALIZATION_FAILED"),
+			envelope=action.build_envelope("FINALIZATION_FAILED"),
 			diagnostic=diagnostic,
 			diagnostic_title="Resize billing finalization failed",
 		)
@@ -389,13 +401,15 @@ def process_command(action) -> None:
 		or server.atlas_vm_id != action.remote_vm_id
 	):
 		action.transition(
-			"Failed", envelope=build_envelope("SERVER_NOT_FOUND", resource_id=action.resource_id)
+			"Failed", envelope=action.build_envelope("SERVER_NOT_FOUND", resource_id=action.resource_id)
 		)
 		return
 
 	if action.status == "Queued":
 		if not action.is_allowed():
-			action.transition("Failed", envelope=build_envelope("PERMISSION_DENIED", action=action.action))
+			action.transition(
+				"Failed", envelope=action.build_envelope("PERMISSION_DENIED", action=action.action)
+			)
 			return
 
 		client = servers.get_client(server)
@@ -430,7 +444,7 @@ def process_command(action) -> None:
 	except AtlasConnectionError:
 		action.transition(
 			action.status,
-			envelope=build_envelope("REFRESH_FAILED"),
+			envelope=action.build_envelope("REFRESH_FAILED"),
 			diagnostic=frappe.get_traceback(),
 			diagnostic_title="Atlas server refresh failed",
 		)
@@ -451,7 +465,7 @@ def is_final_snapshot_ready(action, server: VirtualMachine, client: AtlasClient)
 		if status == "Pending":
 			action.db_set("last_checked_at", frappe.utils.now_datetime())
 		else:
-			action.transition("Failed", envelope=build_envelope("SNAPSHOT_FAILED", action="terminate"))
+			action.transition("Failed", envelope=action.build_envelope("SNAPSHOT_FAILED", action="terminate"))
 		return False
 
 	# One snapshot runs per server; a daily one already running is waited out first.
@@ -464,7 +478,7 @@ def is_final_snapshot_ready(action, server: VirtualMachine, client: AtlasClient)
 	except AtlasConnectionError as error:
 		action.transition(
 			"Failed",
-			envelope=to_error_response(error),
+			envelope=to_error_response(error, managed=action.reads_as_site),
 			diagnostic=frappe.get_traceback(),
 			diagnostic_title="Atlas snapshot preparation failed",
 		)

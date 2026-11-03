@@ -5,7 +5,7 @@ from frappe import _
 from frappe.model.document import Document
 
 from central.errors import AtlasConnectionError, AtlasRequestUncertain, build_envelope, to_error_response
-from central.iam import can
+from central.iam import can, is_managed_customer, is_managed_team
 from central.infrastructure.doctype.blocked_domain.blocked_domain import BlockedDomain, normalize_domain
 from central.infrastructure.doctype.pilot_credential.pilot_credential import PilotCredential
 from central.infrastructure.doctype.user_mail_account.user_mail_account import UserMailAccount
@@ -291,7 +291,7 @@ class ResourceAction(Document):
 		"""Record a failed dispatch. An uncertain Atlas reply stays pending for recovery."""
 		self.transition(
 			"Uncertain" if isinstance(error, AtlasRequestUncertain) else "Failed",
-			envelope=to_error_response(error),
+			envelope=to_error_response(error, managed=self.reads_as_site),
 			diagnostic=frappe.get_traceback() if isinstance(error, AtlasConnectionError) else None,
 			diagnostic_title=title,
 		)
@@ -303,11 +303,21 @@ class ResourceAction(Document):
 			return
 
 		if observed_status in ("Failed", "Terminated"):
-			self.transition("Failed", envelope=build_envelope("ACTION_FAILED", action=self.action))
+			self.transition("Failed", envelope=self.build_envelope("ACTION_FAILED", action=self.action))
 		elif self.action != "create" and self.is_overdue:
-			self.transition("Timed Out", envelope=build_envelope("ACTION_TIMED_OUT", action=self.action))
+			self.transition("Timed Out", envelope=self.build_envelope("ACTION_TIMED_OUT", action=self.action))
 		else:
 			self.transition("In Progress", notify=False)
+
+	def build_envelope(self, code: str, **context) -> dict:
+		"""An error envelope in the copy the team's members read. The region work runs as a
+		system user, so the team decides the copy, not the session user."""
+		return build_envelope(code, managed=self.reads_as_site, **context)
+
+	@property
+	def reads_as_site(self) -> bool:
+		"""Whether this action's stored copy says site in place of server."""
+		return is_managed_team(self.team)
 
 	@property
 	def server_id(self) -> str:
@@ -408,7 +418,7 @@ class ResourceAction(Document):
 			{"label": _("Requested"), "at": self.creation},
 			{"label": _("Sent to region"), "at": self.dispatched_at},
 			{
-				"label": _("Server created"),
+				"label": _("Site created") if is_managed_customer() else _("Server created"),
 				"at": self.completed_at if self.status == "Succeeded" else None,
 				"error": (self.error_message or self.status) if failed else None,
 			},
@@ -424,10 +434,20 @@ class ResourceAction(Document):
 		and quote. Refused once the region answered with a machine, because a second dispatch would
 		build a second server."""
 		self.check_permission("read")
+		managed = is_managed_customer()
 		if self.action != "create":
-			frappe.throw(_("Only a server creation can be retried. Run this action again from the server."))
+			frappe.throw(
+				_("Only a site creation can be retried. Run this action again from the site.")
+				if managed
+				else _("Only a server creation can be retried. Run this action again from the server.")
+			)
 		if not can(frappe.session.user, self.team, "server:create"):
-			frappe.throw(_("You cannot create servers for this Team."), frappe.PermissionError)
+			frappe.throw(
+				_("You cannot create sites for this Team.")
+				if managed
+				else _("You cannot create servers for this Team."),
+				frappe.PermissionError,
+			)
 		if self.status not in RETRYABLE_CREATE_STATES:
 			frappe.throw(_("Only a failed creation can be retried."))
 		if self.remote_vm_id:
@@ -436,7 +456,11 @@ class ResourceAction(Document):
 			)
 		# A record from before the saved configuration has nothing to send again.
 		if not self.request_payload:
-			frappe.throw(_("This request holds no saved configuration. Create the server again."))
+			frappe.throw(
+				_("This request holds no saved configuration. Create the site again.")
+				if managed
+				else _("This request holds no saved configuration. Create the server again.")
+			)
 
 		self.revalidate_purchase()
 		self.transition("Queued")

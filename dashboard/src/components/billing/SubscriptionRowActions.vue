@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import RowActionsMenu from '@/components/common/RowActionsMenu.vue'
+import { features } from '@/lib/features'
 import type { SubscriptionRow } from '@/types/billing'
 
 // The lifecycle menu for one subscription row — mirrors ServerRowActions. Which
@@ -27,7 +28,8 @@ interface ActionItem {
 
 const options = computed(() => {
 	const items: ActionItem[] = []
-	if (props.subscription.gateway_url)
+	// Open server signs in to Pilot, which a customer of a managed console cannot use.
+	if (props.subscription.gateway_url && !features.managed)
 		items.push({
 			label: 'Open server',
 			icon: 'lucide-external-link',

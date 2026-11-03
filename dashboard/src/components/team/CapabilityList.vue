@@ -4,6 +4,7 @@ import {
 	capabilityLabel,
 	groupCapabilitiesByCategory,
 } from '@/lib/capabilities'
+import { features } from '@/lib/features'
 import type { CapabilityInfo } from '@/types/api'
 
 // The granted capabilities of a role, grouped by area. `palette` is the full
@@ -23,6 +24,7 @@ const groups = computed(() => {
 	const granted = new Set(props.caps)
 	return groupCapabilitiesByCategory(
 		props.palette.filter((cap) => granted.has(cap.name)),
+		features.managed,
 	)
 })
 </script>
@@ -37,7 +39,9 @@ const groups = computed(() => {
 			     list itself is the grant. The slug stays a backend detail. -->
 			<ul class="space-y-4">
 				<li v-for="cap in group.caps" :key="cap.name" class="min-w-0">
-					<p class="text-p-sm text-ink-gray-8">{{ capabilityLabel(cap) }}</p>
+					<p class="text-p-sm text-ink-gray-8">
+						{{ capabilityLabel(cap, features.managed) }}
+					</p>
 				</li>
 			</ul>
 		</section>

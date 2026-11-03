@@ -98,6 +98,17 @@ def is_managed_customer(user: str | None = None) -> bool:
 	return is_managed_mode() and not user_has_operator_bypass(user)
 
 
+def is_managed_team(team: str | None) -> bool:
+	"""Whether a record kept for `team` reads as a customer of a managed console: Managed SaaS
+	mode is on and an operator does not own the team. A background job runs as a system user,
+	so copy that a job stores for the team's members to read asks this, not the session user."""
+	if not team or not is_managed_mode():
+		return False
+
+	owner = frappe.db.get_value("Team", team, "owner_user")
+	return not (owner and user_has_operator_bypass(owner))
+
+
 def get_all_capabilities() -> list[str]:
 	return frappe.get_all("Capability", pluck="name", order_by="name")
 
