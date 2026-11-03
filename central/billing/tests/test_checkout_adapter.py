@@ -249,6 +249,15 @@ class TestCheckoutAdapter(GatewayAdapterContract, IntegrationTestCase):
 				adapter.validate_credentials()
 		request.assert_not_called()
 
+	def test_an_empty_payment_search_proves_the_key(self):
+		# Checkout.com answers 404 with an empty body when no payment has the reference.
+		with self._stub(side_effect=CheckoutNotFound("none")):
+			self.assertIsNotNone(self.make_adapter().validate_credentials())
+
+	def test_an_empty_payment_search_finds_no_payment(self):
+		with self._stub(side_effect=CheckoutNotFound("none")):
+			self.assertIsNone(self.make_adapter().find_order_payment("PA-77"))
+
 	def test_amounts_are_sent_in_minor_units(self):
 		self.assertEqual(to_minor(367.25, "AED"), 36725)
 		self.assertEqual(to_minor(1.5, "KWD"), 1500)

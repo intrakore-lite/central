@@ -161,7 +161,9 @@ class CheckoutAdapter(GatewayAdapter):
 			raise GatewayAuthError(
 				f"The public key does not belong to the {self._environment()} environment."
 			)
-		self._request("GET", "/payments", params={"reference": "central-credential-check", "limit": 1})
+		# No payment has this reference, so Checkout.com answers 404: the key was accepted.
+		# A wrong key or base URL answers 401 or 403, which raises.
+		self._payments_by_reference("central-credential-check")
 		return {
 			"account_id": self._processing_channel() or f"checkout-{self._environment().lower()}",
 			"currency": None,
@@ -595,7 +597,11 @@ class CheckoutAdapter(GatewayAdapter):
 
 	def _payments_by_reference(self, reference: str) -> list[dict]:
 		"""Payments with this reference, newest first."""
-		answer = self._request("GET", "/payments", params={"reference": reference, "limit": 100})
+		try:
+			answer = self._request("GET", "/payments", params={"reference": reference, "limit": 100})
+		except CheckoutNotFound:
+			# Checkout.com answers 404 with an empty body when no payment has the reference.
+			return []
 		rows = answer.get("data") or []
 		return sorted(rows, key=lambda row: str(row.get("requested_on") or ""), reverse=True)
 
