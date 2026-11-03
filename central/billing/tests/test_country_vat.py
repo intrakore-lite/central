@@ -187,9 +187,9 @@ class TestMarketSetup(BillingTestCase):
 		self.assertEqual(frappe.db.get_single_value(settings.SETTINGS, "series_uae"), "INV/.YYYY./.#####")
 		self.assertEqual(settings.vat_rate_for_country(UAE), 5)
 		self.assertIsNone(settings.vat_rate_for_country("Saudi Arabia"))
-		self.assertEqual(frappe.db.get_single_value("Central Settings", "trial_days"), 60)
+		self.assertEqual(frappe.db.get_single_value("Central Settings", "trial_days"), 30)
 		product = frappe.db.get_value("Product", "crm-estimation", ["enabled", "trial_days"], as_dict=True)
-		self.assertEqual(product, {"enabled": 0, "trial_days": 60})
+		self.assertEqual(product, {"enabled": 0, "trial_days": 0})
 		# Checkout.com keys are the operator's, so the site is not ready yet.
 		self.assertFalse(result["ready"])
 		self.assertIn(

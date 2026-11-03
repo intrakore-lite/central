@@ -48,12 +48,13 @@ BUNDLE_PRODUCT = {
 	"title": "CRM + Estimation",
 	"signup_app": "intrakore_crm",
 	"frappe_version": "version-16",
-	"trial_days": 60,
+	# 0: the product runs the Central Settings trial, so one setting moves every bundle.
+	"trial_days": 0,
 }
 
-# Central Settings for a trial that runs free without a card and asks for one at the end.
+# Central Settings for the 30-day trial: the card is stored at signup and charged on day 30.
 TRIAL_SETTINGS = {
-	"trial_days": 60,
+	"trial_days": 30,
 	"trial_deletion_days": 14,
 	"trial_notice_days": 7,
 	# A paid server, and so a trial that is kept, needs a payment method.
