@@ -436,9 +436,14 @@ def get_site_state(team: str) -> dict:
 	return site_answer("setting_up", site, state)
 
 
-def start_site_setup(team: str) -> None:
-	"""Job: start the company setup of the team's site once it is ready. The job runs as the
-	system: it only reads the team's own site and sends the owner's saved answers."""
+def start_site_setup(team: str, site: str | None = None) -> None:
+	"""Job, when a site is first ready: write its seat cap into its config, then start its company
+	setup. The job runs as the system: it only reads the team's own site and sends the owner's
+	saved answers."""
+	from central.signups.site_onboarding import push_site_seat_limit
+
+	if site:
+		push_site_seat_limit(frappe.get_doc("Site", site))
 	get_site_state(team)
 
 

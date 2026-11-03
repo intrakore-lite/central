@@ -199,8 +199,9 @@ class Site(Document):
 		)
 
 	def enqueue_onboarding_setup(self) -> None:
-		"""Start the company setup of a site Central onboards, so its owner never sees Frappe's
-		setup wizard. The onboarding pages start it too, if this job finds the site still busy."""
+		"""Write the seat cap of a site Central onboards and start its company setup, so its owner
+		never sees Frappe's setup wizard. The onboarding pages start the setup too, if this job
+		finds the site still busy."""
 		if not self.get_password("onboarding_secret", raise_exception=False):
 			return
 
@@ -212,6 +213,7 @@ class Site(Document):
 			job_id=f"site-onboarding-setup:{self.name}",
 			deduplicate=True,
 			team=self.team,
+			site=self.name,
 		)
 
 	def capture_ready(self) -> None:

@@ -164,16 +164,26 @@ class TestOnboardingSecret(IntegrationTestCase):
 			site_onboarding.get_boot_site_config(other)["intrakore_onboarding_secret"],
 		)
 
-	def test_the_seat_cap_follows_the_team(self):
+	def test_a_ready_site_gets_the_teams_seat_cap_in_its_own_config(self):
 		owner = create_user("seats")
 		frappe.set_user(owner)
 		with patch("central.geo.get_country_from_ip", return_value="United Arab Emirates"):
 			team = create_team("Seats Team")["name"]
 		frappe.set_user("Administrator")
 		frappe.db.set_value("Team", team, "seats", 7)
-		self.action.team = team
+		site = Mock(team=team)
 
-		self.assertEqual(site_onboarding.get_boot_site_config(self.action)["max_system_users"], 7)
+		with patch("central.billing.catalog.seats.push_user_limit") as push:
+			site_onboarding.push_site_seat_limit(site)
+			push.assert_called_once_with(site, 7)
+
+			frappe.db.set_value("Team", team, "seats", 0)
+			push.reset_mock()
+			site_onboarding.push_site_seat_limit(site)
+			push.assert_not_called()
+
+	def test_the_boot_config_leaves_the_seat_cap_to_the_bootstrap(self):
+		self.assertNotIn("max_system_users", site_onboarding.get_boot_site_config(self.action))
 
 	def test_a_server_creation_gets_no_site_keys(self):
 		self.action.resource_type = "Server"

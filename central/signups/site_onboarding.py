@@ -96,10 +96,19 @@ def get_boot_site_config(action) -> dict:
 	)
 	set_encrypted_password("Resource Action", action.name, secret, SECRET_FIELD)
 
-	config = {"intrakore_onboarding_secret": secret, "intrakore_cloud_onboarding": 1}
-	if seats := frappe.db.get_value("Team", action.team, "seats"):
-		config["max_system_users"] = seats
-	return config
+	# get_bootstrap_metadata adds the seat cap, max_system_users, for every team with seats. When
+	# the site is ready, push_site_seat_limit writes it into the site's own config as well.
+	return {"intrakore_onboarding_secret": secret, "intrakore_cloud_onboarding": 1}
+
+
+def push_site_seat_limit(site: Site) -> None:
+	"""Write the team's seat count as `max_system_users` into the new site's own config, so the
+	cap holds even where the image's site config would hide the boot value. Seat billing sends
+	it again on every seat change."""
+	from central.billing.catalog.seats import push_user_limit
+
+	if seats := frappe.db.get_value("Team", site.team, "seats"):
+		push_user_limit(site, seats)
 
 
 def adopt_action_secret(site: Site, action_name: str | None) -> None:
