@@ -141,13 +141,6 @@ class TestOnboardingContent(IntegrationTestCase):
 		)
 		self.assertEqual(onboarding.get_seat_quote(12, 99.5, 5)["total"], 1253.7)
 
-	def test_the_site_plan_follows_the_seat_band(self):
-		self.assertEqual(onboarding.get_plan_for_seats(1), "plan-1vcpu")
-		self.assertEqual(onboarding.get_plan_for_seats(5), "plan-1vcpu")
-		self.assertEqual(onboarding.get_plan_for_seats(6), "plan-2vcpu")
-		self.assertEqual(onboarding.get_plan_for_seats(40), "plan-4vcpu")
-		self.assertEqual(onboarding.get_plan_for_seats(41), "plan-8vcpu")
-
 	def test_a_hosted_card_page_returns_only_to_this_site(self):
 		from central.billing.api.dashboard.methods import _own_site_url
 

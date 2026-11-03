@@ -17,7 +17,7 @@ export interface OnboardingProfile {
 	tax_id: string
 }
 
-/** The placeholder seat prices of Central Settings > Onboarding. */
+/** The seat prices of Central Settings > Seat Billing. */
 export interface SeatPricing {
 	currency: string
 	seat_price: number

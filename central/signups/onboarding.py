@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from central.billing.catalog import seats as seat_billing
 from central.signups.eligibility import has_active_payment_method
 from central.signups.trial import TrialSettings
 from central.signups.trial_product import resolve_trial_product
@@ -14,10 +15,6 @@ VAT_PERCENT = 5
 MAX_SEATS = 40
 ORGANISATION_FIELDS = ("business_type", "headcount_bracket", "turnover_band")
 SUBDOMAIN_LENGTH = 30
-# The server plan of each seat band. central.billing.catalog.seats.get_plan_for_seats (OPS-218)
-# replaces this table once it is on develop.
-SEAT_BANDS = ((5, "plan-1vcpu"), (15, "plan-2vcpu"), (40, "plan-4vcpu"))
-LARGEST_BAND_PLAN = "plan-8vcpu"
 
 # Every claim here must be true for this platform today. Central Settings > Onboarding Trust Content
 # replaces a key with real figures, a real quote or a certification once it exists.
@@ -72,14 +69,6 @@ def get_team_product(team: str, product: str | None) -> str | None:
 	return resolve_trial_product(
 		product or (invited[0] if invited else None) or frappe.db.get_value("Team", team, "landing_product")
 	)
-
-
-def get_plan_for_seats(seats: int) -> str:
-	"""The server plan of a seat band: 1 to 5 seats, 6 to 15, 16 to 40, and more."""
-	for most_seats, plan in SEAT_BANDS:
-		if seats <= most_seats:
-			return plan
-	return LARGEST_BAND_PLAN
 
 
 def get_product_summary(team: str, product: str | None) -> dict | None:
@@ -156,8 +145,9 @@ def get_profile_options() -> dict:
 
 
 def get_seat_pricing(product: str | None = None) -> dict:
-	"""The placeholder seat prices from Central Settings, and the monthly price of every seat
-	count the counter offers. Seat billing does not read them yet."""
+	"""The seat prices of Central Settings > Seat Billing, which seat billing charges from day
+	30, and the monthly price of every seat count the counter offers. The team has no site yet,
+	so the quote reads the settings, not the site's subscription."""
 	settings = frappe.get_cached_doc("Central Settings")
 	seat_price = flt(settings.seat_price)
 	included_seats = cint(settings.included_seats)
@@ -215,9 +205,9 @@ def save_profile(team: str, profile: dict) -> dict:
 
 	doc = frappe.get_doc("Team", team)
 	doc.team_name = profile["organisation"]
-	doc.seats = profile["seats"]
 	doc.update({field: profile[field] for field in ORGANISATION_FIELDS})
 	doc.save()
+	save_seats(team, profile["seats"])
 	# A first team links its invitation when it is created. An invitee who already had a team links here.
 	link_team(frappe.session.user, team)
 
@@ -229,6 +219,24 @@ def save_profile(team: str, profile: dict) -> dict:
 		country=profile["country"],
 	)
 	return get_profile(team)
+
+
+def save_seats(team: str, seats: int) -> None:
+	"""Store the seat count. A team whose site already bills per seat changes it through seat
+	billing. Otherwise the count waits on the Team, and the seat limit job sends it to the site."""
+	if seat_billing.get_seat_site(team):
+		seat_billing.change_seats(team, seats, changed_by=frappe.session.user)
+		return
+
+	frappe.db.set_value("Team", team, "seats", seats)
+	frappe.enqueue(
+		seat_billing.sync_seat_limits,
+		team=team,
+		queue="short",
+		enqueue_after_commit=True,
+		job_id=f"seat-limits:{team}",
+		deduplicate=True,
+	)
 
 
 def validated_profile(profile: dict) -> dict:
@@ -295,7 +303,7 @@ def create_site(team: str, product: str, user: str) -> None:
 			free_subdomain(organisation or team),
 			frappe.generate_hash(length=20),
 			product,
-			plan=get_plan_for_seats(cint(seats) or 1),
+			plan=seat_billing.get_plan_for_seats(cint(seats) or 1),
 		)
 	except Exception:
 		frappe.log_error(title=f"Onboarding site for {team} not created")
