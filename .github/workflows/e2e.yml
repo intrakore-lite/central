@@ -19,6 +19,9 @@ concurrency:
   group: e2e-central-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FRAPPE_COMMIT: 2c705f0319557b91c0c32181a3d33212ce83d4d2
+
 jobs:
   e2e:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -83,6 +86,9 @@ jobs:
         run: |
           pip install frappe-bench
           bench init --skip-redis-config-generation --skip-assets --python "$(which python)" "$BENCH"
+          # Same Frappe commit as the intrakore.cloud control bench, so upstream changes do not break CI.
+          git -C "$BENCH/apps/frappe" fetch --depth 1 origin "$FRAPPE_COMMIT"
+          git -C "$BENCH/apps/frappe" checkout -q "$FRAPPE_COMMIT"
 
       - name: Install app + site
         working-directory: /home/runner/frappe-bench

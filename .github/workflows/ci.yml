@@ -10,6 +10,9 @@ concurrency:
   group: develop-central-${{ github.event.number }}
   cancel-in-progress: true
 
+env:
+  FRAPPE_COMMIT: 2c705f0319557b91c0c32181a3d33212ce83d4d2
+
 jobs:
   patches-guard:
     runs-on: ubuntu-latest
@@ -92,6 +95,9 @@ jobs:
         run: |
           pip install frappe-bench
           bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          # Same Frappe commit as the intrakore.cloud control bench, so upstream changes do not break CI.
+          git -C "$HOME/frappe-bench/apps/frappe" fetch --depth 1 origin "$FRAPPE_COMMIT"
+          git -C "$HOME/frappe-bench/apps/frappe" checkout -q "$FRAPPE_COMMIT"
 
       - name: Install
         working-directory: /home/runner/frappe-bench
