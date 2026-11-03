@@ -36,6 +36,9 @@ TRIAL_KEY_CONFIG = {
 		}
 	]
 }
+BUDGET = "central.services.trial_ai_budget"
+# AED 50 at the peg: the free AI a trial site gets for a month.
+AI_BUDGET_CONFIG = {"intrakore_ai_monthly_budget_usd": 13.61, "intrakore_ai_over_budget_action": "stop"}
 
 
 def pilot_request(is_free_trial: int = 0):
@@ -70,6 +73,8 @@ class TestPilotBootstrapMetadata(IntegrationTestCase):
 		self.enterContext(patch(f"{PILOT}.central_url", return_value="https://central.test"))
 		self.enterContext(patch(f"{PILOT}.jwks_url", return_value="https://central.test/jwks"))
 		self.enterContext(patch(f"{PILOT}.jwks_document", return_value={"keys": [{"kid": "pilot-key"}]}))
+		# Managed SaaS mode is on after migrate; a paid creation here is a self-serve team's.
+		self.enterContext(patch(f"{BUDGET}.iam.is_managed_team", return_value=False))
 
 	def test_pilot_payload_contains_the_telemetry_configuration(self):
 		request = pilot_request()
@@ -152,12 +157,14 @@ class TestPilotBootstrapMetadata(IntegrationTestCase):
 			patch(COMMON_SITE_CONFIG, return_value=relay),
 			patch(f"{PILOT}.UserMailAccount.assign", return_value=mailbox),
 			patch(f"{PILOT}.AITrialKey.assign", return_value=trial_key) as assign,
+			patch(f"{BUDGET}.get_budget_usd", return_value=13.61),
 		):
 			metadata = _create_payload(pilot_request(is_free_trial=1))["metadata"]
 
 		config = metadata["pilot-common-site-config"]
 		self.assertEqual(
-			json.loads(config), relay | {"fc_team": "TEAM-00001"} | MAIL_CONFIG | TRIAL_KEY_CONFIG
+			json.loads(config),
+			relay | {"fc_team": "TEAM-00001"} | MAIL_CONFIG | TRIAL_KEY_CONFIG | AI_BUDGET_CONFIG,
 		)
 		self.assertLessEqual(len(config.encode()), METADATA_VALUE_BYTES)
 		self.assertTrue(assign.call_args.args[0].is_free_trial)
@@ -166,7 +173,21 @@ class TestPilotBootstrapMetadata(IntegrationTestCase):
 		with patch(f"{PILOT}.get_telemetry_base_url", return_value=None):
 			metadata = _create_payload(pilot_request())["metadata"]
 
-		self.assertNotIn("ai_keys", json.loads(metadata["pilot-common-site-config"]))
+		config = json.loads(metadata["pilot-common-site-config"])
+		self.assertNotIn("ai_keys", config)
+		self.assertNotIn("intrakore_ai_monthly_budget_usd", config)
+
+	def test_a_paid_creation_of_a_managed_team_gets_the_ai_budget_but_no_trial_key(self):
+		with (
+			patch(f"{PILOT}.get_telemetry_base_url", return_value=None),
+			patch(f"{BUDGET}.iam.is_managed_team", return_value=True),
+			patch(f"{BUDGET}.get_budget_usd", return_value=13.61),
+		):
+			metadata = _create_payload(pilot_request())["metadata"]
+
+		config = json.loads(metadata["pilot-common-site-config"])
+		self.assertNotIn("ai_keys", config)
+		self.assertEqual({key: config[key] for key in AI_BUDGET_CONFIG}, AI_BUDGET_CONFIG)
 
 	def test_a_region_with_a_bundle_size_boots_pilot_with_a_capped_bucket(self):
 		region = ensure_region("bundle-test")

@@ -10,6 +10,7 @@ from frappe.model.naming import make_autoname
 from frappe.utils import add_to_date, cint, flt, now_datetime
 
 from central.integrations.grove import GroveClient
+from central.services.trial_ai_budget import get_trial_key_cap
 
 if TYPE_CHECKING:
 	from central.infrastructure.doctype.resource_action.resource_action import ResourceAction
@@ -73,11 +74,13 @@ class AITrialKey(Document):
 		A crash between the mint and the insert leaves a capped key under the trial team titled by an id
 		no record carries; Grove Desk shows it."""
 		name = make_autoname(frappe.get_meta("AI Trial Key").autoname)
+		# The site's own AI budget, in whole USD: the key and the site stop at the same figure.
+		cap = get_trial_key_cap()
 		minted = GroveClient.from_settings().provision_key(
 			team=TRIAL_TEAM,
 			title=name,
 			geography=settings.trial_key_geography,
-			cap=cint(settings.trial_key_cap),
+			cap=cap,
 			model_groups=[row.model_group] if row.model_group else None,
 		)
 		return frappe.get_doc(
@@ -87,7 +90,7 @@ class AITrialKey(Document):
 				"product": row.product,
 				"geography": minted["geography"],
 				"gateway_url": minted["gateway_url"],
-				"cap": cint(settings.trial_key_cap),
+				"cap": cap,
 				"api_key": minted["api_key"],
 			}
 		).insert(set_name=name)
