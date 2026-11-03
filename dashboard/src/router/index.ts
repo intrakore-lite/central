@@ -1,5 +1,9 @@
 import { nextTick } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+	createRouter,
+	createWebHistory,
+	type RouteLocationNormalized,
+} from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useSession } from '@/composables/useSession'
 import { fetchBillingSetup } from '@/data/billingSetup'
@@ -23,6 +27,9 @@ const routes = [
 		name: 'Signup',
 		component: () => import('@/pages/auth/SignupPage.vue'),
 		meta: { public: true },
+		// Invite-only: there is no public signup, so its links open the sign-in page.
+		beforeEnter: (to: RouteLocationNormalized) =>
+			features.inviteOnly ? { path: '/login', query: to.query } : true,
 	},
 	{
 		path: '/verify',
@@ -31,11 +38,25 @@ const routes = [
 		meta: { public: true },
 	},
 	{
+		// Emailed Intrakore Cloud activation link, open to guests and signed-in users.
+		path: '/activate',
+		name: 'Activate',
+		component: () => import('@/pages/auth/ActivatePage.vue'),
+		meta: { public: true, allowSignedIn: true },
+	},
+	{
 		// Emailed invitation link, open to guests and signed-in users.
 		path: '/join/:token',
 		name: 'JoinTeam',
 		component: () => import('@/pages/team/JoinTeamPage.vue'),
 		meta: { public: true, allowSignedIn: true },
+	},
+	{
+		// Where an activated invitee starts. A placeholder until the invited onboarding lands.
+		path: '/onboarding/profile',
+		name: 'OnboardingProfile',
+		component: () => import('@/pages/onboarding/ProfilePage.vue'),
+		meta: { invitedOnboarding: true },
 	},
 	{
 		path: '/onboarding/site',
@@ -243,7 +264,12 @@ router.beforeEach((to) => {
 			return '/servers'
 	}
 
-	if (to.path.startsWith('/onboarding') && !productSignup) return '/servers'
+	if (
+		to.path.startsWith('/onboarding') &&
+		!productSignup &&
+		!to.meta.invitedOnboarding
+	)
+		return '/servers'
 
 	// Warm the billing-profile completeness cache for the active team, non-blocking
 	// (mirrors the legacy guard): money-moving actions gate on it via

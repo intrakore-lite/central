@@ -28,7 +28,7 @@ const authRedirect = compile(
 	{ window: { location } },
 )
 
-function signIn(query, { teamsFail = false } = {}) {
+function signIn(query, { teamsFail = false, next } = {}) {
 	const calls = []
 	const window = {
 		location: { ...location, replace: (path) => calls.push(['load', path]) },
@@ -62,7 +62,10 @@ function signIn(query, { teamsFail = false } = {}) {
 		{ window },
 	)
 	return useEmailSignIn()
-		.enterConsole({ user: 'ada@example.test', csrf_token: 'token' }, query)
+		.enterConsole(
+			{ user: 'ada@example.test', csrf_token: 'token', next },
+			query,
+		)
 		.then(() => JSON.parse(JSON.stringify(calls)))
 }
 
@@ -91,5 +94,15 @@ test('any other sign-in boots the console with a full load', async () => {
 	assert.deepEqual(
 		await signIn({ product: 'raven', 'redirect-to': '/dashboard/billing' }),
 		[['load', '/dashboard/billing']],
+	)
+})
+
+test('an invited signup starts its onboarding with a full load', async () => {
+	assert.deepEqual(
+		await signIn(
+			{ product: 'raven' },
+			{ next: '/dashboard/onboarding/profile' },
+		),
+		[['load', '/dashboard/onboarding/profile']],
 	)
 })

@@ -137,6 +137,7 @@ after_install = [
 	"central.integrations.email_oauth.setup.ensure_email_oauth_providers",
 	"central.billing.navigation.ensure_workspace_sidebars",
 	"central.central.doctype.central_settings.central_settings.enable_managed_saas_mode",
+	"central.central.doctype.central_settings.central_settings.enable_invite_only",
 ]
 
 # Uninstallation
@@ -257,6 +258,7 @@ scheduler_events = {
 	],
 	"daily": [
 		"central.identity.doctype.team_invitation.team_invitation.expire_pending_invitations",
+		"central.signups.doctype.trial_invitation.trial_invitation.expire_invitations",
 		"central.signups.trial.run_trials",
 		"central.billing.revenue.dunning.run_dunning",
 		"central.billing.payments.charges.cleanup_payment_logs",
@@ -314,6 +316,7 @@ before_tests = [
 	"central.integrations.email_oauth.setup.ensure_email_oauth_providers",
 	"central.billing.navigation.ensure_workspace_sidebars",
 	"central.central.doctype.central_settings.central_settings.disable_managed_saas_mode",
+	"central.central.doctype.central_settings.central_settings.disable_invite_only",
 ]
 
 # Extend DocType Class

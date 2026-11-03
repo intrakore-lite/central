@@ -6,7 +6,10 @@ from frappe.utils import validate_email_address
 
 from central.identity.doctype.team_invitation.team_invitation import get_invitation_by_token
 from central.identity.email_code import EmailCode
-from central.users import create_user, send_sign_in_code, sign_in_with_code
+from central.signups.doctype.trial_invitation.trial_invitation import (
+	get_invitation_by_token as get_trial_invitation_by_token,
+)
+from central.users import activate_trial_invitation, create_user, send_sign_in_code, sign_in_with_code
 
 FULL_NAME_MAX_LENGTH = 140
 # The rate limit key holds its window, so the window cannot follow a setting.
@@ -81,6 +84,29 @@ def sign_up_with_invitation(token: str, full_name: str) -> dict:
 	invitation.accept()
 
 	return {"user": user.name, "team": invitation.team}
+
+
+# nosemgrep: guest-whitelisted-method -- the emailed token is the credential, and the IP rate limit applies.
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=30, seconds=RATE_LIMIT_WINDOW_SECONDS, methods="GET")
+def get_activation(token: str) -> dict:
+	"""What the activation page shows for a link: the invited email, name, company and status."""
+	summary = get_trial_invitation_by_token(token).get_summary()
+	return {
+		key: summary[key] for key in ("email", "full_name", "company", "status", "expires_on", "has_account")
+	}
+
+
+# nosemgrep: guest-whitelisted-method -- a single-use, short-lived emailed token verifies the address, and the IP rate limit applies.
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=10, seconds=RATE_LIMIT_WINDOW_SECONDS, methods="POST")
+def activate(token: str) -> dict:
+	"""Spend an activation link. Returns `needs_sign_in` when the email already has an account,
+	else the user, where onboarding starts, and the new session's CSRF token."""
+	result = activate_trial_invitation(token)
+	if "user" in result:
+		result["csrf_token"] = get_csrf_token()
+	return result
 
 
 def _validated_email(email: str) -> str:

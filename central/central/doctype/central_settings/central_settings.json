@@ -73,6 +73,10 @@
   "trial_servers_per_team",
   "column_break_trial_limits",
   "trial_idle_shutdown_minutes",
+  "trial_invitations_section",
+  "invite_only",
+  "column_break_trial_invitations",
+  "trial_invitation_days",
   "trial_signup_section",
   "default_trial_product",
   "github_tab",
@@ -567,13 +571,38 @@
    "fieldtype": "Password",
    "label": "Private Key",
    "length": 8192
+  },
+  {
+   "fieldname": "trial_invitations_section",
+   "fieldtype": "Section Break",
+   "label": "Trial Invitations",
+   "description": "Operators invite people from the Trial Invitation list or the invitation API. Each invitation emails a one-time activation link."
+  },
+  {
+   "default": "1",
+   "description": "A new email needs a live Trial Invitation or a pending team invitation to sign up. The public signup page and the /try link are off. Existing users still sign in.",
+   "fieldname": "invite_only",
+   "fieldtype": "Check",
+   "label": "Invite Only"
+  },
+  {
+   "fieldname": "column_break_trial_invitations",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "description": "Days an activation link stays open. Resending restarts the count.",
+   "fieldname": "trial_invitation_days",
+   "fieldtype": "Int",
+   "label": "Trial Invitation Expiry (Days)",
+   "non_negative": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-03 09:00:00.000000",
+ "modified": "2026-11-04 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",
