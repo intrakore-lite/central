@@ -18,6 +18,9 @@ const PreferencesForm = defineAsyncComponent(
 const TeamForm = defineAsyncComponent(
 	() => import('@/components/settings/forms/TeamForm.vue'),
 )
+const BillingForm = defineAsyncComponent(
+	() => import('@/components/settings/forms/BillingForm.vue'),
+)
 const InvitationsForm = defineAsyncComponent(
 	() => import('@/components/settings/forms/InvitationsForm.vue'),
 )
@@ -33,6 +36,7 @@ export type SettingsTab =
 	| 'notifications'
 	| 'preferences'
 	| 'team'
+	| 'billing'
 	| 'invitations'
 	| 'ssh-keys'
 	| 'wireguard'
@@ -57,9 +61,10 @@ export interface SettingsTabDef {
 	 * Capability gate, resolved by the consumer against useCapabilities:
 	 * 'member' needs any standing on the team, 'teamAdmin' needs team:edit or
 	 * team:delete, 'wireguard' needs server:wireguard, 'sshKeys' needs membership outside
-	 * Managed SaaS mode and server:ssh-key in it. Undefined is always available.
+	 * Managed SaaS mode and server:ssh-key in it, 'billing' needs billing:view. Undefined is
+	 * always available.
 	 */
-	requires?: 'member' | 'teamAdmin' | 'wireguard' | 'sshKeys'
+	requires?: 'member' | 'teamAdmin' | 'wireguard' | 'sshKeys' | 'billing'
 }
 
 export const SETTINGS_TABS: SettingsTabDef[] = [
@@ -101,6 +106,16 @@ export const SETTINGS_TABS: SettingsTabDef[] = [
 		component: TeamForm,
 	},
 	{
+		value: 'billing',
+		group: 'Administration',
+		label: 'Billing',
+		icon: 'lucide-credit-card',
+		title: 'Billing',
+		description: 'Your seats and your subscription.',
+		component: BillingForm,
+		requires: 'billing',
+	},
+	{
 		value: 'invitations',
 		group: 'Administration',
 		label: 'Invitations',
@@ -140,6 +155,7 @@ export function useSettingsTabs() {
 		canDeleteTeam,
 		canManageWireGuard,
 		canManageSSHKeys,
+		canViewBilling,
 	} = useCapabilities()
 
 	const isAvailable = (tab: SettingsTabDef): boolean => {
@@ -147,6 +163,7 @@ export function useSettingsTabs() {
 		if (tab.requires === 'sshKeys')
 			return features.managed ? canManageSSHKeys.value : isMember.value
 		if (tab.requires === 'wireguard') return canManageWireGuard.value
+		if (tab.requires === 'billing') return canViewBilling.value
 		if (tab.requires === 'teamAdmin')
 			return canEditTeam.value || canDeleteTeam.value
 		return true

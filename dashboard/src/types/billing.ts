@@ -406,7 +406,7 @@ export interface BillingProfile {
 	payment_method_required?: boolean
 	/** What the team's first payment method adds, while the owner has not had it. */
 	welcome_credit?: WelcomeCredit | null
-	/** The team's open free trial, which its first payment method converts. */
+	/** The team's open free trial. A card on file pays for it from its end date. */
 	open_trial?: TeamOpenTrial | null
 }
 
@@ -418,8 +418,37 @@ export interface TeamOpenTrial {
 	product: string | null
 	product_title: string
 	plan: TrialPlan | null
+	/** The seat price, when the site is billed per seat. */
+	seats?: SeatQuote | null
 	/** The last day of the trial, as YYYY-MM-DD. */
 	ends_on: string | null
+}
+
+/** The monthly seat price of a product site, from `catalog.seats.SeatQuote`. */
+export interface SeatQuote {
+	seats: number
+	/** The seats billed: at least the Included Seats. */
+	billed_seats: number
+	seat_price: number
+	monthly_rate: number
+	currency: Currency
+}
+
+/** The Seats card in Settings > Billing, from `billing.api.dashboard.get_seats`. */
+export interface SeatSummary extends Partial<SeatQuote> {
+	is_seat_billed: boolean
+	current_seats?: number
+	current_monthly_rate?: number
+	included_seats?: number
+	included_storage_gb?: number
+	storage_price_per_gb?: number
+	is_on_trial?: boolean
+	/** The trial end date, when billing starts, as YYYY-MM-DD. */
+	billing_starts_on?: string | null
+	/** What the change adds to this month's bill, before tax. Negative for fewer seats. */
+	prorated_amount?: number
+	/** The last day of a cancelled subscription, as YYYY-MM-DD. */
+	subscription_ends_on?: string | null
 }
 
 export interface WelcomeCredit {
@@ -668,13 +697,15 @@ export interface ServerTrial {
 	state: 'Active' | 'Ended'
 	/** An ended trial whose team has a payment method, so it can be kept. */
 	can_keep?: boolean
-	/** The team has a payment method, but the plan is above its spending limit. */
+	/** The team's card is on file: the trial runs to its end date, and billing starts then. */
 	held?: boolean
 	ends_on: string
 	days_left: number
 	deletes_on: string | null
 	/** The plan the site converts to, or null when Central has no creation record. */
 	plan: TrialPlan | null
+	/** The seat price, when the site is billed per seat. */
+	seats?: SeatQuote | null
 }
 
 export interface TrialPlan {

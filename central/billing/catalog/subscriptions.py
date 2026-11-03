@@ -48,8 +48,10 @@ _STANDING_CHANGE_TYPE = {
 }
 
 
-def _record_change(subscription: str, change_type: str, old_value=None, new_value=None, changed_by=None):
-	"""Append one immutable Subscription Change row."""
+def _record_change(
+	subscription: str, change_type: str, old_value=None, new_value=None, changed_by=None, effective_at=None
+):
+	"""Append one immutable Subscription Change row, effective now unless `effective_at` is given."""
 	return frappe.get_doc(
 		{
 			"doctype": "Subscription Change",
@@ -57,7 +59,7 @@ def _record_change(subscription: str, change_type: str, old_value=None, new_valu
 			"change_type": change_type,
 			"old_value": old_value,
 			"new_value": new_value,
-			"effective_at": frappe.utils.now_datetime(),
+			"effective_at": effective_at or frappe.utils.now_datetime(),
 			"changed_by": changed_by or frappe.session.user,
 		}
 	).insert(ignore_permissions=True)
@@ -781,8 +783,16 @@ def resize_to_plan(
 	# gate resize_composed_subscription applies, so a preset target can't slip past the
 	# spend cap. Authoritative here (covers every caller, incl. the background job);
 	# begin_resize also checks it synchronously for immediate feedback.
+	# A site billed per seat keeps its seat price on any plan.
+	from central.billing.catalog.seats import get_subscription_seat_quote
+
 	currency = frappe.db.get_value("Billing Profile", doc.team, "currency")
-	new_rate = frappe.get_doc("Plan", new_plan).get_rate(currency, server.region if server else None)
+	seat_quote = get_subscription_seat_quote(doc)
+	new_rate = (
+		seat_quote.monthly_rate
+		if seat_quote
+		else frappe.get_doc("Plan", new_plan).get_rate(currency, server.region if server else None)
+	)
 	enforce_headroom(doc.team, new_rate, exclude=subscription)
 	return change_plan(subscription, new_plan, changed_by=changed_by)
 
@@ -1116,18 +1126,19 @@ def change_payment_method(subscription: str, new_method: str, changed_by: str | 
 	return doc
 
 
-def cancel_subscription(subscription: str, changed_by: str | None = None):
+def cancel_subscription(subscription: str, changed_by: str | None = None, effective_at=None):
 	"""Cancel the subscription intent. The contract record is kept; the
 	cancellation is logged. Stopping/terminating the running resource is a separate
 	operational step Central drives via the cluster manager (ADR 0006)."""
-	_record_change(subscription, "Cancelled", changed_by=changed_by)
+	_record_change(subscription, "Cancelled", changed_by=changed_by, effective_at=effective_at)
 	return frappe.get_doc("Subscription", subscription)
 
 
-def end_subscription(subscription: str, changed_by: str | None = None) -> None:
+def end_subscription(subscription: str, changed_by: str | None = None, effective_at=None) -> None:
 	"""Cancel the intent and disable the subscription, so it stops billing and a new one
-	can open for the same subject."""
-	cancel_subscription(subscription, changed_by=changed_by)
+	can open for the same subject. `effective_at` closes billing at a set time, such as a
+	cancelled seat subscription's period end."""
+	cancel_subscription(subscription, changed_by=changed_by, effective_at=effective_at)
 	frappe.get_doc("Subscription", subscription).disable()
 
 

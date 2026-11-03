@@ -271,6 +271,7 @@ scheduler_events = {
 		"central.billing.ingester.customer.sync_pending_profiles",
 		"central.billing.ingester.advance.sync_pending_advances",
 		"central.billing.revenue.storage_usage.record_storage_usage",
+		"central.billing.catalog.seats.run_cancellations",
 		"central.billing.platform.invariants.run_invariant_audit",
 		"central.billing.payments.reconciliation.recheck_completed_refunds",
 	],

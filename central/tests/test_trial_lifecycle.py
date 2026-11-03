@@ -173,14 +173,13 @@ class TestTrialLifecycle(TrialOnAMachine):
 		self.assertEqual(site.trial_state, "Converted")
 		self.assertFalse(trial.is_billing_deferred(self.server.name))
 
-	def test_a_card_added_before_the_site_is_recorded_converts_it_on_record(self):
+	def test_a_card_added_before_the_site_is_recorded_keeps_the_trial(self):
 		self.server.db_set("status", "Running")
 		with patch("central.signups.trial.has_active_payment_method", return_value=True):
 			site = self.record_site_again()
 
-		self.assertEqual(site.trial_state, "Converted")
-		self.assertEqual(self.sent_events(), ["trial_converted"])
-		self.assert_conversion_queued()
+		self.assertEqual(site.trial_state, "Active")
+		self.assertEqual(self.sent_events(), [])
 
 	def test_the_patch_marks_creations_that_started_a_trial(self):
 		from central.patches.v0_0 import set_free_trial_on_creations
@@ -336,19 +335,28 @@ class TestTrialLifecycle(TrialOnAMachine):
 
 		self.assertFalse(trial.is_billing_deferred(self.server.name))
 
-	def test_an_active_payment_method_converts_the_team_trials(self):
-		self.price_trial(30)
-		frappe.db.set_value(
-			"Site", self.site().name, "creation", add_days(now_datetime(), -3), update_modified=False
-		)
-		self.server.db_set("status", "Running")
+	def test_an_active_payment_method_leaves_the_trial_running(self):
 		method = Mock(team=self.team.name, status="Active")
 		method.get_doc_before_save.return_value = Mock(status="Pending Validation")
 
 		with patch("central.signups.credit.grant_welcome_credits"):
 			credit.on_payment_method_update(method)
+		with patch("central.signups.trial.has_active_payment_method", return_value=True):
+			site = self.run_on(13)
 
-		site = self.site()
+		self.assertEqual(site.trial_state, "Active")
+		self.assertEqual(self.funnel_events(), [])
+
+	def test_a_card_on_file_converts_the_trial_on_its_end_date(self):
+		self.price_trial(30)
+		frappe.db.set_value(
+			"Site", self.site().name, "creation", add_days(now_datetime(), -3), update_modified=False
+		)
+		self.server.db_set("status", "Running")
+
+		with patch("central.signups.trial.has_active_payment_method", return_value=True):
+			site = self.run_on(14)
+
 		self.assertEqual(site.trial_state, "Converted")
 		self.assertAlmostEqual(site.trial_cost, 3, places=1)
 		self.funnel.assert_called_once_with("trial_converted", self.team.name, None, days_in_trial=3)
@@ -370,7 +378,7 @@ class TestTrialLifecycle(TrialOnAMachine):
 		self.assertEqual(trial.Trial(self.site()).get_conversion_plan(), small)
 		self.site().db_set("conversion_plan", large)
 		with patch("central.signups.trial.has_active_payment_method", return_value=True):
-			trial.convert_team(self.team.name)
+			self.run_on(14)
 
 		# The trial plan is never billed: the subscription opens once the server runs the paid plan.
 		self.assertTrue(trial.is_billing_deferred(self.server.name))
@@ -398,18 +406,17 @@ class TestTrialLifecycle(TrialOnAMachine):
 		self.site().db_set("conversion_plan", "trial-lifecycle-plan")
 		self.enterContext(patch("central.signups.trial.Trial.get_plan_choices", return_value=[]))
 
-		with patch("central.signups.trial.has_active_payment_method", return_value=True):
-			trial.convert_team(self.team.name)
+		self.assertFalse(trial.Trial(self.site()).convert_within_limit())
 
 		site = self.site()
 		self.assertEqual(site.trial_state, "Active")
 		self.assertIn("no longer offered", site.trial_error)
 
-	def test_a_trial_above_the_spending_limit_stays_a_trial_until_the_limit_is_raised(self):
+	def test_a_trial_above_the_spending_limit_converts_once_the_limit_is_raised(self):
 		self.price_trial(30)
 		self.headroom.return_value = 20
 		with patch("central.signups.trial.has_active_payment_method", return_value=True):
-			trial.convert_team(self.team.name)
+			self.assertFalse(trial.Trial(self.site()).convert_within_limit())
 
 			site = self.site()
 			self.assertEqual(site.trial_state, "Active")
@@ -417,7 +424,7 @@ class TestTrialLifecycle(TrialOnAMachine):
 			self.assertTrue(trial.get_trial_status(self.server.name)["held"])
 
 			self.headroom.return_value = 30
-			site = self.run_on(1)
+			site = self.run_on(14)
 
 		self.assertEqual(site.trial_state, "Converted")
 		self.assertFalse(site.trial_error)
@@ -552,6 +559,7 @@ class TestTrialLifecycle(TrialOnAMachine):
 				"days_left",
 				"deletes_on",
 				"plan",
+				"seats",
 			},
 		)
 		# The reserved rate is older than the catalog; the subscription charges the catalog rate.

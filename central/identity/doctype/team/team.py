@@ -42,7 +42,9 @@ class Team(TeamLifecycle, Document):
 		onboarding_steps: DF.Table[TeamOnboardingStep]
 		owner_user: DF.Link
 		referrer: DF.SmallText | None
+		seats: DF.Int
 		status: DF.Literal["Active", "Suspended", "Archived"]
+		subscription_ends_on: DF.Date | None
 		team_logo: DF.AttachImage | None
 		team_name: DF.Data
 		tenant_id: DF.Int

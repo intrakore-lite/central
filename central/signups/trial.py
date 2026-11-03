@@ -8,13 +8,21 @@ from frappe.utils import (
 	cint,
 	date_diff,
 	flt,
+	fmt_money,
 	formatdate,
 	get_datetime,
+	get_last_day,
 	getdate,
 	now_datetime,
 	nowdate,
 )
 
+from central.billing.catalog.seats import (
+	get_plan_for_seats,
+	get_prorated_amount,
+	get_seat_quote,
+	is_cancelled,
+)
 from central.billing.catalog.trials import is_trial_plan
 from central.branding import get_brand_name
 from central.iam import can
@@ -118,14 +126,9 @@ class Trial:
 
 		self.move_to("Active", trial_ends_on=add_days(nowdate(), self.settings.days))
 
-	def convert_if_paid(self) -> None:
-		"""Convert a new trial site whose team added a payment method before Central recorded it."""
-		if self.state == "Active" and has_active_payment_method(self.site.team):
-			self.convert_within_limit()
-
 	def convert_within_limit(self) -> bool:
-		"""Convert the trial when its plan fits the team's spending limit. Otherwise it stays a
-		trial, and the daily job tries again."""
+		"""Convert the trial when its plan fits the team's spending limit. Otherwise leave the
+		reason in Trial Error and return False: on the end date the trial then ends."""
 		from central.billing.catalog.subscriptions import remaining_headroom
 
 		team = self.site.team
@@ -146,18 +149,17 @@ class Trial:
 		return True
 
 	def choose_plan(self, plan: str) -> None:
-		"""Keep the paid plan the customer picked for the conversion. A team whose payment
-		method is already active converts now."""
+		"""Keep the paid plan the customer picked for the conversion on the trial's end date."""
 		if not self.is_open:
 			frappe.throw(_("This site has no open trial."))
 		if plan not in {choice["name"] for choice in self.get_plan_choices()}:
 			frappe.throw(_("This plan is not available for this site. Choose a plan from the list."))
 
 		self.site.db_set({"conversion_plan": plan, "trial_error": None})
-		self.convert_if_paid()
 
 	def keep(self) -> None:
-		"""Convert an ended trial that the customer chose to keep, and start its server."""
+		"""Convert an ended trial that the customer chose to keep, and start its server. Keeping
+		it also withdraws a cancellation."""
 		if self.state != "Ended":
 			frappe.throw(_("Only an ended trial can be kept."))
 		if not has_active_payment_method(self.site.team):
@@ -166,6 +168,7 @@ class Trial:
 			frappe.throw(
 				_("This site's plan is above your spending limit. Contact support to raise the limit.")
 			)
+		frappe.db.set_value("Team", self.site.team, "subscription_ends_on", None)
 
 	def convert(self) -> None:
 		"""Start billing the site's server on its paid plan, keep it awake, and start it again if the
@@ -238,12 +241,17 @@ class Trial:
 			self.advance_ended(today)
 
 	def advance_active(self, today) -> None:
-		if has_active_payment_method(self.site.team) and self.convert_within_limit():
-			return
-
+		"""A card on file converts the trial on its end date, not before, unless the team cancelled.
+		Without a card the trial ends."""
 		days_left = date_diff(self.site.trial_ends_on, today)
+		is_paying = has_active_payment_method(self.site.team) and not is_cancelled(self.site.team)
 		if days_left <= 0:
-			self.end(today)
+			if not (is_paying and self.convert_within_limit()):
+				self.end(today)
+		elif is_paying:
+			# One reminder of the first payment, on the last day.
+			if days_left == 1:
+				self.notify("trial_expiring", "payment")
 		elif days_left <= self.settings.notice_days:
 			# A second warning goes out on the last day.
 			self.notify("trial_expiring", "last day" if days_left == 1 else "ending")
@@ -350,16 +358,19 @@ class Trial:
 	def get_status(self) -> dict:
 		"""The open trial, for the console and the in-app billing panel."""
 		has_payment_method = has_active_payment_method(self.site.team)
+		seat_quote = get_seat_quote(self.site.team)
 		return {
 			"state": self.state,
 			"can_keep": self.state == "Ended"
 			and has_payment_method
 			and can(frappe.session.user, self.site.team, "billing:manage"),
+			# The card is on file: the trial runs to its end date, and billing starts then.
 			"held": self.state == "Active" and has_payment_method,
 			"ends_on": self.site.trial_ends_on,
 			"days_left": max(date_diff(self.site.trial_ends_on, nowdate()), 0),
 			"deletes_on": self.site.trial_deletes_on,
 			"plan": self.get_plan(),
+			"seats": seat_quote.as_dict() if seat_quote else None,
 		}
 
 	def get_plan(self) -> dict | None:
@@ -380,6 +391,11 @@ class Trial:
 		choices = [choice["name"] for choice in self.get_plan_choices()]
 		if self.site.conversion_plan:
 			return self.site.conversion_plan if self.site.conversion_plan in choices else None
+		# A site billed per seat moves to the plan of its seat band.
+		if (seat_quote := get_seat_quote(self.site.team)) and (
+			band_plan := get_plan_for_seats(seat_quote.seats)
+		) in choices:
+			return band_plan
 		return choices[0] if choices else None
 
 	def get_server_plan(self) -> str | None:
@@ -478,8 +494,10 @@ class Trial:
 		}
 
 	def get_monthly_rate(self) -> float:
-		"""What the converted subscription charges. A trial accepted no quote, so the rate reserved
-		at creation is not its price."""
+		"""What the converted subscription charges: the seat price of a site billed per seat, else
+		its plan's rate. A trial accepted no quote, so the rate reserved at creation is not its price."""
+		if seat_quote := get_seat_quote(self.site.team):
+			return seat_quote.monthly_rate
 		plan = self.get_plan()
 		return flt(plan["monthly_rate"]) if plan else 0.0
 
@@ -520,6 +538,25 @@ class Trial:
 			"deletes_on": formatdate(deletes_on) if deletes_on else "",
 			"days_left": date_diff(self.site.trial_ends_on, nowdate()),
 			"product_key": self.site.product,
+			**self.get_first_payment(),
+		}
+
+	def get_first_payment(self) -> dict:
+		"""The first payment of a trial that converts with its card on file. Billing is in arrears,
+		so the first invoice is charged on the 1st of the next month, for the days from the trial
+		end date, before tax. Empty when the team has no card or the site has no price."""
+		seat_quote = get_seat_quote(self.site.team)
+		plan = None if seat_quote else self.get_plan()
+		currency = seat_quote.currency if seat_quote else (plan or {}).get("currency")
+		if not (currency and has_active_payment_method(self.site.team)):
+			return {}
+
+		ends_on = getdate(self.site.trial_ends_on)
+		amount = get_prorated_amount(0, self.get_monthly_rate(), ends_on)
+		return {
+			"seats": seat_quote.seats if seat_quote else None,
+			"first_payment": fmt_money(amount, currency=currency),
+			"first_payment_on": formatdate(add_days(get_last_day(ends_on), 1)),
 		}
 
 	def queue_server_action(self, action: str) -> None:
@@ -582,15 +619,6 @@ def run_trials() -> None:
 			frappe.db.rollback()
 			Trial.load(name).record_error(_("The daily trial job failed. It retries tomorrow."))
 			frappe.db.commit()  # nosemgrep: frappe-manual-commit -- leave the reason where the operator looks
-
-
-def convert_team(team: str) -> None:
-	"""Turn the team's active trials into paid sites, oldest first. An ended trial stays stopped
-	until the customer keeps it."""
-	for name in frappe.get_all(
-		"Site", filters={"team": team, "trial_state": "Active"}, pluck="name", order_by="creation asc"
-	):
-		Trial.load(name, for_update=True).convert_within_limit()
 
 
 def get_unmoved_conversions() -> list[str]:

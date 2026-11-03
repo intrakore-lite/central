@@ -5,7 +5,7 @@ import PaymentMethodFlow from '@/components/billing/PaymentMethodFlow.vue'
 import { useBillingSetup } from '@/composables/useBillingSetup'
 import { useCapabilities } from '@/composables/useCapabilities'
 import { useSession } from '@/composables/useSession'
-import { formatDate } from '@/lib/format'
+import { formatDate, money, plural } from '@/lib/format'
 
 // The trial's reminder to add a payment method, in place of an onboarding dialog. It is
 // shown until the trial is converted or the user closes it. A closed banner stays closed
@@ -40,6 +40,15 @@ const title = computed(() => {
 		: 'Your site is on a free trial'
 })
 
+// The card is stored now and charged only after the trial: adding it never ends the trial.
+const description = computed(() => {
+	const seats = trial.value?.seats
+	const price = seats
+		? ` ${money(seats.monthly_rate, seats.currency, { trimTrailingZeros: true })} a month for ${plural(seats.seats, 'seat')}`
+		: ''
+	return `Add a payment method to keep your site after the trial. Your free trial runs to its end date, and billing for your plan${price} starts then.`
+})
+
 const action = computed(() => ({
 	label: 'Add payment method',
 	onClick: () => flow.value?.start(),
@@ -61,7 +70,7 @@ function dismiss(): void {
 			theme="blue"
 			icon="lucide-calendar-clock"
 			:title="title"
-			description="Add a payment method to keep your site after the trial. Adding one ends the free trial today and starts billing for your plan."
+			:description="description"
 			:primary-action="action"
 			dismissible
 			@dismiss="dismiss"

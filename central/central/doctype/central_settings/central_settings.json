@@ -79,6 +79,12 @@
   "trial_invitation_days",
   "trial_signup_section",
   "default_trial_product",
+  "seat_billing_section",
+  "seat_price",
+  "included_seats",
+  "column_break_seat_billing",
+  "storage_price_per_gb",
+  "included_storage_gb",
   "github_tab",
   "github_app_section",
   "github_app_id",
@@ -451,7 +457,7 @@
    "label": "Trial Period"
   },
   {
-   "default": "7",
+   "default": "30",
    "description": "Days a trial site runs. A Product can override it.",
    "fieldname": "trial_days",
    "fieldtype": "Int",
@@ -516,6 +522,45 @@
    "fieldtype": "Link",
    "label": "Default Trial Product",
    "options": "Product"
+  },
+  {
+   "fieldname": "seat_billing_section",
+   "fieldtype": "Section Break",
+   "label": "Seat Billing",
+   "description": "A product site of a team with seats is billed per seat, not by its server plan. Prices are in the team's billing currency. A Catalog Rate on the Product overrides the seat price."
+  },
+  {
+   "fieldname": "seat_price",
+   "fieldtype": "Currency",
+   "label": "Seat Price (Monthly)",
+   "non_negative": 1,
+   "description": "The monthly price of one seat. 0 turns seat billing off."
+  },
+  {
+   "default": "1",
+   "fieldname": "included_seats",
+   "fieldtype": "Int",
+   "label": "Included Seats",
+   "non_negative": 1,
+   "description": "The base plan bills at least this many seats."
+  },
+  {
+   "fieldname": "column_break_seat_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "storage_price_per_gb",
+   "fieldtype": "Currency",
+   "label": "Storage Price per GB (Monthly)",
+   "non_negative": 1,
+   "description": "The monthly price of each GB of storage above the included storage."
+  },
+  {
+   "fieldname": "included_storage_gb",
+   "fieldtype": "Int",
+   "label": "Included Storage (GB)",
+   "non_negative": 1,
+   "description": "The storage that the seat price includes."
   },
   {
    "fieldname": "github_tab",
