@@ -22,7 +22,15 @@ STALE_RECEIVED_MINUTES = 15
 RETRY_BATCH = 200
 
 # Events that finish (or fail) a refund the gateway accepted as pending.
-REFUND_EVENTS = ("charge.refund.updated", "refund.failed", "refund.processed", "PAYMENT.CAPTURE.REFUNDED")
+REFUND_EVENTS = (
+	"charge.refund.updated",
+	"refund.failed",
+	"refund.processed",
+	"PAYMENT.CAPTURE.REFUNDED",
+	"telr.refund.approved",
+	"telr.refund.declined",
+	"telr.refund.error",
+)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -51,6 +59,19 @@ def paypal() -> dict:
 		frappe.request.get_data(),
 		dict(frappe.request.headers),
 	)
+
+
+# nosemgrep: guest-whitelisted-method -- process_webhook verifies Telr's tran_check before anything else.
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def telr() -> dict:
+	"""Telr posts its transaction advice form encoded. The fields are stored as JSON, which
+	keeps every value `tran_check` signs, so the stored event reads like any other."""
+	form = frappe.request.form.to_dict() if frappe.request.form else {}
+	if not form:
+		from urllib.parse import parse_qsl
+
+		form = dict(parse_qsl(frappe.request.get_data(as_text=True), keep_blank_values=True))
+	return process_webhook("Telr", frappe.as_json(form).encode(), dict(frappe.request.headers))
 
 
 def process_webhook(adapter_key: str, payload: bytes, headers: dict) -> dict:

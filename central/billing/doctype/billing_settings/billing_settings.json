@@ -55,6 +55,7 @@
   "company",
   "company_address",
   "column_break_company",
+  "company_trn",
   "section_accounts",
   "advance_account",
   "column_break_accounts",
@@ -76,6 +77,7 @@
   "series_india_b2c",
   "column_break_series",
   "series_overseas",
+  "series_uae",
   "series_receipt_voucher",
   "series_credit_note",
   "section_print",
@@ -402,6 +404,12 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "company_trn",
+   "fieldtype": "Data",
+   "label": "Company TRN",
+   "description": "The company's UAE VAT Tax Registration Number (15 digits). The tax invoice shows it when the market bills in AED."
+  },
+  {
    "fieldname": "section_accounts",
    "fieldtype": "Section Break",
    "label": "Accounts",
@@ -515,6 +523,13 @@
    "fieldtype": "Data",
    "label": "Overseas Invoices",
    "default": "EXP/.TFY./.#####"
+  },
+  {
+   "fieldname": "series_uae",
+   "fieldtype": "Data",
+   "label": "UAE Invoices",
+   "default": "INV/.YYYY./.#####",
+   "description": "The invoice series for every team when Billing Currency is AED."
   },
   {
    "fieldname": "series_receipt_voucher",

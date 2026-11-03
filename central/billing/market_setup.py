@@ -1,29 +1,40 @@
 # Copyright (c) 2026, Frappe and contributors
 # For license information, please see license.txt
-"""Set up a site that bills in USD through Stripe, with VAT by country, and check it.
+"""Set up a site that bills in AED through Telr, with UAE VAT, and check it.
 
-`configure_usd_stripe_market` writes the settings an operator would otherwise set by
+`configure_aed_telr_market` writes the settings an operator would otherwise set by
 hand in Desk. It is idempotent and keeps every value an operator has already set,
-except the ones it names. It never writes a gateway key, never enables a gateway and
-never sets a price: keys and prices are the operator's.
+except the ones it names. It never writes a gateway key and never enables a gateway:
+keys are the operator's. The AED prices it adds are the USD prices at the dirham's
+fixed peg (`AED_PER_USD`), and only where a plan has no AED price yet, so a price the
+owner set in AED is kept.
 
 `ensure_bundle_product` adds the first product, disabled until its trial image exists.
 
 `readiness` lists what is still missing before the first paid customer.
 
-    pilot frappe --site <site> execute central.billing.market_setup.configure_usd_stripe_market
+    pilot frappe --site <site> execute central.billing.market_setup.configure_aed_telr_market
     pilot frappe --site <site> execute central.billing.market_setup.readiness
 
 `execute` commits when the call returns, so nothing here commits.
 """
 
+from decimal import ROUND_HALF_UP, Decimal
+
 import frappe
 
 from central.billing.settings import SETTINGS
 
-CURRENCY = "USD"
-GATEWAY = "Stripe"
+CURRENCY = "AED"
+GATEWAY = "Telr"
 HOME_COUNTRY = "United Arab Emirates"
+
+# The UAE dirham is pegged to the US dollar at this rate.
+SOURCE_CURRENCY = "USD"
+AED_PER_USD = 3.6725
+
+# The statutory invoice series when the market bills in AED: no Indian fiscal year in it.
+UAE_INVOICE_SERIES = "INV/.YYYY./.#####"
 
 # The only rate set here. Other GCC rates are a tax advisor's decision: add them in
 # Billing Settings, VAT Rates by Country.
@@ -50,16 +61,18 @@ TRIAL_SETTINGS = {
 }
 
 
-def configure_usd_stripe_market(
+def configure_aed_telr_market(
 	home_country: str = HOME_COUNTRY,
 	trial_days: int = TRIAL_SETTINGS["trial_days"],
 	trial_deletion_days: int = TRIAL_SETTINGS["trial_deletion_days"],
 	trial_notice_days: int = TRIAL_SETTINGS["trial_notice_days"],
 ) -> dict:
-	"""Make USD through Stripe the billing path, seed the home country's VAT, set the trial
-	clock and add the first product."""
-	ensure_stripe_usd_default()
+	"""Make AED through Telr the billing path, seed the home country's VAT, price the plans
+	and the trust tiers in AED, set the trial clock and add the first product."""
+	ensure_telr_aed_default()
 	ensure_billing_settings(home_country)
+	ensure_aed_catalog_rates()
+	ensure_aed_trust_thresholds()
 	ensure_bundle_product()
 	frappe.db.set_single_value(
 		"Central Settings",
@@ -95,14 +108,16 @@ def ensure_bundle_product(
 	return key
 
 
-def ensure_stripe_usd_default() -> None:
-	"""Give the Stripe gateway a USD row that is the default for USD, with no silent-debit ceiling.
+def ensure_telr_aed_default() -> None:
+	"""Give the Telr gateway an AED row that is the default for AED, with no silent-debit ceiling.
 
-	Keys and Enabled stay as they are. Another gateway's USD default row is cleared, so
-	USD resolves to Stripe whichever gateway is enabled."""
+	Keys and Enabled stay as they are. Another gateway's AED default row is cleared, so
+	AED resolves to Telr whichever gateway is enabled."""
 	from central.billing.gateways.setup import ensure_gateway_records
 
 	ensure_gateway_records()
+	if not frappe.db.get_value("Currency", CURRENCY, "enabled"):
+		frappe.db.set_value("Currency", CURRENCY, "enabled", 1)
 	gateway = frappe.get_doc("Payment Gateway", GATEWAY)
 	row = next((r for r in gateway.currencies if r.currency == CURRENCY), None)
 	if not row:
@@ -124,10 +139,12 @@ def ensure_stripe_usd_default() -> None:
 
 
 def ensure_billing_settings(home_country: str) -> None:
-	"""Set the signup fallback country and add each seed VAT rate that has no row yet."""
+	"""Set the signup fallback country, the billing currency and the UAE invoice series, and
+	add each seed VAT rate that has no row yet."""
 	doc = frappe.get_doc(SETTINGS)
 	doc.signup_fallback_country = home_country
 	doc.billing_currency = CURRENCY
+	doc.series_uae = doc.series_uae or UAE_INVOICE_SERIES
 	configured = {row.country for row in doc.country_tax_rates}
 	for country, rate in SEED_VAT_RATES.items():
 		if country not in configured:
@@ -138,8 +155,62 @@ def ensure_billing_settings(home_country: str) -> None:
 	doc.save(ignore_permissions=True)
 
 
+def ensure_aed_catalog_rates() -> list[str]:
+	"""Add an AED Catalog Rate for every USD plan rate that has none, at `AED_PER_USD`.
+
+	Returns the names it added. An AED rate that exists is never changed."""
+	added = []
+	for rate in frappe.get_all(
+		"Catalog Rate",
+		filters={"priced_doctype": "Plan", "currency": SOURCE_CURRENCY},
+		fields=["priced_doctype", "priced_for", "cluster", "rate"],
+	):
+		target = {
+			"priced_doctype": rate.priced_doctype,
+			"priced_for": rate.priced_for,
+			"cluster": rate.cluster,
+			"currency": CURRENCY,
+		}
+		if frappe.db.exists("Catalog Rate", {**target, "cluster": rate.cluster or ["is", "not set"]}):
+			continue
+		doc = frappe.get_doc({"doctype": "Catalog Rate", **target, "rate": to_aed(rate.rate)})
+		doc.insert(ignore_permissions=True)
+		added.append(doc.name)
+	return added
+
+
+def ensure_aed_trust_thresholds() -> list[str]:
+	"""Add an AED threshold to every Trust Tier Level that has a USD one and no AED one.
+
+	The fixture carries the same rows; this covers a site whose ladder was edited."""
+	added = []
+	for name in frappe.get_all("Trust Tier Level", pluck="name"):
+		level = frappe.get_doc("Trust Tier Level", name)
+		rows = {row.currency: row for row in level.thresholds}
+		if CURRENCY in rows or SOURCE_CURRENCY not in rows:
+			continue
+		usd = rows[SOURCE_CURRENCY]
+		level.append(
+			"thresholds",
+			{
+				"currency": CURRENCY,
+				"max_spend": to_aed(usd.max_spend),
+				"min_cumulative_paid": to_aed(usd.min_cumulative_paid),
+			},
+		)
+		level.save(ignore_permissions=True)
+		added.append(name)
+	return added
+
+
+def to_aed(usd_amount) -> float:
+	"""The AED amount at the peg, rounded half up to fils, as the fixture's AED rows are."""
+	aed = Decimal(str(frappe.utils.flt(usd_amount))) * Decimal(str(AED_PER_USD))
+	return float(aed.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def readiness() -> dict:
-	"""What a USD Stripe site still needs before it can take a paid customer.
+	"""What an AED Telr site still needs before it can take a paid customer.
 
 	Returns `ready` and a list of `missing` items an operator acts on. Reads only."""
 	missing = []
@@ -164,13 +235,25 @@ def _gateway_gaps() -> list[str]:
 	gateway = frappe.db.get_value(
 		"Payment Gateway",
 		GATEWAY,
-		["is_enabled", "credentials_validated_at", "is_webhook_active"],
+		["is_enabled", "credentials_validated_at", "telr_store_id", "telr_test_mode"],
 		as_dict=True,
 	)
+	if not gateway or not gateway.telr_store_id:
+		gaps.append(f"{GATEWAY} store ID is not set on the Payment Gateway.")
 	if not gateway or not gateway.credentials_validated_at:
 		gaps.append(f"{GATEWAY} keys are not validated. Enter them on the Payment Gateway and save.")
-	if not gateway or not gateway.is_webhook_active:
-		gaps.append(f"{GATEWAY} webhook is not active. Use Re-register Webhook on the Payment Gateway.")
+	if gateway and gateway.telr_test_mode:
+		gaps.append(f"{GATEWAY} is in test mode. Clear Telr Test Mode once the live keys are in.")
+	# Telr has no webhook API: the Transaction Advice URL is set in the Telr admin, and
+	# the signing secret is entered here by hand.
+	from central.billing.gateways.registry import get_adapter
+
+	if gateway and not get_adapter(frappe.get_doc("Payment Gateway", GATEWAY)).get_credential(
+		"webhook_secret"
+	):
+		gaps.append(
+			f"{GATEWAY} Webhook Secret is empty. Enter the Transaction Advice secret from the Telr admin."
+		)
 	return gaps
 
 
@@ -182,6 +265,10 @@ def _tax_gaps() -> list[str]:
 		gaps.append(f"Billing Settings, Signup Fallback Country is not {HOME_COUNTRY}.")
 	if settings.billing_currency() != CURRENCY:
 		gaps.append(f"Billing Settings, Billing Currency is not {CURRENCY}.")
+	if not frappe.db.get_single_value(SETTINGS, "series_uae"):
+		gaps.append("Billing Settings, UAE Invoice Series is empty.")
+	if not frappe.db.get_single_value(SETTINGS, "company_trn"):
+		gaps.append("Billing Settings, Company TRN is empty. The tax invoice must show it.")
 	for country, rate in SEED_VAT_RATES.items():
 		if settings.vat_rate_for_country(country) != rate:
 			gaps.append(f"Billing Settings, VAT Rates by Country has no {rate}% row for {country}.")
@@ -198,7 +285,7 @@ def _trial_gaps() -> list[str]:
 
 
 def _plan_gaps() -> list[str]:
-	"""A trial needs a plan marked Available on Trial, and converts onto a paid plan with a USD rate."""
+	"""A trial needs a plan marked Available on Trial, and converts onto a paid plan with an AED rate."""
 	gaps = []
 	if not frappe.db.exists("Plan", {"is_active": 1, "available_on_trial": 1}):
 		gaps.append("No active Plan is marked Available on Trial.")

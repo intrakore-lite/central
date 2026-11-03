@@ -37,12 +37,15 @@ _AUTHORISED_EVENTS = {
 	"payment.authorized",  # Razorpay
 	"charge.authorized",
 	"PAYMENT.CAPTURE.PENDING",  # PayPal: held for review or an eCheck; not paid yet
+	"telr.sale.held",  # Telr status H: authorised, held for manual inspection
 }
 _SUCCESS_EVENTS = {
 	"payment_intent.succeeded",
 	"charge.succeeded",
 	"payment.captured",
 	"PAYMENT.CAPTURE.COMPLETED",
+	"telr.sale.approved",
+	"telr.capture.approved",
 }
 _FAILURE_EVENTS = {
 	"payment_intent.payment_failed",
@@ -51,6 +54,8 @@ _FAILURE_EVENTS = {
 	"charge.failed",
 	"payment.failed",
 	"PAYMENT.CAPTURE.DENIED",
+	"telr.sale.declined",
+	"telr.sale.error",
 }
 
 _TERMINAL_ATTEMPT = ("Captured", "Failed", "Refunded")
@@ -247,6 +252,7 @@ def _record_result(attempt, result) -> dict:
 		)
 		attempt.completed_at = frappe.utils.now_datetime()
 		_retire_method_if_mandate_failed(attempt, result.failure_code)
+		_hold_method_for_customer_present_payment(attempt, result.failure_code)
 	save_billing_record(attempt)
 	_persist()
 
@@ -632,13 +638,18 @@ def _settle_invoice(attempt, payment=None) -> bool:
 	"""Settle the attempt's invoice with what was captured. Without a gateway reading, what
 	we charged off-session is what was captured. The attempt must already be saved as Captured."""
 	adapter_key = frappe.db.get_value("Payment Gateway", attempt.gateway, "adapter_key")
-	return _mark_invoice_paid(
+	settled = _mark_invoice_paid(
 		attempt,
 		payment.amount if payment else attempt.amount,
 		payment.currency if payment else attempt.currency,
 		payment_id=payment.payment_id if payment else attempt.gateway_transaction_id,
 		adapter_key=adapter_key,
 	)
+	if payment and not attempt.payment_method and attempt.gateway_order_id:
+		from central.billing.payments import payments
+
+		payments.rearm_customer_present_method(attempt)
+	return settled
 
 
 def _mark_invoice_paid(
@@ -880,7 +891,23 @@ def _extract_failure(adapter_key: str, payload: dict) -> Failure | None:
 				for k in ("error_code", "error_description", "error_reason", "error_source", "error_step")
 			},
 		}
+	if adapter_key == "Telr":
+		from central.billing.gateways.telr_adapter import TelrAdapter
+
+		return TelrAdapter.failure_from_event(payload)
 	return None
+
+
+def _hold_method_for_customer_present_payment(attempt, failure_code):
+	"""The gateway will not charge this card off-session against its stored reference
+	(Telr code 57: no continuous authority on the referenced transaction). The card is
+	kept, held out of auto-charge, and the customer is asked to pay once on the hosted
+	page; that payment gives the card a new reference (`payments.rearm_customer_present_method`)."""
+	from central.billing.payments import decline, payments
+
+	if not decline.needs_customer_present_payment(failure_code) or not attempt.payment_method:
+		return
+	payments.hold_for_customer_present_payment(attempt.payment_method)
 
 
 def _retire_method_if_mandate_failed(attempt, failure_code):

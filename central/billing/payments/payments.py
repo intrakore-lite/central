@@ -259,6 +259,89 @@ def _fail_method(method, failure: dict) -> Document:
 	return method
 
 
+CUSTOMER_PRESENT_REASON = "customer_present_payment_required"
+
+
+def hold_for_customer_present_payment(payment_method: str) -> None:
+	"""Keep a card the gateway will not charge off-session against its stored reference,
+	but out of auto-charge until the customer pays once on the hosted page.
+
+	1. The card stays Active and is flagged `reauth_required`, so no auto-charge picks it.
+	2. The team goes to Action Required, which asks the customer to pay the invoice now.
+	"""
+	method = frappe.get_doc("Payment Method", payment_method)
+	if method.reauth_required:
+		return
+	method.reauth_required = 1
+	# Only billing code changes a method; the charge path runs as the system.
+	method.save(ignore_permissions=True)
+
+	from central.billing.payments import collection_mode
+
+	collection_mode.trip(method.team, CUSTOMER_PRESENT_REASON)
+
+
+def rearm_customer_present_method(attempt) -> str | None:
+	"""After the customer paid an invoice on the hosted page, give the team's held card
+	that payment as its new off-session reference.
+
+	1. Only a gateway that rearms this way (Telr continuous authority) does it.
+	2. The card waiting for it is the team's Active card on that gateway with
+	   `reauth_required`. The card fields are read from the gateway, so a customer who
+	   paid with another card gets that card on the method.
+	3. A team that went to Action Required for this reason goes back to Auto Charge.
+	4. A failed gateway read leaves the card held; the invoice stays settled.
+	"""
+	adapter = _adapter(attempt.gateway)
+	if not adapter.rearms_on_customer_present_payment:
+		return None
+	name = frappe.db.get_value(
+		"Payment Method",
+		{
+			"team": attempt.team,
+			"gateway": attempt.gateway,
+			"method_type": CARD_METHOD,
+			"status": "Active",
+			"reauth_required": 1,
+		},
+		"name",
+		order_by="priority asc",
+	)
+	if not name:
+		return None
+
+	from central.billing.gateways.base import GatewayError
+
+	try:
+		card = adapter.read_saved_card(attempt.gateway_order_id)
+	except GatewayError:
+		frappe.log_error(title=f"Card not rearmed after hosted payment {attempt.name}")
+		return None
+	if not card.get("payment_method"):
+		return None
+
+	method = frappe.get_doc("Payment Method", name)
+	method.update(_saved_card_fields(card, method))
+	method.reauth_required = 0
+	# Only billing code changes a method; settlement runs as the system.
+	method.save(ignore_permissions=True)
+	_return_to_auto_charge(method.team)
+	return name
+
+
+def _return_to_auto_charge(team: str) -> None:
+	profile = frappe.db.get_value(
+		"Billing Profile", team, ["collection_mode", "collection_action_reason"], as_dict=True
+	)
+	if profile and (profile.collection_mode, profile.collection_action_reason) == (
+		"Action Required",
+		CUSTOMER_PRESENT_REASON,
+	):
+		from central.billing.payments import collection_mode
+
+		collection_mode.choose(team, "Auto Charge")
+
+
 def densify_priorities(team: str):
 	"""Renumber a team's **active** methods into dense `priority` (0,1,2,…) by
 	current order and mirror `is_default` = (priority == 0). The single place that

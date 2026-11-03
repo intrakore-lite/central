@@ -294,12 +294,24 @@ class TestWebhookEventList(IntegrationTestCase):
 		} | {event for event in disputes.DISPUTE_EVENTS if event.startswith("payment.")}
 		self.assertLessEqual(handled, set(RAZORPAY_WEBHOOK_EVENTS))
 
+	def test_telr_lists_every_event_it_handles(self):
+		from central.billing.gateways.telr_adapter import TELR_WEBHOOK_EVENTS
+		from central.billing.payments import charges
+
+		handled = {
+			event
+			for event in charges._AUTHORISED_EVENTS | charges._SUCCESS_EVENTS | charges._FAILURE_EVENTS
+			if event.startswith("telr.")
+		}
+		self.assertLessEqual(handled, set(TELR_WEBHOOK_EVENTS))
+
 	def test_every_refund_event_is_subscribed_by_a_gateway(self):
 		from central.billing.gateways.paypal_adapter import PayPalAdapter
 		from central.billing.gateways.razorpay_adapter import RazorpayAdapter
+		from central.billing.gateways.telr_adapter import TelrAdapter
 		from central.billing.payments.webhooks import REFUND_EVENTS
 
-		adapters = (StripeAdapter, RazorpayAdapter, PayPalAdapter)
+		adapters = (StripeAdapter, RazorpayAdapter, PayPalAdapter, TelrAdapter)
 		subscribed = {event for adapter in adapters for event in adapter.webhook_events}
 		self.assertLessEqual(set(REFUND_EVENTS), subscribed)
 
