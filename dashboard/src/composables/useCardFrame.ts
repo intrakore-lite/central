@@ -35,7 +35,7 @@ interface ConfirmedCard {
 }
 
 // A card page the browser left for comes back to this page. The pending method survives the trip here.
-const PENDING_KEY = 'central:onboarding-card-setup'
+export const PENDING_KEY = 'central:onboarding-card-setup'
 // A hosted card page returns the browser here: inside the frame it posts SAVED_MESSAGE
 // to this page; after a redirect it opens the billing step again.
 export const CARD_SAVED_PATH = '/dashboard/onboarding/card-saved'
@@ -116,6 +116,10 @@ export function useCardFrame(team: Ref<string>) {
 			},
 		)
 		if (handles.value.checkout) {
+			// A 3-D Secure check can send the browser to the return page and back to this step.
+			// Remember the card, so the step confirms it instead of opening a new form.
+			if (handles.value.payment_method)
+				savePending(handles.value.payment_method)
 			mode.value = 'checkout'
 			await nextTick()
 			const element = cardSlot()
@@ -126,13 +130,17 @@ export function useCardFrame(team: Ref<string>) {
 		else mode.value = 'unavailable'
 	}
 
+	function savePending(paymentMethod: string): void {
+		sessionStorage.setItem(
+			PENDING_KEY,
+			JSON.stringify({ team: team.value, payment_method: paymentMethod }),
+		)
+	}
+
 	function leaveForHostedPage(): void {
 		const { redirect_url, payment_method } = handles.value ?? {}
 		if (!redirect_url || !payment_method) return
-		sessionStorage.setItem(
-			PENDING_KEY,
-			JSON.stringify({ team: team.value, payment_method }),
-		)
+		savePending(payment_method)
 		window.location.assign(redirect_url)
 	}
 
@@ -152,22 +160,42 @@ export function useCardFrame(team: Ref<string>) {
 				methodUrl(API.confirmCard),
 				{
 					payment_method: paymentMethod,
-					payment_id: checkoutFlow.paymentId.value || undefined,
+					payment_id:
+						checkoutFlow.paymentId.value || readPendingPaymentId() || undefined,
 				},
 			)
-			if (result.status !== 'Active')
+			if (result.status !== 'Active') {
+				forgetReturnedCard()
 				return (
 					result.message || 'We could not verify this card. Try another one.'
 				)
+			}
 			sessionStorage.removeItem(PENDING_KEY)
 			return ''
 		} catch (exception) {
+			forgetReturnedCard()
 			return frappeErrorMessage(
 				exception,
 				'Finish entering the card in the secure form, then try again.',
 			)
 		} finally {
 			isConfirming.value = false
+		}
+	}
+
+	// A returned card that cannot be confirmed is dropped, so the next try opens a new form.
+	function forgetReturnedCard(): void {
+		if (mode.value !== 'returned') return
+		sessionStorage.removeItem(PENDING_KEY)
+		mode.value = 'idle'
+	}
+
+	function readPendingPaymentId(): string | null {
+		try {
+			const pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? 'null')
+			return pending?.team === team.value ? (pending.payment_id ?? null) : null
+		} catch {
+			return null
 		}
 	}
 
