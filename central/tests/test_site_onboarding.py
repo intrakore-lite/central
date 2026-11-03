@@ -140,11 +140,18 @@ class TestOnboardingSecret(IntegrationTestCase):
 		second = site_onboarding.get_boot_site_config(self.action)["intrakore_onboarding_secret"]
 
 		self.assertEqual(first, second)
-		stored = frappe.db.get_value(
-			"__Auth",
-			{"doctype": "Resource Action", "name": self.action.name, "fieldname": "onboarding_secret"},
-			"password",
+		auth = frappe.qb.Table("__Auth")
+		stored = (
+			frappe.qb.from_(auth)
+			.select(auth.password)
+			.where(
+				(auth.doctype == "Resource Action")
+				& (auth.name == self.action.name)
+				& (auth.fieldname == "onboarding_secret")
+			)
+			.run(pluck=True)
 		)
+		stored = stored[0] if stored else None
 		self.assertTrue(stored)
 		self.assertNotEqual(stored, first)
 
