@@ -68,6 +68,13 @@ class CentralSettings(Document):
 		trial_deletion_days: DF.Int
 		trial_idle_shutdown_minutes: DF.Int
 		trial_invitation_days: DF.Int
+		site_mail_server: DF.Data | None
+		site_mail_port: DF.Int
+		site_mail_use_tls: DF.Check
+		site_mail_login: DF.Data | None
+		site_mail_password: DF.Password | None
+		site_mail_sender: DF.Data | None
+		site_mail_sender_name: DF.Data | None
 		trial_notice_days: DF.Int
 		trial_servers_per_team: DF.Int
 		wildcard_domain: DF.Data | None

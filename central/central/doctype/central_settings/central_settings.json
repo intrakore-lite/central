@@ -77,6 +77,15 @@
   "invite_only",
   "column_break_trial_invitations",
   "trial_invitation_days",
+  "site_mail_section",
+  "site_mail_server",
+  "site_mail_port",
+  "site_mail_use_tls",
+  "column_break_site_mail",
+  "site_mail_login",
+  "site_mail_password",
+  "site_mail_sender",
+  "site_mail_sender_name",
   "trial_signup_section",
   "default_trial_product",
   "seat_billing_section",
@@ -686,13 +695,62 @@
    "fieldtype": "Int",
    "label": "Trial Invitation Expiry (Days)",
    "non_negative": 1
+  },
+  {
+   "fieldname": "site_mail_section",
+   "fieldtype": "Section Break",
+   "label": "Site Outgoing Email",
+   "description": "SMTP account every new customer site sends its own emails with (team activation, password reset, notifications). Written into the site's config when it is first ready. Leave Server empty to send none."
+  },
+  {
+   "fieldname": "site_mail_server",
+   "fieldtype": "Data",
+   "label": "SMTP Server"
+  },
+  {
+   "fieldname": "site_mail_port",
+   "fieldtype": "Int",
+   "label": "SMTP Port",
+   "default": "587"
+  },
+  {
+   "fieldname": "site_mail_use_tls",
+   "fieldtype": "Check",
+   "label": "Use STARTTLS",
+   "default": "1"
+  },
+  {
+   "fieldname": "column_break_site_mail",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "site_mail_login",
+   "fieldtype": "Data",
+   "label": "SMTP Login"
+  },
+  {
+   "fieldname": "site_mail_password",
+   "fieldtype": "Password",
+   "label": "SMTP Password"
+  },
+  {
+   "fieldname": "site_mail_sender",
+   "fieldtype": "Data",
+   "label": "Sender Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "site_mail_sender_name",
+   "fieldtype": "Data",
+   "label": "Sender Name",
+   "default": "Intrakore"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 12:00:00.000000",
+ "modified": "2026-11-04 02:00:51.026350",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",
