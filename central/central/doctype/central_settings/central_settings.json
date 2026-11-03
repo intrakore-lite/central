@@ -86,6 +86,11 @@
   "column_break_seat_billing",
   "storage_price_per_gb",
   "included_storage_gb",
+  "onboarding_tab",
+  "onboarding_trial_section",
+  "trial_ai_cap",
+  "trust_content_section",
+  "onboarding_trust_content",
   "github_tab",
   "github_app_section",
   "github_app_id",
@@ -574,6 +579,35 @@
    "description": "The storage that the seat price includes. Storage above it is not billed yet."
   },
   {
+   "fieldname": "onboarding_tab",
+   "fieldtype": "Tab Break",
+   "label": "Onboarding"
+  },
+  {
+   "fieldname": "onboarding_trial_section",
+   "fieldtype": "Section Break",
+   "label": "Trial Limits"
+  },
+  {
+   "description": "The free AI budget of a trial site, in the Seat Price Currency. The onboarding pages show it; the AI cap does not read it yet.",
+   "fieldname": "trial_ai_cap",
+   "fieldtype": "Currency",
+   "label": "Trial AI Cap",
+   "non_negative": 1,
+   "options": "seat_price_currency"
+  },
+  {
+   "description": "The badges, benefit lines and quote of the onboarding pages. Only true claims. Leave empty to use the defaults in central/signups/onboarding.py. A key set here replaces the default of that key.",
+   "fieldname": "trust_content_section",
+   "fieldtype": "Section Break",
+   "label": "Trust Content"
+  },
+  {
+   "fieldname": "onboarding_trust_content",
+   "fieldtype": "JSON",
+   "label": "Onboarding Trust Content"
+  },
+  {
    "fieldname": "github_tab",
    "fieldtype": "Tab Break",
    "label": "GitHub"
@@ -658,7 +692,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 00:00:00.000000",
+ "modified": "2026-11-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",

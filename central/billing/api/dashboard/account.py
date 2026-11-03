@@ -133,7 +133,7 @@ def _validate_currency(team: str, currency: str | None):
 @frappe.whitelist(methods=["POST"])
 def save_billing_profile(team: str | None = None, **fields) -> dict:
 	"""Create/update the team's billing identity: currency, legal name, address,
-	GSTIN (validated in the controller). Currency is constrained to gateway-
+	GSTIN or TRN (validated in the controller). Currency is constrained to gateway-
 	supported values and locked once the team has money activity."""
 	team = _resolve_team(team, authz.MANAGE)
 	allowed = (
@@ -142,6 +142,7 @@ def save_billing_profile(team: str | None = None, **fields) -> dict:
 		"email",
 		"phone",
 		"gstin",
+		"tax_id",
 		"address_line1",
 		"address_line2",
 		"city",

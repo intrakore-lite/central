@@ -43,20 +43,27 @@ class CentralSettings(Document):
 		github_client_secret: DF.Password | None
 		github_private_key: DF.Password | None
 		github_webhook_secret: DF.Password | None
+		included_seats: DF.Int
+		included_storage_gb: DF.Int
 		included_transfer_gb: DF.Int
 		invitation_expiry_days: DF.Int
 		invitation_resend_cooldown_minutes: DF.Int
 		invitations_per_hour: DF.Int
 		invite_only: DF.Check
 		managed_saas_mode: DF.Check
-		private_network_throughput_mibps: DF.Int
+		onboarding_trust_content: DF.JSON | None
 		policies_url: DF.Data | None
+		private_network_throughput_mibps: DF.Int
 		public_network_throughput_mibps: DF.Int
 		require_payment_method: DF.Check
+		seat_price: DF.Currency
+		seat_price_currency: DF.Link | None
 		sign_in_code_attempts: DF.Int
 		sign_in_codes_per_email: DF.Int
 		signup_image_minimum_age_minutes: DF.Int
+		storage_price_per_gb: DF.Currency
 		support_ticket_url: DF.Data | None
+		trial_ai_cap: DF.Currency
 		trial_days: DF.Int
 		trial_deletion_days: DF.Int
 		trial_idle_shutdown_minutes: DF.Int

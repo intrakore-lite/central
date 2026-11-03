@@ -203,12 +203,25 @@ def _add_method_gateway(currency: str):
 	return gw or frappe._dict()
 
 
+# Gateways that save no card in the console: a UPI mandate, or a PayPal vault.
+NON_CARD_GATEWAYS = ("Razorpay", "Paypal")
+
+
 def _card_gateway(currency: str) -> str | None:
-	"""The gateway that saves cards for this currency. Saved cards are a Stripe-only
-	rail (ADR 0005) in every currency — INR included, where Razorpay handles only the
-	UPI Autopay e-mandate. Returns an enabled Stripe gateway that handles the
-	currency, or None if there is no card rail for it."""
-	return _enabled_gateway_for_currency(currency, "Stripe")
+	"""The gateway that saves cards for this currency: Stripe (ADR 0005) where it handles the
+	currency — INR included, where Razorpay handles only the UPI Autopay e-mandate — else the
+	currency's default gateway when it is a card gateway, such as the AED one. None if there is
+	no card rail for it."""
+	if stripe := _enabled_gateway_for_currency(currency, "Stripe"):
+		return stripe
+
+	from central.billing.gateways.registry import GatewayNotFound, resolve_gateway_for_currency
+
+	try:
+		default = resolve_gateway_for_currency(currency)
+	except GatewayNotFound:
+		return None
+	return None if default in NON_CARD_GATEWAYS else default
 
 
 def _from_inr(amount: float, currency: str) -> float:

@@ -52,13 +52,6 @@ const routes = [
 		meta: { public: true, allowSignedIn: true },
 	},
 	{
-		// Where an activated invitee starts. A placeholder until the invited onboarding lands.
-		path: '/onboarding/profile',
-		name: 'OnboardingProfile',
-		component: () => import('@/pages/onboarding/ProfilePage.vue'),
-		meta: { invitedOnboarding: true },
-	},
-	{
 		path: '/onboarding/site',
 		name: 'OnboardingSite',
 		component: () => import('@/pages/onboarding/SiteNamePage.vue'),
@@ -69,6 +62,34 @@ const routes = [
 		path: '/onboarding/provisioning',
 		name: 'OnboardingProvisioning',
 		component: () => import('@/pages/onboarding/SiteReadyPage.vue'),
+	},
+	// The invited owner's paid onboarding, in the Intrakore design. The activation link opens
+	// step 1, so these steps need no product link, unlike the trial site steps above.
+	{
+		path: '/onboarding/profile',
+		name: 'OnboardingProfile',
+		component: () => import('@/pages/onboarding/ProfilePage.vue'),
+		meta: { invitedOnboarding: true },
+	},
+	{
+		path: '/onboarding/billing',
+		name: 'OnboardingBilling',
+		component: () => import('@/pages/onboarding/BillingPage.vue'),
+		meta: { invitedOnboarding: true },
+	},
+	{
+		// A hosted card page returns here, inside the billing step's frame, where the session
+		// cookie may not reach. It only tells the page around it that the card is saved.
+		path: '/onboarding/card-saved',
+		name: 'OnboardingCardSaved',
+		component: () => import('@/pages/onboarding/CardSavedPage.vue'),
+		meta: { public: true, allowSignedIn: true },
+	},
+	{
+		path: '/onboarding/team',
+		name: 'OnboardingTeam',
+		component: () => import('@/pages/onboarding/TeamPage.vue'),
+		meta: { invitedOnboarding: true },
 	},
 	{
 		path: '/github/connect/:attempt?',

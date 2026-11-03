@@ -29,6 +29,7 @@
   "pincode",
   "section_break_tax",
   "gstin",
+  "tax_id",
   "column_break_jgnz",
   "gst_status",
   "gst_category",
@@ -150,6 +151,12 @@
    "fieldname": "gstin",
    "fieldtype": "Data",
    "label": "GSTIN"
+  },
+  {
+   "description": "The VAT Tax Registration Number on invoices outside India, such as a UAE TRN of 15 digits.",
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax Registration Number (TRN)"
   },
   {
    "fieldname": "section_break_settings",
@@ -305,7 +312,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-21 14:54:26.273541",
+ "modified": "2026-11-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Billing",
  "name": "Billing Profile",

@@ -144,6 +144,10 @@ export const API = {
 	installTrialApp: 'central.api.sites.install_trial_app',
 	trialAppInstall: 'central.api.sites.get_trial_app_install',
 
+	getOnboarding: 'central.api.onboarding.get_onboarding',
+	saveOnboardingProfile: 'central.api.onboarding.save_profile',
+	startOnboardingSite: 'central.api.onboarding.start_site',
+
 	getBenchLink: 'central.api.sso.get_bench_link',
 
 	eligiblePlans: 'central.billing.api.dashboard.catalog.get_eligible_plans',

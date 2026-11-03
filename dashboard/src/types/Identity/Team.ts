@@ -40,4 +40,20 @@ export interface Team {
 	landing_product?: string
 	/**	Referrer : Small Text - The page that linked to the first signup page.	*/
 	referrer?: string
+	/**	Business Classification : Select	*/
+	business_type?:
+		| ''
+		| 'General Contracting'
+		| 'Specialty Trade / Subcontracting'
+		| 'MEP Contracting'
+		| 'Fit-out & Interiors'
+		| 'Engineering & Consultancy'
+		| 'Infrastructure & Civil'
+		| 'Other'
+	/**	Headcount : Select	*/
+	headcount_bracket?: '' | '1–15' | '16–50' | '51–200' | '201–500' | '500+'
+	/**	Annual Turnover (AED) : Select	*/
+	turnover_band?: '' | '< 5M' | '5–25M' | '25–100M' | '100–500M' | '500M+'
+	/**	Seats : Int - The seats the owner chose at onboarding.	*/
+	seats?: number
 }
