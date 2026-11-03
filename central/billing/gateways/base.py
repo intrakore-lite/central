@@ -170,8 +170,8 @@ class GatewayAdapter(ABC):
 	supports_off_session_charge: bool = False
 
 	# Whether a customer-present payment on this gateway gives a saved card a new
-	# reference to charge off-session (Telr continuous authority). See
-	# payments.payments.rearm_customer_present_method.
+	# reference to charge off-session (the stored-credential payment a merchant-initiated
+	# charge links to). See payments.payments.rearm_customer_present_method.
 	rearms_on_customer_present_payment: bool = False
 
 	def can_charge_silently(self, amount: float, currency: str) -> bool:
@@ -328,14 +328,23 @@ class GatewayAdapter(ABC):
 		return None
 
 	@staticmethod
+	def failure_from_event(payload: dict) -> dict | None:
+		"""The decline a verified failure webhook body carries, as
+		`{failure_code, decline_code, failure_reason, raw}`, or None. Stripe and Razorpay
+		are read in `charges._extract_failure`; other adapters answer here."""
+		return None
+
+	@staticmethod
 	def refund_from_event(payload: dict) -> dict | None:
 		"""`{id, status}` of the refund a verified webhook body carries, or None."""
 		return None
 
-	def read_saved_card(self, setup_reference: str) -> dict:
+	def read_saved_card(self, setup_reference: str, payment_id: str | None = None) -> dict:
 		"""The card a setup saved, read from the gateway, or `{}` while it is not finished.
 		Keys: payment_method, customer, mandate, brand, last4, exp_month, exp_year. A setup
-		the bank refused gives only `setup_error`, with its failure_code and decline_code."""
+		the bank refused gives only `setup_error`, with its failure_code and decline_code.
+		`payment_id` is a hint the browser sent (Checkout.com Flow's payment id); an adapter
+		that reads it must check that the payment belongs to `setup_reference`."""
 		raise GatewayUnsupported(f"{type(self).__name__} does not support read_saved_card")
 
 	def verify_payment(self, payment_id: str) -> VerifiedPayment:

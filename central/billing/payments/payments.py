@@ -187,7 +187,7 @@ class CardDeclinedAtSetup(CardNotSaved):
 	"""The bank refused the card at setup. The message says why, for the customer."""
 
 
-def confirm_payment_method(payment_method: str) -> Document:
+def confirm_payment_method(payment_method: str, payment_id: str | None = None) -> Document:
 	"""Confirm a card the customer saved at the gateway.
 
 	1. The card is read from the gateway by the setup Central stored for this method;
@@ -205,7 +205,7 @@ def confirm_payment_method(payment_method: str) -> Document:
 	if method.status != "Pending Validation":
 		return method
 
-	card = _adapter(method.gateway).read_saved_card(method.setup_reference) if method.setup_reference else {}
+	card = _read_saved_card(method, payment_id) if method.setup_reference else {}
 	if error := card.get("setup_error"):
 		frappe.throw(
 			decline.method_failure_message(
@@ -237,6 +237,15 @@ def confirm_payment_method(payment_method: str) -> Document:
 	densify_priorities(method.team)
 	method.reload()  # pick up priority / is_default set by densify
 	return method
+
+
+def _read_saved_card(method, payment_id: str | None) -> dict:
+	"""The card the method's setup saved. Only a browser hint is passed on, so an adapter
+	that takes none is called as before."""
+	adapter = _adapter(method.gateway)
+	if payment_id:
+		return adapter.read_saved_card(method.setup_reference, payment_id=payment_id)
+	return adapter.read_saved_card(method.setup_reference)
 
 
 def _is_saved_to_another_customer(card: dict, method) -> bool:
@@ -273,7 +282,7 @@ CUSTOMER_PRESENT_REASON = "customer_present_payment_required"
 
 def hold_for_customer_present_payment(payment_method: str) -> None:
 	"""Keep a card the gateway will not charge off-session against its stored reference,
-	but out of auto-charge until the customer pays once on the hosted page.
+	but out of auto-charge until the customer pays once in the gateway's card form.
 
 	1. The card stays Active and is flagged `reauth_required`, so no auto-charge picks it.
 	2. The team goes to Action Required, which asks the customer to pay the invoice now.
@@ -291,10 +300,10 @@ def hold_for_customer_present_payment(payment_method: str) -> None:
 
 
 def rearm_customer_present_method(attempt) -> str | None:
-	"""After the customer paid an invoice on the hosted page, give the team's held card
-	that payment as its new off-session reference.
+	"""After the customer paid an invoice in the gateway's card form, give the team's held
+	card that payment as its new off-session reference.
 
-	1. Only a gateway that rearms this way (Telr continuous authority) does it.
+	1. Only a gateway that rearms this way (`rearms_on_customer_present_payment`) does it.
 	2. The card waiting for it is the team's Active card on that gateway with
 	   `reauth_required`. The card fields are read from the gateway, so a customer who
 	   paid with another card gets that card on the method.
@@ -324,7 +333,7 @@ def rearm_customer_present_method(attempt) -> str | None:
 	try:
 		card = adapter.read_saved_card(attempt.gateway_order_id)
 	except GatewayError:
-		frappe.log_error(title=f"Card not rearmed after hosted payment {attempt.name}")
+		frappe.log_error(title=f"Card not rearmed after customer-present payment {attempt.name}")
 		return None
 	if not card.get("payment_method"):
 		return None

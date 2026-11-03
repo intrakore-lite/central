@@ -15,7 +15,7 @@ from central.billing.gateways.setup import adapter_keys, ensure_gateway_records
 from central.billing.tests.utils import BillingTestCase as IntegrationTestCase
 from central.billing.tests.utils import configure_gateway, disable_gateway, reset_gateway_roster
 
-ADAPTERS = ("Stripe", "Razorpay", "Paypal", "Telr")
+ADAPTERS = ("Stripe", "Razorpay", "Paypal", "Checkout")
 
 
 class GatewayCurrencyTestCase(IntegrationTestCase):

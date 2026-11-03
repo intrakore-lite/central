@@ -9,8 +9,9 @@
  "field_order": [
   "adapter_key",
   "paypal_settlement_mode",
-  "telr_store_id",
-  "telr_test_mode",
+  "checkout_environment",
+  "processing_channel_id",
+  "checkout_api_prefix",
   "column_break_flags",
   "is_enabled",
   "supports_mandates",
@@ -38,7 +39,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Adapter",
-   "options": "Stripe\nRazorpay\nPaypal\nTelr",
+   "options": "Stripe\nRazorpay\nPaypal\nCheckout",
    "reqd": 1,
    "set_only_once": 1
   },
@@ -52,20 +53,28 @@
    "options": "Direct\nVia Razorpay"
   },
   {
-   "depends_on": "eval:doc.adapter_key=='Telr'",
-   "description": "The numeric Telr store ID. For Telr, API Key is the Hosted Payment Page authentication key, API Secret is the Remote API authentication key and Webhook Secret is the Transaction Advice secret.",
-   "fieldname": "telr_store_id",
-   "fieldtype": "Data",
-   "label": "Telr Store ID",
-   "mandatory_depends_on": "eval:doc.adapter_key=='Telr' && doc.is_enabled"
+   "default": "Sandbox",
+   "depends_on": "eval:doc.adapter_key=='Checkout'",
+   "description": "Sandbox calls api.sandbox.checkout.com and needs sandbox keys (sk_sbox_, pk_sbox_). Live calls api.checkout.com. For Checkout.com, API Key is the public key, API Secret is the secret key and Webhook Secret is the signature key of the webhook workflow, which Central sets when it registers the webhook.",
+   "fieldname": "checkout_environment",
+   "fieldtype": "Select",
+   "label": "Checkout Environment",
+   "options": "Sandbox\nLive"
   },
   {
-   "default": "1",
-   "depends_on": "eval:doc.adapter_key=='Telr'",
-   "description": "Send ivp_test=1. Live mode works only from the IP addresses Telr whitelisted for the store.",
-   "fieldname": "telr_test_mode",
-   "fieldtype": "Check",
-   "label": "Telr Test Mode"
+   "depends_on": "eval:doc.adapter_key=='Checkout'",
+   "description": "The processing channel (pc_...) every Checkout.com payment is made on. Find it in the Checkout.com Dashboard, Settings, Channels.",
+   "fieldname": "processing_channel_id",
+   "fieldtype": "Data",
+   "label": "Processing Channel ID",
+   "mandatory_depends_on": "eval:doc.adapter_key=='Checkout' && doc.is_enabled"
+  },
+  {
+   "depends_on": "eval:doc.adapter_key=='Checkout'",
+   "description": "Optional. The account's own API host prefix from the Checkout.com Dashboard (Developers, Overview), so calls go to https://<prefix>.api.checkout.com. Empty uses the shared host.",
+   "fieldname": "checkout_api_prefix",
+   "fieldtype": "Data",
+   "label": "Checkout API Prefix"
   },
   {
    "fieldname": "column_break_flags",
@@ -207,7 +216,7 @@
    "link_fieldname": "gateway"
   }
  ],
- "modified": "2026-11-03 00:00:00.000000",
+ "modified": "2026-11-03 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Billing",
  "name": "Payment Gateway",

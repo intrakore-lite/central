@@ -103,19 +103,23 @@ currency** (rates live in standalone **Catalog Rate**, not on the Plan).
   only. Edit an existing team's Tax Profile by hand.
 - **Signup Fallback Country** (Billing Settings, Trials) is the country of a new team whose
   signup IP gives no country. Empty is India.
-- A site that bills in AED through Telr can apply these in one step, then list what is still
-  missing (keys, webhook secret, test mode, TRN, prices, product image):
-  `pilot frappe --site <site> execute central.billing.market_setup.configure_aed_telr_market`
-  and `... execute central.billing.market_setup.readiness`. It makes Telr the AED default,
-  sets Billing Currency to AED, the UAE invoice series and 5% UAE VAT, and adds an AED
+- A site that bills in AED through Checkout.com can apply these in one step, then list what is
+  still missing (keys, processing channel, webhook, environment, TRN, prices, product image):
+  `pilot frappe --site <site> execute central.billing.market_setup.configure_aed_checkout_market`
+  and `... execute central.billing.market_setup.readiness`. It makes Checkout.com the AED
+  default, sets Billing Currency to AED, the UAE invoice series and 5% UAE VAT, and adds an AED
   Catalog Rate for every USD plan rate and an AED row to every Trust Tier Level, both at
   3.6725 AED to the dollar. An AED value that exists is kept.
-- **Telr** (Payment Gateway "Telr"): enter the store ID, the Hosted Payment Page key (API
-  Key), the Remote API key (API Secret) and the Transaction Advice secret (Webhook Secret).
-  Telr has no webhook API: in the Telr admin set the Transaction Advice URL to
-  `https://<site>/api/method/central.billing.payments.webhooks.telr`. Ask Telr to enable
-  Continuous Authority and Stored Cards on the store. Live mode answers only the IP
-  addresses Telr whitelisted for the store; clear **Telr Test Mode** when the live keys are in.
+- **Checkout.com** (Payment Gateway "Checkout", a NAS account): enter the public key
+  (`pk_...`) as API Key, the secret key (`sk_...`) as API Secret, the Processing Channel ID
+  (`pc_...`) and, if the account has one, the API prefix. Keep **Checkout Environment** at
+  Sandbox with sandbox keys (`sk_sbox_`, `pk_sbox_`) and set Live with the live keys. Saving
+  the keys validates them and registers a webhook workflow that posts to
+  `https://<site>/api/method/central.billing.payments.webhooks.checkout`, with a signature
+  key Central makes and keeps as the Webhook Secret. On a local site the webhook is not
+  registered; use **Re-register Webhook** once the site is public. Ask Checkout.com to enable
+  card verification, stored cards (Unscheduled merchant-initiated payments) and 3DS on the
+  processing channel, in AED.
 
 ### Step 4 · Customer Team + Billing Profile
 Charging a card needs a **complete Billing Profile**. Its `currency` is the source of truth (gateway-backed, locks after first activity). Credit can fund server creation without a complete profile. The team's invoices are then held at Draft until the billing details arrive. A daily job reminds the team, and operators get an alert after `billing_details_grace_days`.

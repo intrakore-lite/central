@@ -37,15 +37,14 @@ _AUTHORISED_EVENTS = {
 	"payment.authorized",  # Razorpay
 	"charge.authorized",
 	"PAYMENT.CAPTURE.PENDING",  # PayPal: held for review or an eCheck; not paid yet
-	"telr.sale.held",  # Telr status H: authorised, held for manual inspection
+	"payment_approved",  # Checkout.com: authorised; payment_captured settles
 }
 _SUCCESS_EVENTS = {
 	"payment_intent.succeeded",
 	"charge.succeeded",
 	"payment.captured",
 	"PAYMENT.CAPTURE.COMPLETED",
-	"telr.sale.approved",
-	"telr.capture.approved",
+	"payment_captured",  # Checkout.com
 }
 _FAILURE_EVENTS = {
 	"payment_intent.payment_failed",
@@ -54,8 +53,8 @@ _FAILURE_EVENTS = {
 	"charge.failed",
 	"payment.failed",
 	"PAYMENT.CAPTURE.DENIED",
-	"telr.sale.declined",
-	"telr.sale.error",
+	"payment_declined",  # Checkout.com
+	"payment_capture_declined",
 }
 
 _TERMINAL_ATTEMPT = ("Captured", "Failed", "Refunded")
@@ -895,18 +894,17 @@ def _extract_failure(adapter_key: str, payload: dict) -> Failure | None:
 				for k in ("error_code", "error_description", "error_reason", "error_source", "error_step")
 			},
 		}
-	if adapter_key == "Telr":
-		from central.billing.gateways.telr_adapter import TelrAdapter
+	from central.billing.gateways.registry import adapter_class
 
-		return TelrAdapter.failure_from_event(payload)
-	return None
+	return adapter_class(adapter_key).failure_from_event(payload)
 
 
 def _hold_method_for_customer_present_payment(attempt, failure_code):
-	"""The gateway will not charge this card off-session against its stored reference
-	(Telr code 57: no continuous authority on the referenced transaction). The card is
-	kept, held out of auto-charge, and the customer is asked to pay once on the hosted
-	page; that payment gives the card a new reference (`payments.rearm_customer_present_method`)."""
+	"""The gateway will not charge this card off-session against what it stored: the bank
+	asks for the cardholder, or the stored reference is no longer usable
+	(`decline.CUSTOMER_PRESENT_CODES`). The card is kept, held out of auto-charge, and the
+	customer is asked to pay once in the gateway's card form; that payment gives the card
+	a new reference (`payments.rearm_customer_present_method`)."""
 	from central.billing.payments import decline, payments
 
 	if not decline.needs_customer_present_payment(failure_code) or not attempt.payment_method:

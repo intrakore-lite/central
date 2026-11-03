@@ -590,7 +590,7 @@ class StripeAdapter(GatewayAdapter):
 			"setup_intent_id": session.get("setup_intent"),
 		}
 
-	def read_saved_card(self, setup_reference: str) -> dict:
+	def read_saved_card(self, setup_reference: str, payment_id: str | None = None) -> dict:
 		"""The card a SetupIntent (`seti_`) or a setup Checkout Session (`cs_`) saved, read
 		from Stripe: payment method, customer, mandate and display fields. `{}` while the
 		customer has not finished, and only `setup_error` when the bank refused the card."""

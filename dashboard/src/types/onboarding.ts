@@ -178,15 +178,17 @@ export interface CardSetupHandles {
 	checkout?: CheckoutSetup
 }
 
-/** The Checkout.com handles of a card setup. Align with the Checkout adapter once it lands. */
+/** The Checkout.com handles of a card setup or payment (`CheckoutAdapter._flow_handles`). */
 export interface CheckoutSetup {
 	public_key: string
 	/** 'sandbox' or 'production'. */
 	environment: string
-	/** The payment session Checkout created for this setup: id, token and secret. */
+	/** The payment session Checkout created, unchanged: id, token, secret and links. */
 	payment_session: {
 		id: string
 		payment_session_token?: string
 		payment_session_secret?: string
 	}
+	/** Where Flow loads from: Checkout.com's own host. */
+	flow_script_url?: string
 }

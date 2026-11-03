@@ -256,7 +256,7 @@ def disable_gateway(adapter_key):
 
 def reset_gateway_roster():
 	"""Restore the routing the rest of the suite assumes: Stripe settles USD,
-	Razorpay settles INR, PayPal and Telr are off.
+	Razorpay settles INR, PayPal and Checkout.com are off.
 
 	There is one shared row per adapter (ADR 0021), so a test that rewires the
 	roster rewires it for everything that runs after — where the old throwaway rows
@@ -266,7 +266,7 @@ def reset_gateway_roster():
 	from central.billing.tests.test_stripe_adapter import make_stripe_gateway
 
 	configure_gateway("Paypal", [], is_enabled=0)
-	configure_gateway("Telr", [], is_enabled=0)
+	configure_gateway("Checkout", [], is_enabled=0)
 	make_stripe_gateway()
 	make_razorpay_gateway()
 

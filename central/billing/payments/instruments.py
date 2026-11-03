@@ -141,6 +141,15 @@ def get(instrument: str, surface: str = MANDATE) -> dict:
 	return entry
 
 
+def card_gateway(currency: str) -> str | None:
+	"""The enabled gateway that saves and charges cards in this currency, if any: Stripe
+	where it handles the currency, else the currency's default card gateway (Checkout.com
+	for AED). See `api.dashboard._shared._card_gateway`."""
+	from central.billing.api.dashboard._shared import _card_gateway
+
+	return _card_gateway(currency)
+
+
 def gateway_for(instrument: str, currency: str, surface: str = MANDATE) -> str | None:
 	"""The enabled gateway that carries this instrument in this currency, if any."""
 	from central.billing.api.dashboard._shared import _enabled_gateway_for_currency
@@ -148,6 +157,10 @@ def gateway_for(instrument: str, currency: str, surface: str = MANDATE) -> str |
 	entry = get(instrument, surface)
 	if entry["currencies"] and currency not in entry["currencies"]:
 		return None
+	# The console saves a Checkout.com card in Flow. A Checkout.com top-up has no console
+	# form yet, so the recharge card stays on Stripe.
+	if instrument == CARD and surface == MANDATE:
+		return card_gateway(currency)
 	return _enabled_gateway_for_currency(currency, entry["adapter"])
 
 
@@ -170,7 +183,8 @@ def available(currency: str, surface: str = MANDATE) -> list[dict]:
 				"label": entry["label"],
 				"description": entry["description"],
 				"gateway": gateway,
-				"adapter_key": entry["adapter"],
+				# A gateway row is named after its adapter (ADR 0021).
+				"adapter_key": gateway,
 				"surface": surface,
 			}
 		)

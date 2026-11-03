@@ -32,11 +32,14 @@ class Failure(TypedDict, total=False):
 # taken, and sending the same request again gets the same answer, so an operator fixes it.
 REQUEST_REFUSED = "request_refused"
 
-# The card is fine but the gateway will not charge it off-session against the stored
-# reference: Telr has no continuous authority on the referenced transaction (code 57),
-# or the reference is invalid or was never authorised (22, 25). The customer pays once
-# on the hosted page, and that payment is the card's next reference.
-CUSTOMER_PRESENT_CODES = ("continuous_authority_unavailable", "reference_invalid")
+# The card may be fine, but the gateway will not charge it off-session against what it
+# stored: the bank asks for the cardholder (3DS), or the stored card reference is no
+# longer usable. The customer pays once in the gateway's card form, and on a gateway
+# that rearms that way (`GatewayAdapter.rearms_on_customer_present_payment`) that
+# payment is the card's next reference.
+CUSTOMER_AUTHENTICATION_REQUIRED = "customer_authentication_required"
+STORED_CREDENTIAL_INVALID = "stored_credential_invalid"
+CUSTOMER_PRESENT_CODES = (CUSTOMER_AUTHENTICATION_REQUIRED, STORED_CREDENTIAL_INVALID)
 
 
 # The card is refused, or the gateway refused to open the charge. Nothing was taken,
@@ -108,8 +111,8 @@ _CUSTOMER_REASON = {
 	"india_recurring_payment_mandate_canceled": _lt("Your auto-pay approval was cancelled"),
 	"transaction_not_approved": _lt("Your bank didn't approve the auto-payment"),
 	"check_unfinished": _lt("The card check didn't finish"),
-	"continuous_authority_unavailable": _lt("Your bank needs you to confirm this payment once"),
-	"reference_invalid": _lt("Your bank needs you to confirm this payment once"),
+	CUSTOMER_AUTHENTICATION_REQUIRED: _lt("Your bank needs you to confirm this payment once"),
+	STORED_CREDENTIAL_INVALID: _lt("Your bank needs you to confirm this payment once"),
 }
 
 # The same declines when a method is being added, where no payment was being made.

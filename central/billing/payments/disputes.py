@@ -22,6 +22,13 @@ DISPUTE_EVENTS = (
 	"payment.dispute.closed",
 	"CUSTOMER.DISPUTE.CREATED",
 	"CUSTOMER.DISPUTE.RESOLVED",
+	# Checkout.com
+	"dispute_evidence_required",
+	"dispute_canceled",
+	"dispute_expired",
+	"dispute_lost",
+	"dispute_resolved",
+	"dispute_won",
 )
 
 

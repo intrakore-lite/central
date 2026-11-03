@@ -86,6 +86,9 @@ export function useTopup({ onDone }: { onDone?: (res: unknown) => void } = {}) {
 			order = o
 			if (o.adapter_key === 'Stripe') return { card: true }
 			if (o.adapter_key === 'Paypal') return { paypal: true }
+			// The recharge card stays on Stripe; no top-up resolves to Checkout.com yet.
+			if (o.adapter_key === 'Checkout')
+				throw new Error('Card top-ups are not available for this account yet.')
 
 			// Razorpay collects in its own hosted sheet on <body>; a caller showing a
 			// modal must drop it now so the sheet isn't stuck behind the overlay.

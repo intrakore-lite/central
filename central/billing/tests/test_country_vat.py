@@ -4,7 +4,7 @@
 
 India keeps GST. Any other country is VAT at the rate in the table, or untaxed when
 the table has no row for it. A team billed in USD through Stripe never gets GST. The
-market setup bills in AED through Telr."""
+market setup bills in AED through Checkout.com."""
 
 import frappe
 
@@ -170,14 +170,14 @@ class TestMarketSetup(BillingTestCase):
 		doc.save(ignore_permissions=True)
 		frappe.db.set_single_value("Central Settings", dict(self.saved_trial))
 		frappe.db.delete("Product", {"name": market_setup.BUNDLE_PRODUCT["product_key"]})
-		configure_gateway("Telr", [], is_enabled=0)
+		configure_gateway("Checkout", [], is_enabled=0)
 
-	def test_configure_sets_aed_telr_vat_trial_and_product(self):
-		result = market_setup.configure_aed_telr_market()
+	def test_configure_sets_aed_checkout_vat_trial_and_product(self):
+		result = market_setup.configure_aed_checkout_market()
 
 		row = frappe.db.get_value(
 			"Payment Gateway Currency",
-			{"parent": "Telr", "currency": "AED"},
+			{"parent": "Checkout", "currency": "AED"},
 			["is_default", "requires_predebit_notice"],
 			as_dict=True,
 		)
@@ -190,16 +190,16 @@ class TestMarketSetup(BillingTestCase):
 		self.assertEqual(frappe.db.get_single_value("Central Settings", "trial_days"), 60)
 		product = frappe.db.get_value("Product", "crm-estimation", ["enabled", "trial_days"], as_dict=True)
 		self.assertEqual(product, {"enabled": 0, "trial_days": 60})
-		# Telr keys are the operator's, so the site is not ready yet.
+		# Checkout.com keys are the operator's, so the site is not ready yet.
 		self.assertFalse(result["ready"])
 		self.assertIn(
-			"Telr keys are not validated. Enter them on the Payment Gateway and save.", result["missing"]
+			"Checkout keys are not validated. Enter them on the Payment Gateway and save.", result["missing"]
 		)
 
 	def test_plans_get_an_aed_rate_at_the_dirham_peg(self):
 		plan = make_plan("plan-aed-mirror", rates=[{"cluster": "", "currency": "USD", "rate": 40}])
 
-		market_setup.configure_aed_telr_market()
+		market_setup.configure_aed_checkout_market()
 
 		self.assertEqual(
 			frappe.db.get_value(
@@ -217,13 +217,13 @@ class TestMarketSetup(BillingTestCase):
 			],
 		)
 
-		market_setup.configure_aed_telr_market()
+		market_setup.configure_aed_checkout_market()
 
 		rates = frappe.get_all("Catalog Rate", filters={"priced_for": plan, "currency": "AED"}, pluck="rate")
 		self.assertEqual(rates, [150])
 
 	def test_every_trust_tier_has_an_aed_threshold(self):
-		market_setup.configure_aed_telr_market()
+		market_setup.configure_aed_checkout_market()
 
 		for level in frappe.get_all("Trust Tier Level", pluck="name"):
 			rows = {row.currency: row for row in frappe.get_doc("Trust Tier Level", level).thresholds}
@@ -235,8 +235,8 @@ class TestMarketSetup(BillingTestCase):
 
 	def test_configure_is_idempotent(self):
 		plan = make_plan("plan-aed-twice", rates=[{"cluster": "", "currency": "USD", "rate": 40}])
-		market_setup.configure_aed_telr_market()
-		market_setup.configure_aed_telr_market()
+		market_setup.configure_aed_checkout_market()
+		market_setup.configure_aed_checkout_market()
 
 		rows = [r for r in frappe.get_doc(settings.SETTINGS).country_tax_rates if r.country == UAE]
 		self.assertEqual(len(rows), 1)

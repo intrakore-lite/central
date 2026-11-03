@@ -1,8 +1,8 @@
 # Copyright (c) 2026, Frappe and contributors
 # For license information, please see license.txt
-"""Set up a site that bills in AED through Telr, with UAE VAT, and check it.
+"""Set up a site that bills in AED through Checkout.com, with UAE VAT, and check it.
 
-`configure_aed_telr_market` writes the settings an operator would otherwise set by
+`configure_aed_checkout_market` writes the settings an operator would otherwise set by
 hand in Desk. It is idempotent and keeps every value an operator has already set,
 except the ones it names. It never writes a gateway key and never enables a gateway:
 keys are the operator's. The AED prices it adds are the USD prices at the dirham's
@@ -13,7 +13,7 @@ owner set in AED is kept.
 
 `readiness` lists what is still missing before the first paid customer.
 
-    pilot frappe --site <site> execute central.billing.market_setup.configure_aed_telr_market
+    pilot frappe --site <site> execute central.billing.market_setup.configure_aed_checkout_market
     pilot frappe --site <site> execute central.billing.market_setup.readiness
 
 `execute` commits when the call returns, so nothing here commits.
@@ -26,7 +26,7 @@ import frappe
 from central.billing.settings import SETTINGS
 
 CURRENCY = "AED"
-GATEWAY = "Telr"
+GATEWAY = "Checkout"
 HOME_COUNTRY = "United Arab Emirates"
 
 # The UAE dirham is pegged to the US dollar at this rate.
@@ -61,15 +61,15 @@ TRIAL_SETTINGS = {
 }
 
 
-def configure_aed_telr_market(
+def configure_aed_checkout_market(
 	home_country: str = HOME_COUNTRY,
 	trial_days: int = TRIAL_SETTINGS["trial_days"],
 	trial_deletion_days: int = TRIAL_SETTINGS["trial_deletion_days"],
 	trial_notice_days: int = TRIAL_SETTINGS["trial_notice_days"],
 ) -> dict:
-	"""Make AED through Telr the billing path, seed the home country's VAT, price the plans
+	"""Make AED through Checkout.com the billing path, seed the home country's VAT, price the plans
 	and the trust tiers in AED, set the trial clock and add the first product."""
-	ensure_telr_aed_default()
+	ensure_checkout_aed_default()
 	ensure_billing_settings(home_country)
 	ensure_aed_catalog_rates()
 	ensure_aed_trust_thresholds()
@@ -108,11 +108,12 @@ def ensure_bundle_product(
 	return key
 
 
-def ensure_telr_aed_default() -> None:
-	"""Give the Telr gateway an AED row that is the default for AED, with no silent-debit ceiling.
+def ensure_checkout_aed_default() -> None:
+	"""Give the Checkout gateway an AED row that is the default for AED, with no silent-debit
+	ceiling.
 
 	Keys and Enabled stay as they are. Another gateway's AED default row is cleared, so
-	AED resolves to Telr whichever gateway is enabled."""
+	AED resolves to Checkout.com whichever gateway is enabled."""
 	from central.billing.gateways.setup import ensure_gateway_records
 
 	ensure_gateway_records()
@@ -210,7 +211,7 @@ def to_aed(usd_amount) -> float:
 
 
 def readiness() -> dict:
-	"""What an AED Telr site still needs before it can take a paid customer.
+	"""What an AED Checkout.com site still needs before it can take a paid customer.
 
 	Returns `ready` and a list of `missing` items an operator acts on. Reads only."""
 	missing = []
@@ -235,25 +236,32 @@ def _gateway_gaps() -> list[str]:
 	gateway = frappe.db.get_value(
 		"Payment Gateway",
 		GATEWAY,
-		["is_enabled", "credentials_validated_at", "telr_store_id", "telr_test_mode"],
+		[
+			"is_enabled",
+			"credentials_validated_at",
+			"processing_channel_id",
+			"checkout_environment",
+			"webhook_endpoint_id",
+			"is_webhook_active",
+		],
 		as_dict=True,
 	)
-	if not gateway or not gateway.telr_store_id:
-		gaps.append(f"{GATEWAY} store ID is not set on the Payment Gateway.")
 	if not gateway or not gateway.credentials_validated_at:
 		gaps.append(f"{GATEWAY} keys are not validated. Enter them on the Payment Gateway and save.")
-	if gateway and gateway.telr_test_mode:
-		gaps.append(f"{GATEWAY} is in test mode. Clear Telr Test Mode once the live keys are in.")
-	# Telr has no webhook API: the Transaction Advice URL is set in the Telr admin, and
-	# the signing secret is entered here by hand.
+	if not gateway or not (
+		gateway.processing_channel_id or frappe.conf.get("checkout_processing_channel_id")
+	):
+		gaps.append(f"{GATEWAY} Processing Channel ID is not set on the Payment Gateway.")
+	if gateway and gateway.checkout_environment != "Live":
+		gaps.append(f"{GATEWAY} is in the Sandbox environment. Set Live once the live keys are in.")
+	if not gateway or not gateway.webhook_endpoint_id or not gateway.is_webhook_active:
+		gaps.append(f"{GATEWAY} webhook is not registered. Use Re-register Webhook on the Payment Gateway.")
 	from central.billing.gateways.registry import get_adapter
 
 	if gateway and not get_adapter(frappe.get_doc("Payment Gateway", GATEWAY)).get_credential(
 		"webhook_secret"
 	):
-		gaps.append(
-			f"{GATEWAY} Webhook Secret is empty. Enter the Transaction Advice secret from the Telr admin."
-		)
+		gaps.append(f"{GATEWAY} Webhook Secret is empty. Re-register the webhook to set it.")
 	return gaps
 
 

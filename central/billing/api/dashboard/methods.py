@@ -142,7 +142,7 @@ def _own_site_url(url: str | None) -> str | None:
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=20, seconds=60 * 60, user_based=True)
-def confirm_card(payment_method: str | None = None) -> dict:
+def confirm_card(payment_method: str | None = None, payment_id: str | None = None) -> dict:
 	"""Confirm a card the customer saved in the console card dialog.
 
 	1. The caller must hold billing manage on the method's team.
@@ -150,13 +150,16 @@ def confirm_card(payment_method: str | None = None) -> dict:
 	   by the setup this method was opened with, never taken from the request.
 	3. A saved card runs the micro-charge validation and answers its confirmation.
 	4. A card the bank refused at setup answers why and what to do next, and the
-	   method stays Pending Validation. The setup webhook records the failure."""
+	   method stays Pending Validation. The setup webhook records the failure.
+	5. `payment_id` (Checkout.com Flow) only says which payment to read first; the
+	   adapter reads it from the gateway and uses it only if it carries this setup's
+	   reference."""
 	from central.billing.payments import payments
 
 	team = frappe.db.get_value("Payment Method", payment_method, "team")
 	_require_manage(team)
 	try:
-		return payments.confirm_payment_method(payment_method).get_confirmation()
+		return payments.confirm_payment_method(payment_method, payment_id=payment_id).get_confirmation()
 	except payments.CardDeclinedAtSetup as declined:
 		frappe.clear_last_message()  # the reason goes back in the answer, not as a second alert
 		return {"payment_method": payment_method, "status": "Pending Validation", "message": str(declined)}
