@@ -94,8 +94,23 @@ export interface CardSetupHandles {
 	payment_method?: string
 	/** Stripe: confirmed in Stripe Elements. */
 	client_secret?: string
-	/** A framed hosted payment page, such as Telr's. */
+	/** A framed hosted payment page. */
 	iframe_url?: string
 	/** A hosted payment page the browser leaves to, and returns from. */
 	redirect_url?: string
+	/** Checkout.com: the card is taken in the page by Checkout Flow. */
+	checkout?: CheckoutSetup
+}
+
+/** The Checkout.com handles of a card setup. Align with the Checkout adapter once it lands. */
+export interface CheckoutSetup {
+	public_key: string
+	/** 'sandbox' or 'production'. */
+	environment: string
+	/** The payment session Checkout created for this setup: id, token and secret. */
+	payment_session: {
+		id: string
+		payment_session_token?: string
+		payment_session_secret?: string
+	}
 }

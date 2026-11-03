@@ -70,10 +70,18 @@ defineExpose({ confirm: frame.confirm, isReady: frame.isReady })
 			Opening the secure card form…
 		</div>
 
-		<template v-else-if="frame.mode.value === 'stripe'">
+		<template
+			v-else-if="
+				frame.mode.value === 'stripe' || frame.mode.value === 'checkout'
+			"
+		>
 			<div
 				ref="stripe"
-				class="flex h-12 items-center rounded-ik-md bg-white px-4 shadow-ik-control"
+				:class="
+					frame.mode.value === 'stripe'
+						? 'flex h-12 items-center rounded-ik-md bg-white px-4 shadow-ik-control'
+						: 'min-h-[220px]'
+				"
 			/>
 			<p
 				v-if="frame.stripeError.value"

@@ -78,6 +78,14 @@ const routes = [
 		meta: { invitedOnboarding: true },
 	},
 	{
+		// A hosted card page returns here, inside the billing step's frame, where the session
+		// cookie may not reach. It only tells the page around it that the card is saved.
+		path: '/onboarding/card-saved',
+		name: 'OnboardingCardSaved',
+		component: () => import('@/pages/onboarding/CardSavedPage.vue'),
+		meta: { public: true, allowSignedIn: true },
+	},
+	{
 		path: '/onboarding/team',
 		name: 'OnboardingTeam',
 		component: () => import('@/pages/onboarding/TeamPage.vue'),

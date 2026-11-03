@@ -14,6 +14,10 @@ VAT_PERCENT = 5
 MAX_SEATS = 40
 ORGANISATION_FIELDS = ("business_type", "headcount_bracket", "turnover_band")
 SUBDOMAIN_LENGTH = 30
+# The server plan of each seat band. central.billing.catalog.seats.get_plan_for_seats (OPS-218)
+# replaces this table once it is on develop.
+SEAT_BANDS = ((5, "plan-1vcpu"), (15, "plan-2vcpu"), (40, "plan-4vcpu"))
+LARGEST_BAND_PLAN = "plan-8vcpu"
 
 # Every claim here must be true for this platform today. Central Settings > Onboarding Trust Content
 # replaces a key with real figures, a real quote or a certification once it exists.
@@ -23,7 +27,7 @@ DEFAULT_TRUST_CONTENT = {
 	"profile_trust_line": "Zero charge today — cancel before day 30",
 	"guarantee": {"title": "Zero charge today", "text": "Cancel before day 30"},
 	"payment_badges": [
-		"Card stored by Telr (PCI-DSS Level 1)",
+		"Card stored by Checkout.com (PCI-DSS Level 1)",
 		"Encrypted in transit (TLS 1.2+)",
 		"Hosted in Frankfurt, EU",
 	],
@@ -41,7 +45,7 @@ DEFAULT_TRUST_CONTENT = {
 def get_onboarding(team: str, product: str | None) -> dict:
 	"""What the onboarding pages show for a team: the product, the saved profile, the seat
 	prices and the trust content."""
-	product = resolve_trial_product(product or frappe.db.get_value("Team", team, "landing_product"))
+	product = get_team_product(team, product)
 
 	return {
 		"team": team,
@@ -52,6 +56,30 @@ def get_onboarding(team: str, product: str | None) -> dict:
 		"trust": get_trust_content(),
 		"has_payment_method": has_active_payment_method(team),
 	}
+
+
+def get_team_product(team: str, product: str | None) -> str | None:
+	"""The product the team starts with: the one asked for, the one its invitation names, the
+	product of its first signup link, else the default trial product."""
+	invited = frappe.get_all(
+		"Trial Invitation",
+		filters={"status": "Accepted"},
+		or_filters={"team": team, "email": frappe.session.user},
+		pluck="product",
+		order_by="creation desc",
+		limit=1,
+	)
+	return resolve_trial_product(
+		product or (invited[0] if invited else None) or frappe.db.get_value("Team", team, "landing_product")
+	)
+
+
+def get_plan_for_seats(seats: int) -> str:
+	"""The server plan of a seat band: 1 to 5 seats, 6 to 15, 16 to 40, and more."""
+	for most_seats, plan in SEAT_BANDS:
+		if seats <= most_seats:
+			return plan
+	return LARGEST_BAND_PLAN
 
 
 def get_product_summary(team: str, product: str | None) -> dict | None:
@@ -180,6 +208,7 @@ def save_profile(team: str, profile: dict) -> dict:
 	until step 2 asks for the address."""
 	from central.api.identity import update_profile
 	from central.billing.api.dashboard.account import save_billing_profile
+	from central.signups.doctype.trial_invitation.trial_invitation import link_team
 
 	profile = validated_profile(profile)
 	update_profile(profile["full_name"])
@@ -189,6 +218,8 @@ def save_profile(team: str, profile: dict) -> dict:
 	doc.seats = profile["seats"]
 	doc.update({field: profile[field] for field in ORGANISATION_FIELDS})
 	doc.save()
+	# A first team links its invitation when it is created. An invitee who already had a team links here.
+	link_team(frappe.session.user, team)
 
 	save_billing_profile(
 		team,
@@ -228,7 +259,7 @@ def start_site(team: str, product: str | None) -> dict:
 	if not has_active_payment_method(team):
 		frappe.throw(_("Add a card before your site is created."), frappe.ValidationError)
 
-	product = resolve_trial_product(product or frappe.db.get_value("Team", team, "landing_product"))
+	product = get_team_product(team, product)
 	if not product:
 		frappe.throw(_("No product is available to start your site."), frappe.ValidationError)
 
@@ -257,9 +288,15 @@ def create_site(team: str, product: str, user: str) -> None:
 	if site or (creation and creation.status not in ("Failed", "Timed Out")):
 		return
 
-	organisation = frappe.db.get_value("Team", team, "team_name") or team
+	organisation, seats = frappe.db.get_value("Team", team, ["team_name", "seats"])
 	try:
-		create_trial_site(team, free_subdomain(organisation), frappe.generate_hash(length=20), product)
+		create_trial_site(
+			team,
+			free_subdomain(organisation or team),
+			frappe.generate_hash(length=20),
+			product,
+			plan=get_plan_for_seats(cint(seats) or 1),
+		)
 	except Exception:
 		frappe.log_error(title=f"Onboarding site for {team} not created")
 		raise

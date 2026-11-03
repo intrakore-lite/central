@@ -1,6 +1,7 @@
-import { computed, nextTick, onScopeDispose, type Ref, ref } from 'vue'
+import { computed, nextTick, onScopeDispose, type Ref, ref, watch } from 'vue'
 import { API } from '@/api/methods'
 import { useAddStripeCard } from '@/composables/useAddStripeCard'
+import { useCheckoutFlow } from '@/composables/useCheckoutFlow'
 import {
 	frappeErrorMessage,
 	getFrappe,
@@ -14,6 +15,7 @@ export type CardFrameMode =
 	| 'idle'
 	| 'loading'
 	| 'stripe'
+	| 'checkout'
 	| 'iframe'
 	| 'redirect'
 	| 'returned'
@@ -34,15 +36,18 @@ interface ConfirmedCard {
 
 // A card page the browser left for comes back to this page. The pending method survives the trip here.
 const PENDING_KEY = 'central:onboarding-card-setup'
-// The hosted card page of a framed gateway posts this when the card is saved.
-const SAVED_MESSAGE = 'central:card-saved'
+// A hosted card page returns the browser here: inside the frame it posts SAVED_MESSAGE
+// to this page; after a redirect it opens the billing step again.
+export const CARD_SAVED_PATH = '/dashboard/onboarding/card-saved'
+export const SAVED_MESSAGE = 'central:card-saved'
 
 /**
  * The card step of onboarding, on whatever the team's card gateway hands back.
  *
  * 1. Stripe answers with a client secret: the card goes in a Stripe Element.
- * 2. A framed gateway, such as Telr, answers with `iframe_url`: its own page is framed here.
- * 3. A redirect gateway answers with `redirect_url`: the browser leaves and comes back.
+ * 2. Checkout.com answers with `checkout` handles: the card goes in Checkout Flow.
+ * 3. A framed gateway answers with `iframe_url`: its own page is framed here.
+ * 4. A redirect gateway answers with `redirect_url`: the browser leaves and comes back.
  *
  * In every case Central confirms the card from the gateway, never from the browser.
  */
@@ -53,10 +58,12 @@ export function useCardFrame(team: Ref<string>) {
 	const isConfirming = ref(false)
 	const isSavedInFrame = ref(false)
 	const stripeCard = useAddStripeCard()
+	const checkoutFlow = useCheckoutFlow()
 
 	const isReady = computed(
 		() =>
 			(mode.value === 'stripe' && stripeCard.complete.value) ||
+			(mode.value === 'checkout' && checkoutFlow.completed.value) ||
 			mode.value === 'iframe' ||
 			mode.value === 'returned',
 	)
@@ -75,7 +82,7 @@ export function useCardFrame(team: Ref<string>) {
 			)
 			if (options.adapter_key === 'Stripe' && options.publishable_key)
 				return await startStripe(options.publishable_key, stripeElement)
-			await startHostedPage()
+			await startHostedPage(stripeElement)
 		} catch (exception) {
 			mode.value = 'error'
 			error.value = frappeErrorMessage(
@@ -97,12 +104,24 @@ export function useCardFrame(team: Ref<string>) {
 		await stripeCard.mount(element, { team: team.value, publishableKey })
 	}
 
-	async function startHostedPage(): Promise<void> {
+	// The card slot holds the Stripe element or Checkout Flow, whichever the gateway uses.
+	async function startHostedPage(
+		cardSlot: () => HTMLElement | null,
+	): Promise<void> {
 		handles.value = await postFrappe<CardSetupHandles>(
 			methodUrl(API.initiateCardSetup),
-			{ team: team.value },
+			{
+				team: team.value,
+				return_url: `${window.location.origin}${CARD_SAVED_PATH}`,
+			},
 		)
-		if (handles.value.iframe_url) mode.value = 'iframe'
+		if (handles.value.checkout) {
+			mode.value = 'checkout'
+			await nextTick()
+			const element = cardSlot()
+			if (!element) throw new Error('The card form could not load.')
+			await checkoutFlow.mount(element, handles.value.checkout)
+		} else if (handles.value.iframe_url) mode.value = 'iframe'
 		else if (handles.value.redirect_url) mode.value = 'redirect'
 		else mode.value = 'unavailable'
 	}
@@ -131,7 +150,10 @@ export function useCardFrame(team: Ref<string>) {
 			if (!paymentMethod) return 'Open the card form first.'
 			const result = await postFrappe<ConfirmedCard>(
 				methodUrl(API.confirmCard),
-				{ payment_method: paymentMethod },
+				{
+					payment_method: paymentMethod,
+					payment_id: checkoutFlow.paymentId.value || undefined,
+				},
 			)
 			if (result.status !== 'Active')
 				return (
@@ -158,10 +180,11 @@ export function useCardFrame(team: Ref<string>) {
 		}
 	}
 
-	// Only the framed page's own origin may say that the card is saved.
+	// The return page inside the frame is on this site, so only this origin may say that
+	// the card is saved. Central still reads the card from the gateway before trusting it.
 	function onMessage(event: MessageEvent): void {
-		const frameUrl = handles.value?.iframe_url
-		if (!frameUrl || event.origin !== new URL(frameUrl).origin) return
+		if (mode.value !== 'iframe' || event.origin !== window.location.origin)
+			return
 		if (event.data?.type === SAVED_MESSAGE) isSavedInFrame.value = true
 	}
 
@@ -169,13 +192,20 @@ export function useCardFrame(team: Ref<string>) {
 	onScopeDispose(() => {
 		window.removeEventListener('message', onMessage)
 		stripeCard.destroy()
+		checkoutFlow.destroy()
+	})
+	// Checkout Flow has its own pay button. Its success confirms the card like a framed page does.
+	watch(checkoutFlow.completed, (completed) => {
+		if (completed) isSavedInFrame.value = true
 	})
 
 	return {
 		mode,
 		handles,
 		error,
-		stripeError: stripeCard.error,
+		stripeError: computed(
+			() => stripeCard.error.value || checkoutFlow.error.value,
+		),
 		isReady,
 		isConfirming,
 		isSavedInFrame,

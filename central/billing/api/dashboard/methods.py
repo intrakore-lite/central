@@ -77,10 +77,12 @@ def get_payment_method_options(team: str | None = None) -> dict:
 	publishable_key = None
 	card_gw = _card_gateway(currency)
 	if card_gw:
+		methods.append("Card")
+	# The Stripe element needs its publishable key. Another gateway sends its own handles from setup.
+	if card_gw == "Stripe":
 		from central.billing.gateways.registry import get_adapter
 
 		publishable_key = get_adapter(frappe.get_doc("Payment Gateway", card_gw)).get_credential("api_key")
-		methods.append("Card")
 
 	# UPI Autopay is a Razorpay e-mandate (INR), offered only where an enabled
 	# Razorpay gateway handles the currency — independent of the card rail above.
@@ -94,7 +96,8 @@ def get_payment_method_options(team: str | None = None) -> dict:
 
 	return {
 		"gateway": card_gw,
-		"adapter_key": "Stripe" if card_gw else None,
+		# A gateway row is named after its adapter.
+		"adapter_key": card_gw,
 		"currency": currency,
 		"instruments": tiles,
 		# What no tile here can do, said plainly rather than left as an absence.
@@ -107,9 +110,12 @@ def get_payment_method_options(team: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=20, seconds=60 * 60, user_based=True)
-def initiate_card_setup(team: str | None = None, gateway: str | None = None) -> dict:
-	"""Begin adding a card (gateway SetupIntent → client_secret). Real PAN is
-	collected client-side by the gateway SDK (PCI), never by our server."""
+def initiate_card_setup(
+	team: str | None = None, gateway: str | None = None, return_url: str | None = None
+) -> dict:
+	"""Begin adding a card: a Stripe SetupIntent (client_secret) or a hosted card page
+	(iframe_url or redirect_url). Real PAN is collected by the gateway (PCI), never by our
+	server. `return_url` is where a hosted page sends the browser back, on this site only."""
 	team = _resolve_team(team, authz.MANAGE)
 	_require_billing_setup(team)
 	# Saved cards are a Stripe-only rail (ADR 0005), so resolve the currency's Stripe
@@ -119,7 +125,17 @@ def initiate_card_setup(team: str | None = None, gateway: str | None = None) -> 
 	from central.billing.payments import payments
 
 	with customer_safe_gateway_errors():
-		return payments.initiate_payment_method_setup(team, gateway)
+		return payments.initiate_payment_method_setup(team, gateway, return_url=_own_site_url(return_url))
+
+
+def _own_site_url(url: str | None) -> str | None:
+	"""A return URL on this site, or a refusal. A hosted page must not send the customer elsewhere."""
+	if not url:
+		return None
+	site = frappe.utils.get_url()
+	if url != site and not url.startswith(f"{site}/"):
+		frappe.throw(_("The return address must be on {0}.").format(site), frappe.ValidationError)
+	return url
 
 
 @frappe.whitelist(methods=["POST"])

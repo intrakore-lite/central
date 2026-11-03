@@ -51,6 +51,21 @@ class TestOnboardingProfile(IntegrationTestCase):
 		self.assertEqual(billing.country, "United Arab Emirates")
 		self.assertEqual(saved["full_name"], "Tariq Al-Mansoor")
 
+	def test_the_invitation_gets_the_team_and_names_its_product(self):
+		from central.signups.doctype.trial_invitation.trial_invitation import invite
+
+		frappe.set_user("Administrator")
+		with patch("central.signups.doctype.trial_invitation.trial_invitation.frappe.sendmail"):
+			invitation = invite(self.owner, "Tariq Al-Mansoor", "Apex Contracting LLC")
+		invitation.db_set({"status": "Accepted", "team": None, "product": "crm"})
+		frappe.set_user(self.owner)
+
+		save_profile(team=self.team, **PROFILE)
+
+		self.assertEqual(frappe.db.get_value("Trial Invitation", invitation.name, "team"), self.team)
+		with patch("central.signups.onboarding.resolve_trial_product", side_effect=lambda name: name):
+			self.assertEqual(onboarding.get_team_product(self.team, None), "crm")
+
 	def test_turnover_is_optional(self):
 		save_profile(team=self.team, **{**PROFILE, "turnover_band": None})
 
@@ -125,6 +140,22 @@ class TestOnboardingContent(IntegrationTestCase):
 			{"seats": 3, "billed_seats": 5, "monthly": 500, "vat": 25, "total": 525},
 		)
 		self.assertEqual(onboarding.get_seat_quote(12, 99.5, 5)["total"], 1253.7)
+
+	def test_the_site_plan_follows_the_seat_band(self):
+		self.assertEqual(onboarding.get_plan_for_seats(1), "plan-1vcpu")
+		self.assertEqual(onboarding.get_plan_for_seats(5), "plan-1vcpu")
+		self.assertEqual(onboarding.get_plan_for_seats(6), "plan-2vcpu")
+		self.assertEqual(onboarding.get_plan_for_seats(40), "plan-4vcpu")
+		self.assertEqual(onboarding.get_plan_for_seats(41), "plan-8vcpu")
+
+	def test_a_hosted_card_page_returns_only_to_this_site(self):
+		from central.billing.api.dashboard.methods import _own_site_url
+
+		own = f"{frappe.utils.get_url()}/dashboard/onboarding/card-saved"
+		self.assertEqual(_own_site_url(own), own)
+		self.assertIsNone(_own_site_url(None))
+		with self.assertRaises(frappe.ValidationError):
+			_own_site_url("https://evil.example/dashboard")
 
 	def test_site_name_follows_the_organisation_and_skips_taken_names(self):
 		taken = {"apex-contracting-llc"}
