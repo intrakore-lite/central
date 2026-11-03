@@ -20,13 +20,58 @@ const props = defineProps<{
 	disabled?: boolean
 }>()
 
-// A product card lists its apps, which needs room: two wide columns, top-aligned.
+// A product card lists its apps in two wide columns. Every card keeps one row of
+// chips, so a bundle of 25 apps is as tall as a bundle of 5.
 const hasApps = computed(() =>
 	props.options.some((option) => option.apps?.length),
 )
 
+const SHOWN_APPS = 3
+
+// How many products include each app. The apps that few products have tell the
+// products apart, so they come first; AI and Accounting are in nearly all of them.
+const appCounts = computed(() => {
+	const counts = new Map<string, number>()
+	for (const option of props.options) {
+		for (const app of ownApps(option)) {
+			counts.set(app.app, (counts.get(app.app) ?? 0) + 1)
+		}
+	}
+	return counts
+})
+
 function ownApps(option: ImageChoice): ProductApp[] {
 	return (option.apps ?? []).filter((app) => !app.is_core)
+}
+
+function rankedApps(option: ImageChoice): ProductApp[] {
+	const counts = appCounts.value
+	return ownApps(option)
+		.map((app, index) => ({ app, index }))
+		.sort(
+			(a, b) =>
+				(counts.get(a.app.app) ?? 0) - (counts.get(b.app.app) ?? 0) ||
+				a.index - b.index,
+		)
+		.map(({ app }) => app)
+}
+
+function shownApps(option: ImageChoice): ProductApp[] {
+	return rankedApps(option).slice(0, SHOWN_APPS)
+}
+
+function hiddenApps(option: ImageChoice): ProductApp[] {
+	return rankedApps(option).slice(SHOWN_APPS)
+}
+
+function appLabel(app: ProductApp): string {
+	return app.version ? `${app.title} ${app.version}` : app.title
+}
+
+function allAppsLabel(option: ImageChoice): string {
+	const names = ownApps(option).map(appLabel)
+	if (hasCore(option)) names.push('Core')
+	return names.join(', ')
 }
 
 function hasCore(option: ImageChoice): boolean {
@@ -53,34 +98,44 @@ function logoFor(option: ImageChoice): string | null {
 			:options="options"
 			:disabled="disabled"
 			:columns="hasApps || options.length <= 2 ? 2 : 3"
-			:class="{ 'items-start': hasApps }"
 			label="Select an image"
 			@update:model-value="emit('update:modelValue', $event)"
 		>
 			<template #details="{ option }">
 				<ul
 					v-if="(option as ImageChoice).apps?.length"
-					class="mt-1.5 flex flex-wrap gap-1"
-					aria-label="Included apps"
+					class="mt-1.5 flex flex-nowrap items-center gap-1 overflow-hidden"
+					:aria-label="`Included apps: ${allAppsLabel(option as ImageChoice)}`"
+					:title="allAppsLabel(option as ImageChoice)"
 				>
 					<li
-						v-for="app in ownApps(option as ImageChoice)"
+						v-for="app in shownApps(option as ImageChoice)"
 						:key="app.app"
-						class="rounded-4 bg-surface-gray-2 px-1.5 py-0.5 text-p-xs text-ink-gray-7"
-						:title="app.version ? `${app.title} ${app.version}` : app.title"
+						class="min-w-0 truncate rounded-4 bg-surface-gray-2 px-1.5 py-0.5 text-p-xs text-ink-gray-7"
 					>
 						{{ app.title }}
-						<span v-if="app.version" class="text-ink-gray-5"
-							>{{ app.version }}</span
-						>
 					</li>
 					<li
-						v-if="hasCore(option as ImageChoice)"
-						class="rounded-4 px-1.5 py-0.5 text-p-xs text-ink-gray-5"
+						v-if="hiddenApps(option as ImageChoice).length"
+						class="shrink-0 rounded-4 px-1.5 py-0.5 text-p-xs text-ink-gray-5"
+					>
+						+{{ hiddenApps(option as ImageChoice).length }}
+						more
+					</li>
+					<li
+						v-else-if="hasCore(option as ImageChoice)"
+						class="shrink-0 rounded-4 px-1.5 py-0.5 text-p-xs text-ink-gray-5"
 					>
 						+ Core
 					</li>
 				</ul>
+				<p
+					v-if="(option as ImageChoice).apps?.length"
+					class="mt-1 text-p-xs text-ink-gray-5"
+				>
+					{{ ownApps(option as ImageChoice).length }}
+					apps
+				</p>
 			</template>
 			<template #icon="{ option }">
 				<img
