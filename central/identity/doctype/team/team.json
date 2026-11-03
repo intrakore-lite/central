@@ -23,7 +23,13 @@
   "utm_campaign",
   "column_break_attribution",
   "landing_product",
-  "referrer"
+  "referrer",
+  "organisation_section",
+  "business_type",
+  "headcount_bracket",
+  "column_break_organisation",
+  "turnover_band",
+  "seats"
  ],
  "fields": [
   {
@@ -151,6 +157,41 @@
    "fieldtype": "Small Text",
    "label": "Referrer",
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "organisation_section",
+   "fieldtype": "Section Break",
+   "label": "Organisation"
+  },
+  {
+   "fieldname": "business_type",
+   "fieldtype": "Select",
+   "label": "Business Classification",
+   "options": "\nGeneral Contracting\nSpecialty Trade / Subcontracting\nMEP Contracting\nFit-out & Interiors\nEngineering & Consultancy\nInfrastructure & Civil\nOther"
+  },
+  {
+   "fieldname": "headcount_bracket",
+   "fieldtype": "Select",
+   "label": "Headcount",
+   "options": "\n1\u201315\n16\u201350\n51\u2013200\n201\u2013500\n500+"
+  },
+  {
+   "fieldname": "column_break_organisation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "turnover_band",
+   "fieldtype": "Select",
+   "label": "Annual Turnover (AED)",
+   "options": "\n< 5M\n5\u201325M\n25\u2013100M\n100\u2013500M\n500M+"
+  },
+  {
+   "description": "The seats the owner chose at onboarding.",
+   "fieldname": "seats",
+   "fieldtype": "Int",
+   "label": "Seats",
+   "non_negative": 1
   }
  ],
  "links": [
@@ -275,7 +316,7 @@
    "link_fieldname": "team"
   }
  ],
- "modified": "2026-10-25 17:34:52.163870",
+ "modified": "2026-11-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Identity",
  "name": "Team",

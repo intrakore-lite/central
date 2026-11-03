@@ -49,6 +49,26 @@ const routes = [
 		name: 'OnboardingProvisioning',
 		component: () => import('@/pages/onboarding/SiteReadyPage.vue'),
 	},
+	// The invited owner's paid onboarding, in the Intrakore design. An activation link opens
+	// step 1, so these steps need no product link, unlike the trial site steps above.
+	{
+		path: '/onboarding/profile',
+		name: 'OnboardingProfile',
+		component: () => import('@/pages/onboarding/ProfilePage.vue'),
+		meta: { setupStep: true },
+	},
+	{
+		path: '/onboarding/billing',
+		name: 'OnboardingBilling',
+		component: () => import('@/pages/onboarding/BillingPage.vue'),
+		meta: { setupStep: true },
+	},
+	{
+		path: '/onboarding/team',
+		name: 'OnboardingTeam',
+		component: () => import('@/pages/onboarding/TeamPage.vue'),
+		meta: { setupStep: true },
+	},
 	{
 		path: '/github/connect/:attempt?',
 		name: 'ConnectGitHub',
@@ -243,7 +263,8 @@ router.beforeEach((to) => {
 			return '/servers'
 	}
 
-	if (to.path.startsWith('/onboarding') && !productSignup) return '/servers'
+	if (to.path.startsWith('/onboarding') && !productSignup && !to.meta.setupStep)
+		return '/servers'
 
 	// Warm the billing-profile completeness cache for the active team, non-blocking
 	// (mirrors the legacy guard): money-moving actions gate on it via

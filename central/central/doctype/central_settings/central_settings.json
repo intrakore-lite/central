@@ -75,6 +75,16 @@
   "trial_idle_shutdown_minutes",
   "trial_signup_section",
   "default_trial_product",
+  "onboarding_tab",
+  "seat_pricing_section",
+  "seat_price_currency",
+  "seat_price",
+  "included_seats",
+  "column_break_seat_pricing",
+  "storage_price_per_gb",
+  "trial_ai_cap",
+  "trust_content_section",
+  "onboarding_trust_content",
   "github_tab",
   "github_app_section",
   "github_app_id",
@@ -514,6 +524,72 @@
    "options": "Product"
   },
   {
+   "fieldname": "onboarding_tab",
+   "fieldtype": "Tab Break",
+   "label": "Onboarding"
+  },
+  {
+   "description": "Placeholder prices for the onboarding seat counter and plan summary. Seat billing does not read them yet.",
+   "fieldname": "seat_pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Seat Pricing"
+  },
+  {
+   "default": "AED",
+   "description": "The currency of the seat and storage prices.",
+   "fieldname": "seat_price_currency",
+   "fieldtype": "Link",
+   "label": "Seat Price Currency",
+   "options": "Currency"
+  },
+  {
+   "description": "The monthly price of one seat after the trial.",
+   "fieldname": "seat_price",
+   "fieldtype": "Currency",
+   "label": "Seat Price",
+   "non_negative": 1,
+   "options": "seat_price_currency"
+  },
+  {
+   "default": "5",
+   "description": "The base plan bills at least this many seats.",
+   "fieldname": "included_seats",
+   "fieldtype": "Int",
+   "label": "Included Seats",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "column_break_seat_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The monthly price of 1 GB of storage above the plan.",
+   "fieldname": "storage_price_per_gb",
+   "fieldtype": "Currency",
+   "label": "Storage Price per GB",
+   "non_negative": 1,
+   "options": "seat_price_currency"
+  },
+  {
+   "description": "The free AI budget of a trial site.",
+   "fieldname": "trial_ai_cap",
+   "fieldtype": "Currency",
+   "label": "Trial AI Cap",
+   "non_negative": 1,
+   "options": "seat_price_currency"
+  },
+  {
+   "description": "The badges, benefit lines and quote of the onboarding pages. Only true claims. Leave empty to use the defaults in central/signups/onboarding.py. A key set here replaces the default of that key.",
+   "fieldname": "trust_content_section",
+   "fieldtype": "Section Break",
+   "label": "Trust Content"
+  },
+  {
+   "fieldname": "onboarding_trust_content",
+   "fieldtype": "JSON",
+   "label": "Onboarding Trust Content"
+  },
+  {
    "fieldname": "github_tab",
    "fieldtype": "Tab Break",
    "label": "GitHub"
@@ -573,7 +649,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-03 09:00:00.000000",
+ "modified": "2026-11-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",
