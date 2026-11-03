@@ -59,6 +59,9 @@ class TestRegistry(IntegrationTestCase):
 		self.assertEqual(sites[name]["region"], self.cluster)
 		self.assertEqual(sites[name]["url"], f"https://{name}")
 		self.assertEqual(sites[name]["subdomain"], "zz-registry-test")
+		# A site without a product still lists; the console falls back to its address.
+		self.assertIsNone(sites[name]["product"])
+		self.assertIsNone(sites[name]["product_title"])
 
 	def test_a_terminated_machine_takes_its_site_out_of_the_fleet(self):
 		name = self.make_site("zz-registry-terminated", "Terminated")

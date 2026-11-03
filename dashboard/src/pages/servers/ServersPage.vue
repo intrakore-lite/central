@@ -68,6 +68,25 @@ const { refreshing, stale, busy, opening, openConsole } = useServers()
 // With no servers yet the map names each region, so the empty map invites a choice.
 const isFleetEmpty = computed(() => !loading.value && !rows.value.length)
 
+// A managed list waits for its first load, so "No sites yet" never shows while it reads.
+const isManagedListHeld = computed(
+	() =>
+		features.managed && !rows.value.length && (loading.value || !!error.value),
+)
+// The map's health strip names regions, so a customer reads a plain notice instead.
+const managedNotice = computed(() => {
+	if (!features.managed || !rows.value.length) return null
+	if (stale.value.length)
+		return {
+			theme: 'amber' as const,
+			title: `Showing the last known status. Some ${noun}s could not be checked.`,
+			retry: false,
+		}
+	if (error.value)
+		return { theme: 'red' as const, title: error.value, retry: true }
+	return null
+})
+
 const hoverId = ref<string | null>(null)
 const { showServer, openServer, openResource, openById, openBench, openSite } =
 	useServerNavigation(rows, sites)
@@ -170,10 +189,42 @@ useServerLink(
 		<TrialOfferBanner v-if="activeTeam" :team="activeTeam" />
 		<TrialPaymentBanner />
 
+		<!-- A customer of a managed console sees the list alone: no region map, no
+		     provider, no region names. Its load and health states sit above the list. -->
+		<div
+			v-if="features.managed && (managedNotice || isManagedListHeld)"
+			class="mx-auto w-full max-w-3xl shrink-0 px-4 pt-4"
+		>
+			<div v-if="loading && !rows.length" class="flex justify-center py-8">
+				<Spinner class="size-5 text-ink-gray-5" />
+			</div>
+			<Alert
+				v-else-if="error && !rows.length"
+				theme="red"
+				:title="`Couldn't load your ${noun}s`"
+				:description="error"
+				:primary-action="{ label: 'Retry', onClick: reload }"
+			/>
+			<Alert
+				v-else-if="managedNotice"
+				:theme="managedNotice.theme"
+				:title="managedNotice.title"
+				:primary-action="
+					managedNotice.retry ? { label: 'Retry', onClick: reload } : undefined
+				"
+			/>
+		</div>
+
 		<!-- The list stays in view on the right. Below lg, it stacks over a short map. -->
 		<div class="flex min-h-0 flex-1 flex-col lg:flex-row-reverse">
 			<ServerListPanel
-				class="vt-server-list min-h-0 flex-1 overflow-hidden border-b border-outline-gray-1 lg:w-96 lg:flex-none lg:border-b-0 lg:border-l"
+				v-if="!isManagedListHeld"
+				class="vt-server-list min-h-0 flex-1 overflow-hidden"
+				:class="
+					features.managed
+						? 'mx-auto w-full max-w-3xl'
+						: 'border-b border-outline-gray-1 lg:w-96 lg:flex-none lg:border-b-0 lg:border-l'
+				"
 				v-model:query="q"
 				v-model:hover-id="hoverId"
 				:title="listTitle"
@@ -208,6 +259,7 @@ useServerLink(
 			<!-- The map card, inset beside the list. Filters and alerts float above it;
 			     `isolate` keeps their z-indexes from leaking above body-portaled menus. -->
 			<div
+				v-if="!features.managed"
 				class="vt-server-map relative isolate m-2 h-72 shrink-0 overflow-hidden rounded-6 border border-outline-gray-1 lg:h-auto lg:flex-1"
 			>
 				<ServerMap

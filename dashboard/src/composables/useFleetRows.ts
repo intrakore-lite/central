@@ -80,6 +80,8 @@ export function useFleetRows(
 				regionLabel: region ? regionLabel(region) : (site.region ?? ''),
 				flag: flagEmoji(region?.country_code),
 				provider: region?.provider ?? null,
+				productTitle: site.product_title ?? null,
+				productLogo: site.product_logo ?? null,
 				site: {
 					name: site.name,
 					url: site.url,

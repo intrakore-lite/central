@@ -17,6 +17,7 @@ import type { VirtualMachineRow } from '@/composables/useServers'
 import { useTrialConversion } from '@/composables/useTrialConversion'
 import { configSpecs } from '@/lib/composed'
 import { features } from '@/lib/features'
+import { planName } from '@/lib/managedView'
 import { formatGb } from '@/lib/units'
 
 interface Props {
@@ -52,6 +53,7 @@ const {
 	capacity,
 	initialFor,
 	selectedPlan,
+	selectedPreset,
 	composedConfig,
 	flatPresets,
 	flatProfile,
@@ -78,6 +80,16 @@ const { convertedPlan, awaitConversion } = useTrialConversion(
 )
 
 const noun = features.managed ? 'site' : 'server'
+// A customer of a managed console reads the new plan's name, not its vCPU and memory.
+const afterChange = computed(() => {
+	if (!features.managed)
+		return totalShape.value ? configSpecs(totalShape.value) : ''
+	const name = planName(selectedPreset.value?.title)
+	const disk = totalShape.value?.disk_gb
+	return [name && `${name} plan`, disk ? `${formatGb(disk)} GB storage` : '']
+		.filter(Boolean)
+		.join(' · ')
+})
 const trialPanel = ref<InstanceType<typeof TrialUpgradePanel> | null>(null)
 
 const open = computed({
@@ -107,7 +119,9 @@ const open = computed({
 				class="flex flex-col items-center gap-3 py-10 text-center"
 			>
 				<LoadingIndicator class="h-6 w-6 text-ink-gray-5" />
-				<p class="text-p-base-medium text-ink-gray-8">Starting resize…</p>
+				<p class="text-p-base-medium text-ink-gray-8">
+					{{ features.managed ? 'Changing plan…' : 'Starting resize…' }}
+				</p>
 				<p class="max-w-xs text-p-sm text-ink-gray-5">
 					Follow progress in the {{ noun }} list.
 				</p>
@@ -116,7 +130,7 @@ const open = computed({
 				v-else-if="(configCall.loading && !trial && !starting) || plansLoading"
 				class="space-y-4"
 				aria-busy="true"
-				aria-label="Loading resize options"
+				:aria-label="features.managed ? 'Loading plans' : 'Loading resize options'"
 			>
 				<div class="space-y-2">
 					<Skeleton class="h-4 w-full rounded-4" />
@@ -132,7 +146,7 @@ const open = computed({
 			<div v-else-if="optionsError" class="space-y-3">
 				<Alert
 					theme="red"
-					title="Couldn't load resize options"
+					:title="features.managed ? 'Couldn\'t load plans' : 'Couldn\'t load resize options'"
 					:description="optionsError"
 				/>
 				<Button label="Retry" @click="reloadOptions" />
@@ -171,23 +185,26 @@ const open = computed({
 				<Alert
 					v-if="losesLockedRate && lock"
 					theme="amber"
-					title="Resizing will change your rate"
-					description="Resizing uses today’s rates. Your current rate cannot be restored."
+					:title="features.managed ? 'Changing plan will change your rate' : 'Resizing will change your rate'"
+					:description="`${features.managed ? 'A plan change' : 'Resizing'} uses today’s rates. Your current rate cannot be restored.`"
 				/>
 
 				<p class="text-p-sm text-ink-gray-7">
-					Choose a new CPU and memory size. You can also increase storage, but
-					you cannot reduce it later.
+					{{ features.managed
+							? 'Choose a new plan.'
+							: 'Choose a new CPU and memory size.' }}
+					You can also increase storage, but you cannot reduce it later.
 				</p>
 				<RadioGroup v-model="computeOnly" label="Storage" padded>
 					<Radio
 						:value="true"
-						:label="`Keep current ${formatGb(currentDisk)} GB disk size`"
+						:label="`Keep current ${formatGb(currentDisk)} GB ${features.managed ? 'storage' : 'disk size'}`"
 					/>
 					<Radio :value="false" label="Increase storage">
 						<template #description>
 							<strong class="text-p-sm-medium text-ink-amber-7">
-								Disk size cannot be decreased later.
+								{{ features.managed ? 'Storage' : 'Disk size' }}
+								cannot be decreased later.
 							</strong>
 						</template>
 					</Radio>
@@ -232,12 +249,14 @@ const open = computed({
 				/>
 				<Alert v-if="selectionError" theme="red" :title="selectionError" />
 				<div
-					v-if="totalShape && changed"
+					v-if="afterChange && changed"
 					class="space-y-2 border-t border-outline-gray-2 pt-4"
 					aria-live="polite"
 				>
-					<p class="text-sm-medium text-ink-gray-9">After resizing</p>
-					<p class="text-p-sm text-ink-gray-7">{{ configSpecs(totalShape) }}</p>
+					<p class="text-sm-medium text-ink-gray-9">
+						{{ features.managed ? 'After the change' : 'After resizing' }}
+					</p>
+					<p class="text-p-sm text-ink-gray-7">{{ afterChange }}</p>
 					<p class="text-p-sm text-ink-gray-6">
 						{{ downtimeNote }}
 						Your files are kept.
@@ -301,7 +320,7 @@ const open = computed({
 				</p>
 				<Button
 					variant="solid"
-					label="Resize"
+					:label="features.managed ? 'Change plan' : 'Resize'"
 					:disabled="!canConfirm"
 					@click="confirm"
 				/>

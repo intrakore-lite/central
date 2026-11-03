@@ -32,6 +32,10 @@ export interface SiteRow {
 	server: string | null
 	// Transitional label while a site action is in flight (see VirtualMachineRow.pending_action).
 	pending_action?: string | null
+	/** The Product the site runs, and its title and logo, for a customer of a managed console. */
+	product?: string | null
+	product_title?: string | null
+	product_logo?: string | null
 }
 
 // A creation Central is still working on. It has no server row until its region accepts

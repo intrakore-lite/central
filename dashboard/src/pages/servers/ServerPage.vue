@@ -23,6 +23,7 @@ import {
 	useServers,
 	type VirtualMachineRow,
 } from '@/composables/useServers'
+import { useSession } from '@/composables/useSession'
 import { useTerminateServer } from '@/composables/useTerminateServer'
 import { useTerminationProtection } from '@/composables/useTerminationProtection'
 import { getServerActions } from '@/lib/capabilities'
@@ -134,6 +135,11 @@ const site = computed(() =>
 	sites.value.find((row) => row.server === server.value?.name),
 )
 
+const { teams, activeTeam } = useSession()
+const team = computed(
+	() => teams.value.find((row) => row.name === activeTeam.value) ?? null,
+)
+
 const actions = computed(() =>
 	getServerActions(server.value, {
 		open: canOpenConsole.value,
@@ -148,7 +154,11 @@ const actions = computed(() =>
 )
 
 const activeTab = computed({
-	get: () => String(route.params.tab || 'overview'),
+	// A customer of a managed console has no staff tabs, so a link to one opens the overview.
+	get: () => {
+		const tab = String(route.params.tab || 'overview')
+		return features.managed && !MANAGED_TABS.has(tab) ? 'overview' : tab
+	},
 	set: (tab: string) =>
 		router.replace({
 			params: { ...route.params, tab: tab === 'overview' ? '' : tab },
@@ -304,6 +314,8 @@ watch(
 					:details="details?.server ?? null"
 					:actions="actions"
 					:site-url="site?.url ?? null"
+					:product-title="site?.product_title ?? null"
+					:product-logo="site?.product_logo ?? null"
 					:opening="isOpening"
 					:busy="busy === server.resource_id"
 					:is-saving-protection="isSavingProtection"
@@ -367,6 +379,8 @@ watch(
 					v-else-if="activeTab === 'overview'"
 					v-model:range="metricsRange"
 					:overview="details"
+					:site="site ?? null"
+					:team="team"
 					:metrics="metrics"
 					:metrics-error="metricsError"
 					@refresh="reloadMetrics"

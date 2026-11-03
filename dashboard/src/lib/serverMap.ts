@@ -232,6 +232,9 @@ export interface ResourceRow {
 	regionLabel: string
 	flag: string
 	provider: string | null
+	/** The site's product, which a customer of a managed console reads in place of specs. */
+	productTitle?: string | null
+	productLogo?: string | null
 	server?: VirtualMachineRow
 	site?: { name: string; url: string | null; pending_action?: string | null }
 }

@@ -481,6 +481,7 @@ export function useResizeServer(
 		capacity,
 		initialFor,
 		selectedPlan,
+		selectedPreset,
 		composedConfig,
 		flatPresets,
 		flatProfile,
