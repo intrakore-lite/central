@@ -52,5 +52,7 @@ interface Window {
 		firewall?: boolean
 		/** Managed SaaS mode, for a customer: sites and products, no server tools. */
 		managed?: boolean
+		/** Invite-only: no public signup. See Central Settings > Invite Only. */
+		invite_only?: boolean
 	}
 }

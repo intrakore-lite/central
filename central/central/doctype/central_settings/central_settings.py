@@ -47,6 +47,7 @@ class CentralSettings(Document):
 		invitation_expiry_days: DF.Int
 		invitation_resend_cooldown_minutes: DF.Int
 		invitations_per_hour: DF.Int
+		invite_only: DF.Check
 		managed_saas_mode: DF.Check
 		private_network_throughput_mibps: DF.Int
 		policies_url: DF.Data | None
@@ -59,6 +60,7 @@ class CentralSettings(Document):
 		trial_days: DF.Int
 		trial_deletion_days: DF.Int
 		trial_idle_shutdown_minutes: DF.Int
+		trial_invitation_days: DF.Int
 		trial_notice_days: DF.Int
 		trial_servers_per_team: DF.Int
 		wildcard_domain: DF.Data | None
@@ -119,6 +121,7 @@ class CentralSettings(Document):
 			"public_ipv4": bool(self.enable_public_ipv4),
 			"public_ipv6": bool(self.enable_public_ipv6),
 			"firewall": bool(self.enable_firewall),
+			"invite_only": bool(self.invite_only),
 		}
 
 	def help_links(self) -> dict[str, str | None]:
@@ -146,6 +149,17 @@ def enable_managed_saas_mode() -> None:
 	"""After install: start a new Central as a managed service, the field's default. A single
 	stores no default until it is saved, so the value is written here."""
 	frappe.db.set_single_value("Central Settings", "managed_saas_mode", 1)
+
+
+def enable_invite_only() -> None:
+	"""After install: a new Central is invite-only, the field's default. A single stores no
+	default until it is saved, so the value is written here."""
+	frappe.db.set_single_value("Central Settings", {"invite_only": 1, "trial_invitation_days": 7})
+
+
+def disable_invite_only() -> None:
+	"""Before tests: most suites sign up new emails. An invite-only test turns the gate on for its own block."""
+	frappe.db.set_single_value("Central Settings", "invite_only", 0)
 
 
 def disable_managed_saas_mode() -> None:

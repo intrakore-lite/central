@@ -220,6 +220,12 @@ ERROR_CATALOG: dict[str, dict] = {
 			"message": "This region has no mailbox ready for a new site. No site was created.",
 		},
 	},
+	"INVITE_ONLY": {
+		"title": "You need an invitation",
+		"message": "{brand} is invite-only.",
+		"remediation": "Ask your Intrakore contact for an invitation.",
+		"retriable": False,
+	},
 	"UNEXPECTED": {
 		"title": "We couldn't complete that",
 		"message": "Something went wrong while we were processing your request.",

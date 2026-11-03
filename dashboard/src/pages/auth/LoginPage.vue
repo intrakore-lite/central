@@ -12,6 +12,7 @@ import { useProduct } from '@/composables/useProduct'
 import { emailError, frappeErrorMessage, queryString } from '@/lib/auth'
 import { carriedQuery } from '@/lib/authRedirect'
 import { brand, trialOffer } from '@/lib/brand'
+import { features } from '@/lib/features'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,8 +25,9 @@ const loading = ref(false)
 const error = ref('')
 
 // A visitor without a product link gets the offered free trial as the way in.
+// Invite-only has no public signup: a new email arrives with an activation link.
 const trialSignup = computed(() =>
-	!productKey.value && trialOffer
+	!features.inviteOnly && !productKey.value && trialOffer
 		? {
 				path: '/signup',
 				query: { ...carriedQuery(route.query), product: trialOffer.product },
@@ -89,6 +91,13 @@ async function submit() {
 				Start your free {{ trialOffer?.days }}-day trial
 			</Button>
 		</div>
+		<p
+			v-else-if="features.inviteOnly"
+			class="mt-8 text-center text-p-sm text-ink-gray-6"
+		>
+			New to {{ brand.name }}? Access is by invitation. Ask your Intrakore
+			contact for one.
+		</p>
 		<p v-else class="mt-8 text-center text-p-sm text-ink-gray-6">
 			New to {{ brand.name }}?
 			<RouterLink

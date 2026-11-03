@@ -15,6 +15,7 @@ from central.identity.doctype.team.tenant import (
 	prepare_tenant_id_series,
 	validate_tenant_id,
 )
+from central.signups.doctype.trial_invitation.trial_invitation import link_team as link_trial_invitation_team
 
 # The order the console shows them in lives in dashboard/src/components/onboarding/steps.ts.
 ONBOARDING_STEPS = ("invite", "billing", "start")
@@ -58,6 +59,7 @@ class Team(TeamLifecycle, Document):
 		team = frappe.get_doc({"doctype": "Team", "team_name": team_name, **(attribution or {})}).insert()
 		if is_first_team:
 			team.provision_billing()
+			link_trial_invitation_team(frappe.session.user, team.name)
 
 		return team
 

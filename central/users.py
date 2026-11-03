@@ -9,23 +9,34 @@ from frappe.utils import cint, escape_html, random_string, today
 from frappe.utils.telemetry import capture
 
 from central.branding import get_brand_name
+from central.errors import throw_action_error
 from central.geo import warm_country_cache
 from central.identity.email_code import EmailCode
+from central.signups.doctype.trial_invitation import trial_invitation
 
 if TYPE_CHECKING:
 	from central.signups.doctype.product.product import Product
 
 CENTRAL_USER_ROLE = "Central User"
+# Where a newly activated invitee starts: the invited onboarding.
+INVITED_ONBOARDING_PATH = "/dashboard/onboarding/profile"
+
+
+class InviteOnlyError(frappe.ValidationError):
+	"""A new email has no invitation while Intrakore Cloud is invite-only."""
 
 
 def send_sign_in_code(email: str, full_name: str | None = None, product: str | None = None) -> None:
-	"""Email a code to any address. A new address gets an account when the code is verified.
+	"""Email a code to an address. A new address gets an account when the code is verified.
 
-	A disabled account gets a notice instead of a code, so the caller cannot tell it apart.
-	`product` labels the signup funnel event, and its branding replaces the platform's."""
+	While Central is invite-only, a new address needs a live invitation. A disabled account gets
+	a notice instead of a code, so the caller cannot tell it apart. `product` labels the signup
+	funnel event, and its branding replaces the platform's."""
 	from central.signups.doctype.product.product import get_email_product
 
 	user = _find_user(email)
+	if not user:
+		require_invitation(email)
 	if user and not user.enabled:
 		EmailCode(email).hold()
 		_send_disabled_notice(email)
@@ -82,14 +93,71 @@ def sign_in_with_code(
 	frappe.local.login_manager.login_as(name)
 	if not user:
 		capture("signup_verified", "central", user=name, properties={"product": product})
+		is_trial_invitee = trial_invitation.accept_for_new_user(name)
 		for invitation in get_pending_invitations(name):
 			frappe.get_doc("Team Invitation", invitation).accept()
+		if is_trial_invitee:
+			return {"user": name, "next": INVITED_ONBOARDING_PATH}
 
 	return {"user": name}
 
 
+def activate_trial_invitation(token: str) -> dict:
+	"""Spend an activation link. It proves the invited mailbox the same way an emailed code does,
+	so a new invitee gets an account and a session without a second code.
+
+	1. The link must be live: sent, not expired, not used. Using it clears its hash.
+	2. An email that already has an account must sign in first, so a link cannot open an
+	   existing account.
+	3. A session for another email is refused."""
+	invitation = trial_invitation.get_invitation_by_token(token, for_update=True)
+	if not invitation.is_live:
+		frappe.throw(
+			_("This activation link has expired. Ask your Intrakore contact to send it again."),
+			frappe.ValidationError,
+		)
+
+	session_user = frappe.session.user
+	if session_user not in ("Guest", invitation.email):
+		frappe.throw(
+			_("This link is for {0}. Sign out, then open the link again.").format(invitation.email),
+			frappe.PermissionError,
+		)
+
+	user = _find_user(invitation.email)
+	if user and not user.enabled:
+		_throw_disabled()
+	if user and session_user != user.name:
+		return {"needs_sign_in": True, "email": invitation.email}
+
+	name = user.name if user else create_user(invitation.email, invitation.full_name).name
+	invitation.accept(name)
+	if not user:
+		frappe.local.login_manager.login_as(name)
+		capture("signup_verified", "central", user=name, properties={"product": invitation.product})
+
+	return {"user": name, "next": INVITED_ONBOARDING_PATH}
+
+
+def require_invitation(email: str) -> None:
+	"""Refuse a new email that has no live invitation while Central is invite-only.
+
+	A live Trial Invitation or a pending Team Invitation counts as an invitation."""
+	if not is_invite_only():
+		return
+	if trial_invitation.has_live_invitation(email) or get_pending_invitations(email):
+		return
+
+	throw_action_error("INVITE_ONLY", exc=InviteOnlyError, brand=get_brand_name(), managed=False)
+
+
+def is_invite_only() -> bool:
+	return bool(cint(frappe.get_cached_value("Central Settings", "Central Settings", "invite_only")))
+
+
 def create_user(email: str, full_name: str):
 	"""Create a Website User whose email is already verified."""
+	require_invitation(email)
 	_enforce_signup_limit()
 	roles = {CENTRAL_USER_ROLE, frappe.get_single_value("Portal Settings", "default_role")}
 	user = frappe.get_doc(

@@ -20,6 +20,8 @@ export interface Features {
 	/** Managed SaaS mode for this user: the console shows sites and products, and
 	 *  Central keeps the server tools for operators. */
 	managed: boolean
+	/** Intrakore Cloud is invite-only: no public signup, and a new email needs an invitation. */
+	inviteOnly: boolean
 }
 
 // Defaults match the DocType: the area is on, individual services off until rolled out.
@@ -31,4 +33,5 @@ export const features: Features = {
 	publicIpv6: window.features?.public_ipv6 ?? false,
 	firewall: window.features?.firewall ?? false,
 	managed: window.features?.managed ?? false,
+	inviteOnly: window.features?.invite_only ?? true,
 }
