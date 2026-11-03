@@ -125,7 +125,9 @@ def initiate_card_setup(
 	from central.billing.payments import payments
 
 	with customer_safe_gateway_errors():
-		return payments.initiate_payment_method_setup(team, gateway, return_url=_own_site_url(return_url))
+		# Only a hosted card page returns the browser, so a Stripe setup keeps its plain call.
+		hosted = {"return_url": _own_site_url(return_url)} if return_url else {}
+		return payments.initiate_payment_method_setup(team, gateway, **hosted)
 
 
 def _own_site_url(url: str | None) -> str | None:
