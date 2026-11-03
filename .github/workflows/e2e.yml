@@ -87,7 +87,7 @@ jobs:
           pip install frappe-bench
           bench init --skip-redis-config-generation --skip-assets --python "$(which python)" "$BENCH"
           # Same Frappe commit as the intrakore.cloud control bench, so upstream changes do not break CI.
-          git -C "$BENCH/apps/frappe" fetch --depth 1 origin "$FRAPPE_COMMIT"
+          git -C "$BENCH/apps/frappe" fetch --depth 1 https://github.com/frappe/frappe "$FRAPPE_COMMIT"
           git -C "$BENCH/apps/frappe" checkout -q "$FRAPPE_COMMIT"
 
       - name: Install app + site
