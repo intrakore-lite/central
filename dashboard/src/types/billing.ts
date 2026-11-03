@@ -400,6 +400,8 @@ export interface BillingProfile {
 	missing_labels?: string[]
 	currency_locked: boolean
 	supported_currencies: Currency[]
+	/** The one currency every team is billed in, or null when the country decides. */
+	fixed_currency: Currency | null
 	/** GSTIN on file but not Active: invoices go out as unregistered. */
 	gst_lapsed?: boolean
 	/** A new server needs a payment method first: no credit covers it. */

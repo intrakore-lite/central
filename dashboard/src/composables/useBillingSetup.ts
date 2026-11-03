@@ -61,6 +61,7 @@ export function useBillingSetup() {
 		currency: computed(() => state.data?.currency ?? null),
 		currencyLocked: computed(() => !!state.data?.currency_locked),
 		supportedCurrencies: computed(() => state.data?.supported_currencies ?? []),
+		fixedCurrency: computed(() => state.data?.fixed_currency ?? null),
 		loading: computed(() => state.loading),
 		profile: computed(() => state.data),
 		paymentMethodRequired: computed(

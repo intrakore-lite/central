@@ -16,7 +16,7 @@ import type { BillingGeo } from '@/types/billing'
 // each puts its own Save button around it.
 const { activeTeam, teams } = useSession()
 const { currentUser } = useAuth()
-const { currencyLocked, reload: reloadSetup } = useBillingSetup()
+const { currencyLocked, fixedCurrency, reload: reloadSetup } = useBillingSetup()
 // The billing profile is the shared singleton (it reloads on team change and
 // after a save via reloadProfile) — no second fetch of the same payload here.
 const { profile, reloadProfile } = useBillingOverview()
@@ -63,15 +63,17 @@ const countryOptions = computed(() =>
 const stateOptions = computed(() => geo.data?.india_states ?? [])
 const isIndia = computed(() => form.country === 'India')
 
-// Currency follows the country (India → INR, else USD) — the backend derives it
-// on save; we mirror that here so the read-only field updates as they pick a
-// country. Never overridden once the currency is locked by billing activity.
+// Currency follows the country (India → INR, else USD), or is the one platform
+// currency when Billing Settings sets one — the backend derives it on save; we mirror
+// that here so the read-only field updates as they pick a country. Never overridden
+// once the currency is locked by billing activity.
 const currencyForCountry = (country: string) =>
-	country === 'India' ? 'INR' : 'USD'
+	fixedCurrency.value ?? (country === 'India' ? 'INR' : 'USD')
 watch(
-	() => form.country,
-	(country) => {
-		if (!currencyLocked.value) form.currency = currencyForCountry(country ?? '')
+	() => [form.country, fixedCurrency.value],
+	() => {
+		if (!currencyLocked.value)
+			form.currency = currencyForCountry(form.country ?? '')
 	},
 )
 
