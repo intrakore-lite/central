@@ -19,6 +19,7 @@ class SeatsOnATrial(TrialOnAMachine):
 		self.enterContext(
 			self.change_settings(
 				"Central Settings",
+				seat_price_currency="USD",
 				seat_price=50,
 				included_seats=3,
 				included_storage_gb=10,

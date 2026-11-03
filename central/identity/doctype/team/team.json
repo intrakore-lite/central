@@ -119,13 +119,11 @@
    "description": "The paid user seats of the team's product site. The site allows this many enabled system users."
   },
   {
-   "default": "0",
+   "description": "The seats the owner chose at onboarding.",
    "fieldname": "seats",
    "fieldtype": "Int",
    "label": "Seats",
-   "non_negative": 1,
-   "read_only": 1,
-   "description": "Set at onboarding and from Settings > Billing. 0 means the site is billed by its server plan."
+   "non_negative": 1
   },
   {
    "fieldname": "column_break_seats",

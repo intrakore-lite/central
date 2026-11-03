@@ -76,8 +76,8 @@ def get_seat_site(team: str) -> frappe._dict | None:
 
 def get_seat_price(team: str, product: str) -> tuple[float, str] | None:
 	"""The monthly price of one seat in the team's currency. The first that is set wins: the
-	Product's Catalog Rate, the Catalog Rate of the Users resource type, then Central Settings.
-	None when the team has no currency or the price is 0."""
+	Product's Catalog Rate, the Catalog Rate of the Users resource type, then Central Settings
+	when its Seat Price Currency is the team's. None when the team has no currency or no price."""
 	currency = frappe.db.get_value("Billing Profile", team, "currency")
 	if not currency:
 		return None
@@ -85,7 +85,11 @@ def get_seat_price(team: str, product: str) -> tuple[float, str] | None:
 	price = resolve_rate(get_catalog_rates("Product", product), currency)
 	if price is None:
 		price = resolve_rate(get_catalog_rates("Resource Type", USERS_RESOURCE_TYPE), currency)
-	if price is None:
+	if price is None and frappe.db.get_single_value("Central Settings", "seat_price_currency") in (
+		None,
+		"",
+		currency,
+	):
 		price = frappe.db.get_single_value("Central Settings", "seat_price")
 	return (flt(price), currency) if flt(price) > 0 else None
 

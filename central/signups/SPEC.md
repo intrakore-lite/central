@@ -208,7 +208,7 @@ A product site of a Team with seats is billed per seat, not by its server plan. 
 | Setting | Where | Meaning |
 |---|---|---|
 | Seats | Team | The seat count. 0 means the site is billed by its server plan. |
-| Seat Price | Catalog Rate of the Product, then Catalog Rate of the Users resource type, then Central Settings (Trials tab) | The monthly price of one seat, in the Team's billing currency. 0 turns seat billing off. |
+| Seat Price | Catalog Rate of the Product, then Catalog Rate of the Users resource type, then Central Settings (Trials tab) | The monthly price of one seat, in the Team's billing currency. Central Settings applies only when its Seat Price Currency is the Team's currency. No price turns seat billing off. |
 | Included Seats | Central Settings | The least number of seats that is billed. |
 | Storage Price per GB, Included Storage (GB) | Central Settings | Storage above the included storage, per GB a month. Not billed yet: metering does not record the server's used disk. |
 
