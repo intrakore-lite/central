@@ -114,25 +114,25 @@ def get_invitation_funnel() -> dict | None:
 
 
 @frappe.whitelist()
-def ending_soon_card(filters=None) -> dict:
+def ending_soon_card(filters: str | dict | None = None) -> dict:
 	require_operator()
 	return {"value": get_trial_counts()["ending_in_7_days"], "fieldtype": "Int"}
 
 
 @frappe.whitelist()
-def trial_cost_card(filters=None) -> dict:
+def trial_cost_card(filters: str | dict | None = None) -> dict:
 	require_operator()
 	return {"value": get_trial_cost()["usd_total"], "fieldtype": "Currency"}
 
 
 @frappe.whitelist()
-def conversion_rate_card(filters=None) -> dict:
+def conversion_rate_card(filters: str | dict | None = None) -> dict:
 	require_operator()
 	return {"value": get_trial_counts()["conversion_rate"], "fieldtype": "Percent"}
 
 
 @frappe.whitelist()
-def invitations_accepted_card(filters=None) -> dict:
+def invitations_accepted_card(filters: str | dict | None = None) -> dict:
 	require_operator()
 	funnel = get_invitation_funnel()
 	return {"value": funnel.get("accepted", 0) if funnel else 0, "fieldtype": "Int"}
