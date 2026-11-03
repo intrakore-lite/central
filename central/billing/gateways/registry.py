@@ -55,16 +55,16 @@ def get_adapter(gateway) -> GatewayAdapter:
 def adapter_class(adapter_key: str) -> type[GatewayAdapter]:
 	"""The adapter class for an adapter key, for work that needs no credentials, such as
 	reading a webhook body that was already verified."""
+	from central.billing.gateways.checkout_adapter import CheckoutAdapter
 	from central.billing.gateways.paypal_adapter import PayPalAdapter
 	from central.billing.gateways.razorpay_adapter import RazorpayAdapter
 	from central.billing.gateways.stripe_adapter import StripeAdapter
-	from central.billing.gateways.telr_adapter import TelrAdapter
 
 	adapters = {
 		"Stripe": StripeAdapter,
 		"Razorpay": RazorpayAdapter,
 		"Paypal": PayPalAdapter,
-		"Telr": TelrAdapter,
+		"Checkout": CheckoutAdapter,
 	}
 	if adapter_key not in adapters:
 		frappe.throw(_("No GatewayAdapter registered for adapter_key '{0}'").format(adapter_key))

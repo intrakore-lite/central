@@ -54,7 +54,23 @@ export interface PaypalOrder extends GatewayOrderBase {
 	order_id?: string
 }
 
-export type GatewayOrder = RazorpayOrder | StripeOrder | PaypalOrder
+/** Checkout.com Flow session (card verification or an on-session payment). */
+export interface CheckoutOrder extends GatewayOrderBase {
+	adapter_key: 'Checkout'
+	payment_session?: Record<string, unknown>
+	payment_session_id?: string
+	public_key?: string | null
+	environment?: 'sandbox' | 'production'
+	flow_script_url?: string
+	reference?: string
+	setup_intent_id?: string
+}
+
+export type GatewayOrder =
+	| RazorpayOrder
+	| StripeOrder
+	| PaypalOrder
+	| CheckoutOrder
 
 /** Payment handles a hosted sheet returns, verified server-side on confirm. */
 export interface RazorpayHandles {
@@ -85,7 +101,7 @@ declare global {
 	}
 }
 
-function loadScript(src: string): Promise<void> {
+export function loadScript(src: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (document.querySelector(`script[src="${src}"]`)) return resolve()
 		const s = document.createElement('script')

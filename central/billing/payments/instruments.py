@@ -141,6 +141,29 @@ def get(instrument: str, surface: str = MANDATE) -> dict:
 	return entry
 
 
+# Gateways that save a card in-app and charge it off-session. Stripe is the card rail
+# everywhere it is enabled, except where the currency's default gateway is another card
+# rail: AED defaults to Checkout.com.
+CARD_ADAPTERS = ("Stripe", "Checkout")
+
+
+def card_gateway(currency: str) -> str | None:
+	"""The enabled gateway that saves and charges cards in this currency, if any.
+
+	The currency's default gateway wins when it is a card rail, so an AED team saves its
+	card on Checkout.com. Otherwise Stripe, as before."""
+	from central.billing.api.dashboard._shared import _enabled_gateway_for_currency
+	from central.billing.gateways.registry import GatewayNotFound, resolve_gateway_for_currency
+
+	try:
+		default = resolve_gateway_for_currency(currency)
+	except GatewayNotFound:
+		default = None
+	if default and frappe.db.get_value("Payment Gateway", default, "adapter_key") in CARD_ADAPTERS:
+		return default
+	return _enabled_gateway_for_currency(currency, "Stripe")
+
+
 def gateway_for(instrument: str, currency: str, surface: str = MANDATE) -> str | None:
 	"""The enabled gateway that carries this instrument in this currency, if any."""
 	from central.billing.api.dashboard._shared import _enabled_gateway_for_currency
@@ -148,6 +171,10 @@ def gateway_for(instrument: str, currency: str, surface: str = MANDATE) -> str |
 	entry = get(instrument, surface)
 	if entry["currencies"] and currency not in entry["currencies"]:
 		return None
+	# The console saves a Checkout.com card in Flow. A Checkout.com top-up has no console
+	# form yet, so the recharge card stays on Stripe.
+	if instrument == CARD and surface == MANDATE:
+		return card_gateway(currency)
 	return _enabled_gateway_for_currency(currency, entry["adapter"])
 
 
@@ -170,7 +197,8 @@ def available(currency: str, surface: str = MANDATE) -> list[dict]:
 				"label": entry["label"],
 				"description": entry["description"],
 				"gateway": gateway,
-				"adapter_key": entry["adapter"],
+				# A gateway row is named after its adapter (ADR 0021).
+				"adapter_key": gateway,
 				"surface": surface,
 			}
 		)

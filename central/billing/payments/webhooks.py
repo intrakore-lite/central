@@ -27,9 +27,8 @@ REFUND_EVENTS = (
 	"refund.failed",
 	"refund.processed",
 	"PAYMENT.CAPTURE.REFUNDED",
-	"telr.refund.approved",
-	"telr.refund.declined",
-	"telr.refund.error",
+	"payment_refunded",  # Checkout.com
+	"payment_refund_declined",
 )
 
 
@@ -61,17 +60,15 @@ def paypal() -> dict:
 	)
 
 
-# nosemgrep: guest-whitelisted-method -- process_webhook verifies Telr's tran_check before anything else.
+# nosemgrep: guest-whitelisted-method -- process_webhook verifies the Cko-Signature HMAC before anything else.
 @frappe.whitelist(allow_guest=True, methods=["POST"])
-def telr() -> dict:
-	"""Telr posts its transaction advice form encoded. The fields are stored as JSON, which
-	keeps every value `tran_check` signs, so the stored event reads like any other."""
-	form = frappe.request.form.to_dict() if frappe.request.form else {}
-	if not form:
-		from urllib.parse import parse_qsl
-
-		form = dict(parse_qsl(frappe.request.get_data(as_text=True), keep_blank_values=True))
-	return process_webhook("Telr", frappe.as_json(form).encode(), dict(frappe.request.headers))
+def checkout() -> dict:
+	"""Checkout.com workflow webhooks: a JSON body signed in `Cko-Signature`."""
+	return process_webhook(
+		"Checkout",
+		frappe.request.get_data(),
+		dict(frappe.request.headers),
+	)
 
 
 def process_webhook(adapter_key: str, payload: bytes, headers: dict) -> dict:

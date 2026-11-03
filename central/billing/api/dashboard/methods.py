@@ -94,7 +94,7 @@ def get_payment_method_options(team: str | None = None) -> dict:
 
 	return {
 		"gateway": card_gw,
-		"adapter_key": "Stripe" if card_gw else None,
+		"adapter_key": card_gw,
 		"currency": currency,
 		"instruments": tiles,
 		# What no tile here can do, said plainly rather than left as an absence.

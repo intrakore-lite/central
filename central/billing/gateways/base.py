@@ -170,8 +170,8 @@ class GatewayAdapter(ABC):
 	supports_off_session_charge: bool = False
 
 	# Whether a customer-present payment on this gateway gives a saved card a new
-	# reference to charge off-session (Telr continuous authority). See
-	# payments.payments.rearm_customer_present_method.
+	# reference to charge off-session (the stored-credential payment a merchant-initiated
+	# charge links to). See payments.payments.rearm_customer_present_method.
 	rearms_on_customer_present_payment: bool = False
 
 	def can_charge_silently(self, amount: float, currency: str) -> bool:
@@ -325,6 +325,13 @@ class GatewayAdapter(ABC):
 	def dispute_from_event(payload: dict) -> dict | None:
 		"""`{id, payment_id, amount, reason, status}` of the dispute a verified webhook body
 		carries, or None. `status` is open, won, lost or the gateway's own closing reason."""
+		return None
+
+	@staticmethod
+	def failure_from_event(payload: dict) -> dict | None:
+		"""The decline a verified failure webhook body carries, as
+		`{failure_code, decline_code, failure_reason, raw}`, or None. Stripe and Razorpay
+		are read in `charges._extract_failure`; other adapters answer here."""
 		return None
 
 	@staticmethod

@@ -13,6 +13,7 @@ import PaymentNetworkMark, {
 	type PaymentNetwork,
 } from '@/components/PaymentNetworkMark.vue'
 import TopupDialog from '@/components/TopupDialog.vue'
+import { useAddCheckoutCard } from '@/composables/useAddCheckoutCard'
 import { useAddPaymentMethod } from '@/composables/useAddPaymentMethod'
 import { useAddStripeCard } from '@/composables/useAddStripeCard'
 import { useBillingOverview } from '@/composables/useBillingOverview'
@@ -147,6 +148,10 @@ function onContinue(): void {
 		void startStripeMode()
 		return
 	}
+	if (tile.adapter_key === 'Checkout') {
+		void startCheckoutMode()
+		return
+	}
 	launchGateway(
 		tile.instrument === 'UPI Autopay' ? 'UPI Autopay' : 'Card',
 		phone.value.trim() || undefined,
@@ -192,9 +197,48 @@ const {
 	submitting: stripeSubmitting,
 	error: stripeError,
 } = useAddStripeCard({ onDone: done })
+// Checkout.com draws its card form (Flow) in our dialog and has its own button.
+const checkoutMode = ref(false)
+const checkoutEl = ref<HTMLElement | null>(null)
+const {
+	mount: mountCheckout,
+	destroy: destroyCheckout,
+	ready: checkoutReady,
+	submitting: checkoutSubmitting,
+	error: checkoutError,
+} = useAddCheckoutCard({ onDone: done })
+
 const paymentError = computed(
-	() => dialogError.value || stripeError.value || gatewayError.value,
+	() =>
+		dialogError.value ||
+		stripeError.value ||
+		checkoutError.value ||
+		gatewayError.value,
 )
+const busy = computed(() => stripeSubmitting.value || checkoutSubmitting.value)
+
+async function startCheckoutMode(): Promise<void> {
+	dialogError.value = ''
+	checkoutMode.value = true
+	await nextTick() // Flow needs its mount node in the DOM
+	try {
+		await mountCheckout(checkoutEl.value!, { team: activeTeam.value! })
+		if (!checkoutMode.value || !open.value) destroyCheckout()
+	} catch (e) {
+		dialogError.value = getErrorMessage(e, 'Could not start card setup.')
+		cancelCheckout()
+	}
+}
+
+function cancelCheckout(): void {
+	destroyCheckout()
+	checkoutMode.value = false
+}
+
+function destroyCardForms(): void {
+	destroyStripe()
+	destroyCheckout()
+}
 
 async function startStripeMode(): Promise<void> {
 	dialogError.value = ''
@@ -224,8 +268,9 @@ watch(open, (isOpen) => {
 	if (!isOpen) return
 	options.reload()
 	profile.reload()
-	destroyStripe()
+	destroyCardForms()
 	stripeMode.value = false
+	checkoutMode.value = false
 	stripeLoading.value = false
 	phone.value = ''
 	selected.value = null
@@ -237,9 +282,9 @@ watch(open, (isOpen) => {
 	<Dialog
 		v-model:open="open"
 		title="Add payment method"
-		:dismissible="!stripeSubmitting"
-		:show-close-button="!stripeSubmitting"
-		@after-leave="destroyStripe"
+		:dismissible="!busy"
+		:show-close-button="!busy"
+		@after-leave="destroyCardForms"
 	>
 		<template #default>
 			<Alert
@@ -268,6 +313,23 @@ watch(open, (isOpen) => {
 					<template v-else>
 						Card details are entered on Stripe's secure field. We never see your
 						card number.
+					</template>
+				</p>
+			</div>
+
+			<!-- Checkout.com card entry: Flow, drawn and run by Checkout.com. -->
+			<div v-else-if="checkoutMode" class="space-y-3">
+				<p v-if="!checkoutReady" class="text-p-sm text-ink-gray-6">
+					Loading secure card form…
+				</p>
+				<div ref="checkoutEl" />
+				<p class="text-p-sm text-ink-gray-6">
+					<template v-if="checkoutSubmitting">
+						Saving your card. Please don't close this window.
+					</template>
+					<template v-else>
+						Your bank may ask you to confirm the card. Nothing is charged now.
+						Card details go to Checkout.com only. We never see your card number.
 					</template>
 				</p>
 			</div>
@@ -377,6 +439,14 @@ watch(open, (isOpen) => {
 					:loading="stripeSubmitting"
 					:disabled="!stripeComplete"
 					@click="submitStripe"
+				/>
+			</div>
+			<div v-else-if="checkoutMode" class="flex justify-end gap-2">
+				<Button
+					variant="outline"
+					label="Cancel"
+					:disabled="checkoutSubmitting"
+					@click="cancelCheckout"
 				/>
 			</div>
 			<div v-else class="flex items-center gap-2">
