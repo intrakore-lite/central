@@ -279,9 +279,10 @@ class TestCheckoutAdapter(GatewayAdapterContract, IntegrationTestCase):
 		self.assertEqual(body["billing"], {"address": {"country": "AE"}})
 		self.assertEqual(body["reference"], handles["setup_intent_id"])
 		self.assertLessEqual(len(body["reference"]), 30)
-		self.assertEqual(handles["payment_session"]["id"], "ps_1")
+		flow = handles["checkout"]
+		self.assertEqual(flow["payment_session"]["id"], "ps_1")
 		self.assertEqual(
-			(handles["public_key"], handles["environment"], handles["flow_script_url"]),
+			(flow["public_key"], flow["environment"], flow["flow_script_url"]),
 			("pk_sbox_public", "sandbox", "https://checkout-web-components.checkout.com/index.js"),
 		)
 
@@ -308,6 +309,25 @@ class TestCheckoutAdapter(GatewayAdapterContract, IntegrationTestCase):
 		new = payment("Card Verified", payment_id="pay_new", requested_on="2026-11-03T09:05:00Z")
 		with self._stub(return_value={"data": [old, new]}):
 			self.assertEqual(self.make_adapter().read_saved_card("card-ref")["mandate"], "pay_new")
+
+	def test_the_flow_payment_id_is_used_only_for_its_own_setup(self):
+		mine = payment("Card Verified", payment_id="pay_mine", reference="card-ref")
+		other = payment("Card Verified", payment_id="pay_other", reference="card-someone-else")
+		listed = payment("Card Verified", payment_id="pay_listed", reference="card-ref")
+
+		def respond(method, path, **kwargs):
+			if path == "/payments":
+				return {"data": [listed]}
+			return {"/payments/pay_mine": mine, "/payments/pay_other": other}[path]
+
+		adapter = self.make_adapter()
+		with self._stub(side_effect=respond):
+			self.assertEqual(
+				adapter.read_saved_card("card-ref", payment_id="pay_mine")["mandate"], "pay_mine"
+			)
+			self.assertEqual(
+				adapter.read_saved_card("card-ref", payment_id="pay_other")["mandate"], "pay_listed"
+			)
 
 	def test_an_unfinished_setup_reads_as_not_saved(self):
 		for answer_body in ({"data": []}, {"data": [payment("Pending", approved=False)]}):
@@ -458,7 +478,7 @@ class TestCheckoutAdapter(GatewayAdapterContract, IntegrationTestCase):
 		self.assertEqual(
 			(body["amount"], body["reference"], body["payment_type"]), (36725, "PA-77", "Regular")
 		)
-		self.assertEqual((handles["order_id"], handles["payment_session"]), ("PA-77", session))
+		self.assertEqual((handles["order_id"], handles["checkout"]["payment_session"]), ("PA-77", session))
 
 	def test_a_paid_order_is_found_by_reference(self):
 		with self._stub(return_value={"data": [payment("Captured", reference="PA-77")]}):

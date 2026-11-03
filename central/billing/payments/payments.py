@@ -95,11 +95,15 @@ def ensure_gateway_customer(team: str, gateway: str, adapter, customer_id: str |
 	return cid
 
 
-def initiate_payment_method_setup(team: str, gateway: str, gateway_customer_id: str | None = None) -> dict:
-	"""Begin adding a card: open a SetupIntent and a pending Payment Method.
+def initiate_payment_method_setup(
+	team: str, gateway: str, gateway_customer_id: str | None = None, return_url: str | None = None
+) -> dict:
+	"""Begin adding a card: open a SetupIntent (or a hosted card page) and a pending
+	Payment Method.
 
-	Returns the client secret the frontend confirms the card against. No money
-	moves here and the method is not yet usable.
+	Returns the handles the frontend confirms the card with: a client secret, or the
+	iframe or redirect URL of a hosted page, which sends the browser to `return_url`. No
+	money moves here and the method is not yet usable.
 	"""
 	_cancel_abandoned_setups(team, gateway)
 	adapter = _adapter(gateway)
@@ -108,7 +112,12 @@ def initiate_payment_method_setup(team: str, gateway: str, gateway_customer_id: 
 	ceiling = mandate_ceiling(team, gateway, currency)
 	handles = adapter.setup_payment_method(
 		team,
-		{"customer_id": gateway_customer_id, "currency": currency, "max_amount": ceiling},
+		{
+			"customer_id": gateway_customer_id,
+			"currency": currency,
+			"max_amount": ceiling,
+			"return_url": return_url,
+		},
 	)
 
 	method = frappe.get_doc(
@@ -178,7 +187,7 @@ class CardDeclinedAtSetup(CardNotSaved):
 	"""The bank refused the card at setup. The message says why, for the customer."""
 
 
-def confirm_payment_method(payment_method: str) -> Document:
+def confirm_payment_method(payment_method: str, payment_id: str | None = None) -> Document:
 	"""Confirm a card the customer saved at the gateway.
 
 	1. The card is read from the gateway by the setup Central stored for this method;
@@ -196,7 +205,11 @@ def confirm_payment_method(payment_method: str) -> Document:
 	if method.status != "Pending Validation":
 		return method
 
-	card = _adapter(method.gateway).read_saved_card(method.setup_reference) if method.setup_reference else {}
+	card = (
+		_adapter(method.gateway).read_saved_card(method.setup_reference, payment_id=payment_id)
+		if method.setup_reference
+		else {}
+	)
 	if error := card.get("setup_error"):
 		frappe.throw(
 			decline.method_failure_message(

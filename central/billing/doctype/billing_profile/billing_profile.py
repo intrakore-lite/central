@@ -24,6 +24,9 @@ GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}
 # mobile is 10 digits that start with 6 to 9, optionally after +91 or 91.
 PHONE_RE = re.compile(r"^\+?[0-9]{8,15}$")
 INDIAN_MOBILE_RE = re.compile(r"^(?:\+?91)?[6-9][0-9]{9}$")
+# A UAE VAT Tax Registration Number: 15 digits, often written 100-1234-5678-9003.
+UAE = "United Arab Emirates"
+UAE_TRN_RE = re.compile(r"^[0-9]{15}$")
 _SYSTEM_SAVEPOINT = "billing_profile_system_save"
 REQUIRED_FIELDS = ("currency", "legal_name", "address_line1", "city", "country")
 FIELD_LABELS = {
@@ -148,6 +151,7 @@ class BillingProfile(Document):
 		promotion_basis: DF.SmallText | None
 		spend_alert_threshold: DF.Currency
 		state: DF.Autocomplete | None
+		tax_id: DF.Data | None
 		team: DF.Link
 		team_owner: DF.ReadOnly | None
 		trust_tier: DF.Data | None
@@ -157,6 +161,7 @@ class BillingProfile(Document):
 	def validate(self):
 		self.validate_phone()
 		self.validate_gstin()
+		self.validate_tax_id()
 		self.validate_india_state()
 		self.lock_country_and_currency_after_invoicing()
 		self.validate_currency_matches_country()
@@ -349,6 +354,14 @@ class BillingProfile(Document):
 				),
 				frappe.ValidationError,
 			)
+
+	def validate_tax_id(self):
+		"""Store the TRN without spaces and dashes. A UAE TRN must be 15 digits."""
+		if not self.tax_id:
+			return
+		self.tax_id = re.sub(r"[\s-]", "", self.tax_id).upper()
+		if (self.country or "").strip() == UAE and not UAE_TRN_RE.match(self.tax_id):
+			frappe.throw(_("A UAE TRN has 15 digits, such as 100-1234-5678-9003."), frappe.ValidationError)
 
 	def validate_india_state(self):
 		"""For an Indian billing address, the state must come from the GST state

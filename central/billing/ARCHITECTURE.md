@@ -500,6 +500,8 @@ A held draft is released when the profile is complete. `Billing Profile.on_updat
 
 Both ticks use `draft_team_page` and `settle_draft_page` page jobs (see §3).
 
+**First payment of a converted trial.** A trial billed per seat is charged on its end date through a **Prepayment** invoice (`revenue/invoicing/prepayment.py`): the seats to the month end plus VAT, collected off-session at once. Its capture becomes wallet credit and advance tax, not a sale, so the first monthly invoice settles from credits with no second card charge. Dunning covers an unpaid Prepayment invoice, and the monthly invoice of its period cancels it. Revenue reports and the accounting sync read only Billable invoices. See [First payment](../signups/SPEC.md#first-payment).
+
 ### C. Collect / settle a charge
 ```mermaid
 sequenceDiagram
@@ -666,6 +668,8 @@ get_team_caps resolves caps live (no per-team Trust Tier doctype — dropped)
 | Charge stuck "Open"/unpaid | `payments/webhooks.py` (signature failed? Webhook Event row?), `charges.apply_webhook`, `collection.collect_invoice` fallback chain |
 | Webhook ignored | `webhooks.process_webhook` signature check; gateway `verify_webhook_signature`; dedupe against existing Webhook Event |
 | Money movement blocked | `settlement.can_accept_spend` / `effective_spend_cap`; Billing Profile complete? Credits can fund a create without a profile; otherwise a payment method is needed (`resource_actions.require_payment_method_or_credit`); currency set? `collection_mode.evaluate` (INR ₹15k gate) |
+| A converted trial's first payment did not settle the first invoice | `revenue/invoicing/prepayment.py`: the Prepayment invoice (charged on the trial end date, `collection.collect_invoice`), `book_as_credit` (wallet credit plus advance tax on capture, from `charges._mark_invoice_paid`), and the credits-then-card draw in `lifecycle.open_and_collect`, which also cancels an unpaid Prepayment invoice of the period. See [First payment](../signups/SPEC.md#first-payment) |
+| A product site with seats bills the wrong amount | `catalog.seats.get_seat_quote` (Team Seats, Seat Price, Included Seats) and `Subscription.get_rate_snapshot`: a site billed per seat locks its seat price in place of the plan's rate. A seat change is a Plan Changed segment. See [Seats](../signups/SPEC.md#seats) |
 | Wrong price | rate resolution: `catalog/pricing.py` (`resolve_rate`/`resolve_config_rate`), `rate_card`, Plan Configurator is the single pricing authority (ADR 0011) |
 | Tier/cap wrong | `catalog.entitlements` (`get_team_caps`, `evaluate_tier`, per-currency Trust Tier Threshold) |
 | Provisioning failed | `central.resource_actions.submit_request` / `validate_purchase` (`require_payment_method_or_credit`, `reserved_rate`, spending limit), the Resource Action record, `composition.validate_composition` bounds |

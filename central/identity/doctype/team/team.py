@@ -35,6 +35,17 @@ class Team(TeamLifecycle, Document):
 		from central.identity.doctype.team_member.team_member import TeamMember
 		from central.identity.doctype.team_onboarding_step.team_onboarding_step import TeamOnboardingStep
 
+		business_type: DF.Literal[
+			"",
+			"General Contracting",
+			"Specialty Trade / Subcontracting",
+			"MEP Contracting",
+			"Fit-out & Interiors",
+			"Engineering & Consultancy",
+			"Infrastructure & Civil",
+			"Other",
+		]
+		headcount_bracket: DF.Literal["", "1–15", "16–50", "51–200", "201–500", "500+"]
 		is_staging_trial: DF.Check
 		landing_product: DF.Link | None
 		members: DF.Table[TeamMember]
@@ -42,10 +53,13 @@ class Team(TeamLifecycle, Document):
 		onboarding_steps: DF.Table[TeamOnboardingStep]
 		owner_user: DF.Link
 		referrer: DF.SmallText | None
+		seats: DF.Int
 		status: DF.Literal["Active", "Suspended", "Archived"]
+		subscription_ends_on: DF.Date | None
 		team_logo: DF.AttachImage | None
 		team_name: DF.Data
 		tenant_id: DF.Int
+		turnover_band: DF.Literal["", "< 5M", "5–25M", "25–100M", "100–500M", "500M+"]
 		utm_campaign: DF.Data | None
 		utm_medium: DF.Data | None
 		utm_source: DF.Data | None

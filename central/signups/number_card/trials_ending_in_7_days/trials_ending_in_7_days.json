@@ -1,0 +1,21 @@
+{
+ "color": "#E79913",
+ "creation": "2026-11-03 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[]",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Trials Ending In 7 Days",
+ "method": "central.api.trial_metrics.ending_soon_card",
+ "modified": "2026-11-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Signups",
+ "name": "Trials Ending In 7 Days",
+ "owner": "Administrator",
+ "show_percentage_stats": 0,
+ "stats_time_interval": "Daily",
+ "type": "Custom"
+}

@@ -17,7 +17,8 @@ from frappe.model.document import Document
 # `priced_doctype` is a Dynamic Link to DocType and otherwise unconstrained, so
 # validation pins it to the two things we price: a whole Plan (ADR 0008) and a
 # Resource Type component for à-la-carte composed configs (ADR 0009).
-ALLOWED_PARENTS = ("Plan", "Resource Type")
+# A Product row is its seat price, which overrides the Users resource rate (`catalog.seats`).
+ALLOWED_PARENTS = ("Plan", "Resource Type", "Product")
 
 
 class CatalogRate(Document):

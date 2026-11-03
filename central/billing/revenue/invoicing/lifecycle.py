@@ -61,6 +61,10 @@ def open_and_collect(invoice: str, collect: bool = True) -> dict:
 			return {"invoice": invoice, "claimed": False, "held": HOLD_KEYS[hold]}
 		# Re-read now, not at drafting: a GSTIN checked since then changes the tax.
 		_retax(doc)
+		# A first payment that was never collected is billed here instead.
+		from central.billing.revenue.invoicing.prepayment import cancel_unpaid_prepayments
+
+		cancel_unpaid_prepayments(doc.team, doc.period_end)
 
 	# Free/trial: a cost_report is computed, never collected — no credits, no
 	# charge. It is opened as a record of the subsidy cost.

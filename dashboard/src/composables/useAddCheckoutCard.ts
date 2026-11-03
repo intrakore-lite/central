@@ -1,16 +1,17 @@
-// Add a card on the Checkout.com rail (Flow). Counterpart to useAddStripeCard.
+// Add a card on the Checkout.com rail in the console card dialog. Counterpart to
+// useAddStripeCard; the Flow form itself is useCheckoutFlow, shared with onboarding.
 //
 // 1. initiate_card_setup opens a Flow payment session for amount 0 (a card
 //    verification that stores the card) and a pending Payment Method.
 // 2. Flow collects the card, runs 3DS and reports the payment complete.
-// 3. confirm_card: the backend reads the payment back from Checkout.com by the
-//    session reference, stores the card and activates it. The browser sends only
-//    the Payment Method name.
+// 3. confirm_card: the backend reads the payment back from Checkout.com, stores the
+//    card and activates it. The browser sends the Payment Method name and Flow's
+//    payment id, which Central uses only if it carries the session's reference.
 
 import { useCall } from 'frappe-ui'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { API, method } from '@/api/methods'
-import { type MountedFlow, mountCheckoutFlow } from '@/lib/checkout'
+import { useCheckoutFlow } from '@/composables/useCheckoutFlow'
 import { getErrorMessage, successToast } from '@/lib/feedback'
 import type { CheckoutOrder } from '@/lib/gateway'
 
@@ -34,15 +35,18 @@ export function useAddCheckoutCard({
 		method: 'POST',
 		immediate: false,
 	})
-	const confirm = useCall<ConfirmCardResult, { payment_method?: string }>({
+	const confirm = useCall<
+		ConfirmCardResult,
+		{ payment_method?: string; payment_id?: string }
+	>({
 		url: method(API.confirmCard),
 		method: 'POST',
 		immediate: false,
 	})
-	const ready = ref(false)
+	const flow = useCheckoutFlow()
 	const submitting = ref(false)
 	const error = ref('')
-	let flow: MountedFlow | null = null
+	let paymentMethod = ''
 
 	async function mount(
 		el: HTMLElement,
@@ -51,33 +55,28 @@ export function useAddCheckoutCard({
 		error.value = ''
 		await initiate.submit({ team })
 		const order = initiate.data
-		if (initiate.error || !order?.payment_method)
+		if (initiate.error || !order?.payment_method || !order.checkout)
 			throw (
 				initiate.error ??
 				new Error('Could not start card setup. Please try again.')
 			)
-		flow = await mountCheckoutFlow(el, order, {
-			onReady: () => {
-				ready.value = true
-			},
-			onCompleted: () => void finish(order.payment_method as string),
-			onError: (e) => {
-				error.value = getErrorMessage(
-					e,
-					'The card could not be checked. Try again or use another card.',
-				)
-			},
-		})
+		paymentMethod = order.payment_method
+		await flow.mount(el, order.checkout)
 	}
 
-	async function finish(
-		paymentMethod: string,
-	): Promise<ConfirmCardResult | undefined> {
+	watch(flow.completed, (completed) => {
+		if (completed && paymentMethod) void finish()
+	})
+
+	async function finish(): Promise<ConfirmCardResult | undefined> {
 		submitting.value = true
 		error.value = ''
 		try {
 			for (let attempt = 1; attempt <= CONFIRM_TRIES; attempt++) {
-				await confirm.submit({ payment_method: paymentMethod })
+				await confirm.submit({
+					payment_method: paymentMethod,
+					payment_id: flow.paymentId.value || undefined,
+				})
 				if (!confirm.error) break
 				if (attempt === CONFIRM_TRIES) throw confirm.error
 				await new Promise((resolve) => setTimeout(resolve, CONFIRM_WAIT_MS))
@@ -99,11 +98,17 @@ export function useAddCheckoutCard({
 	}
 
 	function destroy(): void {
-		flow?.destroy()
-		flow = null
-		ready.value = false
+		flow.destroy()
+		flow.completed.value = false
+		flow.paymentId.value = ''
+		paymentMethod = ''
 		error.value = ''
 	}
 
-	return { mount, destroy, ready, submitting, error }
+	return {
+		mount,
+		destroy,
+		submitting,
+		error: computed(() => error.value || flow.error.value),
+	}
 }

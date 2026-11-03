@@ -144,6 +144,10 @@ export const API = {
 	installTrialApp: 'central.api.sites.install_trial_app',
 	trialAppInstall: 'central.api.sites.get_trial_app_install',
 
+	getOnboarding: 'central.api.onboarding.get_onboarding',
+	saveOnboardingProfile: 'central.api.onboarding.save_profile',
+	startOnboardingSite: 'central.api.onboarding.start_site',
+
 	getBenchLink: 'central.api.sso.get_bench_link',
 
 	eligiblePlans: 'central.billing.api.dashboard.catalog.get_eligible_plans',
@@ -203,6 +207,10 @@ export const API = {
 	saveBillingProfile: 'central.billing.api.dashboard.save_billing_profile',
 	saveBillingSettings: 'central.billing.api.dashboard.save_billing_settings',
 	setCollectionMode: 'central.billing.api.dashboard.set_collection_mode',
+	seats: 'central.billing.api.dashboard.get_seats',
+	changeSeats: 'central.billing.api.dashboard.change_seats',
+	setSubscriptionCancelled:
+		'central.billing.api.dashboard.set_subscription_cancelled',
 	saveNotificationPreferences: 'central.notification.api.save_user_preferences',
 	markNotificationRead: 'central.notification.api.mark_notification_read',
 	markAllNotificationsRead:

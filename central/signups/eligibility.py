@@ -10,8 +10,9 @@ if TYPE_CHECKING:
 
 def is_free_trial_creation(team: str, product: str | None) -> bool:
 	"""Whether a creation request opens a free trial: a product's signup site, for a team that has
-	no payment method and has never paid. A direct Central signup buys its servers."""
-	return bool(product) and not has_active_payment_method(team) and not has_paid_before(team)
+	never paid. An invited team stores its card before its site is built, so a card does not
+	end the trial. A direct Central signup buys its servers."""
+	return bool(product) and not has_paid_before(team)
 
 
 def has_paid_before(team: str) -> bool:
@@ -64,8 +65,9 @@ def get_open_trial_summary(team: str) -> dict | None:
 
 
 def get_team_open_trial(team: str) -> dict | None:
-	"""The team's own oldest open trial for the billing pages, because a payment method converts
-	only this team's trials. The server is left out for a caller who cannot view it."""
+	"""The team's own oldest open trial for the billing pages, because its card on file pays only
+	for this team's trials. The server is left out for a caller who cannot view it."""
+	from central.billing.catalog.seats import get_seat_quote
 	from central.signups.trial import OPEN_STATES, Trial, get_product_branding
 
 	name = frappe.db.get_value(
@@ -81,6 +83,7 @@ def get_team_open_trial(team: str) -> dict | None:
 		"product": trial.site.product,
 		"product_title": get_product_branding(trial.site.product)["product_title"],
 		"plan": trial.get_plan(),
+		"seats": seat_quote.as_dict() if (seat_quote := get_seat_quote(team)) else None,
 		"ends_on": trial.site.trial_ends_on,
 	}
 

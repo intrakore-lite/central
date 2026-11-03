@@ -98,7 +98,7 @@ class PayPalAdapter(GatewayAdapter):
 			"customer_id": setup_data.get("customer_id"),
 		}
 
-	def read_saved_card(self, setup_reference: str) -> dict:
+	def read_saved_card(self, setup_reference: str, payment_id: str | None = None) -> dict:
 		"""Turn the setup token the buyer approved into a vault payment token, server-side.
 		Keyed on the setup token, so asking twice returns the same payment token."""
 		try:

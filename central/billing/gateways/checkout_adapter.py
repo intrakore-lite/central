@@ -252,10 +252,14 @@ class CheckoutAdapter(GatewayAdapter):
 			**self._flow_handles(session),
 		}
 
-	def read_saved_card(self, setup_reference: str) -> dict:
-		"""The card the latest payment with this reference stored, or `{}` while the
-		customer has not finished. A refused card gives only `setup_error`."""
-		payment = self._latest_payment(setup_reference)
+	def read_saved_card(self, setup_reference: str, payment_id: str | None = None) -> dict:
+		"""The card the payment of this setup stored, or `{}` while the customer has not
+		finished. A refused card gives only `setup_error`.
+
+		`payment_id` is what Flow's onPaymentCompleted gave the browser. It is read from
+		Checkout.com and used only when the payment carries `setup_reference`, which
+		Central set on the session; otherwise the latest payment with that reference is."""
+		payment = self._payment_of_setup(setup_reference, payment_id)
 		if not payment or payment.get("status") in ("Pending", "Retry Scheduled"):
 			return {}
 		if payment.get("approved") and payment.get("status") in _SAVED:
@@ -529,14 +533,16 @@ class CheckoutAdapter(GatewayAdapter):
 		return self._request("POST", "/payment-sessions", json=body)
 
 	def _flow_handles(self, session: dict) -> dict:
-		"""What the browser needs to mount Flow. `payment_session` is Checkout.com's answer
-		unchanged, as Flow requires."""
+		"""What the browser needs to mount Flow, under `checkout` (the dashboard's
+		`CheckoutSetup`). `payment_session` is Checkout.com's answer unchanged, as Flow
+		requires."""
 		return {
-			"payment_session": session,
-			"payment_session_id": session.get("id"),
-			"public_key": self.get_credential("api_key"),
-			"environment": _FLOW_ENVIRONMENTS[self._environment()],
-			"flow_script_url": FLOW_SCRIPT_URL,
+			"checkout": {
+				"public_key": self.get_credential("api_key"),
+				"environment": _FLOW_ENVIRONMENTS[self._environment()],
+				"payment_session": session,
+				"flow_script_url": FLOW_SCRIPT_URL,
+			}
 		}
 
 	def _charge_result(self, payment: dict) -> PaymentResult:
@@ -592,6 +598,16 @@ class CheckoutAdapter(GatewayAdapter):
 		answer = self._request("GET", "/payments", params={"reference": reference, "limit": 100})
 		rows = answer.get("data") or []
 		return sorted(rows, key=lambda row: str(row.get("requested_on") or ""), reverse=True)
+
+	def _payment_of_setup(self, reference: str, payment_id: str | None) -> dict | None:
+		if str(payment_id or "").startswith("pay_"):
+			try:
+				payment = self._request("GET", f"/payments/{payment_id}")
+			except CheckoutNotFound:
+				payment = None
+			if payment and payment.get("reference") == reference:
+				return payment
+		return self._latest_payment(reference)
 
 	def _latest_payment(self, reference: str) -> dict | None:
 		rows = self._payments_by_reference(reference)

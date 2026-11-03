@@ -29,6 +29,8 @@ RESOURCE_TYPES = [
 	"Backup",
 	"Emails",
 	"PDF",
+	# One seat of a product site billed per seat: its Catalog Rate is the seat price (seats.py).
+	"Users",
 ]
 
 # The vCPU ladder a composed-config slider snaps to — the configurator's choices,

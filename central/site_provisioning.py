@@ -26,14 +26,19 @@ SIGNUP_IMAGE_TAGS = {"has_site": "1", "frappe_version": "version-16-hotfix"}
 SIGNUP_APP_TAG = "app"
 
 
-def create_trial_site(team: str | None, subdomain: str, request_key: str, product: str) -> dict:
+def create_trial_site(
+	team: str | None, subdomain: str, request_key: str, product: str, plan: str | None = None
+) -> dict:
 	"""Start the machine for a product's new trial site, under the name the customer chose. It takes
-	the same creation path as a bought server, so a trial gets the same record, retry and errors."""
+	the same creation path as a bought server, so a trial gets the same record, retry and errors.
+	`plan` sizes the machine, such as by seats, when the region offers it."""
 
 	team = resolve_team(frappe.session.user, team)
 	signup_product = get_signup_product(product)
 	subdomain = validated_subdomain(subdomain)
 	configuration = trial_configuration(team, signup_product)
+	if plan and is_plan_offered(team, configuration["region"], plan):
+		configuration["plan"] = plan
 	site = SiteCreation(product=product)
 
 	return submit_request(
@@ -222,6 +227,15 @@ def signup_offering() -> str:
 	dedicated = [row for row in offerings if row.available_in == SIGNUP_FLOW]
 
 	return (dedicated or offerings)[0].name
+
+
+def is_plan_offered(team: str, region: str, plan: str) -> bool:
+	"""Whether the Team's regional catalog offers the plan."""
+	return any(
+		row["plan"] == plan
+		for rows in get_server_plans(team, cluster=region, include_trial_plans=True)["plans"].values()
+		for row in rows
+	)
 
 
 def get_cheapest_trial_plan(team: str, region: str) -> str | None:

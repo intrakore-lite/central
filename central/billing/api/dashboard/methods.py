@@ -77,10 +77,12 @@ def get_payment_method_options(team: str | None = None) -> dict:
 	publishable_key = None
 	card_gw = _card_gateway(currency)
 	if card_gw:
+		methods.append("Card")
+	# The Stripe element needs its publishable key. Another gateway sends its own handles from setup.
+	if card_gw == "Stripe":
 		from central.billing.gateways.registry import get_adapter
 
 		publishable_key = get_adapter(frappe.get_doc("Payment Gateway", card_gw)).get_credential("api_key")
-		methods.append("Card")
 
 	# UPI Autopay is a Razorpay e-mandate (INR), offered only where an enabled
 	# Razorpay gateway handles the currency — independent of the card rail above.
@@ -94,6 +96,7 @@ def get_payment_method_options(team: str | None = None) -> dict:
 
 	return {
 		"gateway": card_gw,
+		# A gateway row is named after its adapter.
 		"adapter_key": card_gw,
 		"currency": currency,
 		"instruments": tiles,
@@ -107,9 +110,12 @@ def get_payment_method_options(team: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=20, seconds=60 * 60, user_based=True)
-def initiate_card_setup(team: str | None = None, gateway: str | None = None) -> dict:
-	"""Begin adding a card (gateway SetupIntent → client_secret). Real PAN is
-	collected client-side by the gateway SDK (PCI), never by our server."""
+def initiate_card_setup(
+	team: str | None = None, gateway: str | None = None, return_url: str | None = None
+) -> dict:
+	"""Begin adding a card: a Stripe SetupIntent (client_secret) or a hosted card page
+	(iframe_url or redirect_url). Real PAN is collected by the gateway (PCI), never by our
+	server. `return_url` is where a hosted page sends the browser back, on this site only."""
 	team = _resolve_team(team, authz.MANAGE)
 	_require_billing_setup(team)
 	# Saved cards are a Stripe-only rail (ADR 0005), so resolve the currency's Stripe
@@ -119,12 +125,24 @@ def initiate_card_setup(team: str | None = None, gateway: str | None = None) -> 
 	from central.billing.payments import payments
 
 	with customer_safe_gateway_errors():
-		return payments.initiate_payment_method_setup(team, gateway)
+		# Only a hosted card page returns the browser, so a Stripe setup keeps its plain call.
+		hosted = {"return_url": _own_site_url(return_url)} if return_url else {}
+		return payments.initiate_payment_method_setup(team, gateway, **hosted)
+
+
+def _own_site_url(url: str | None) -> str | None:
+	"""A return URL on this site, or a refusal. A hosted page must not send the customer elsewhere."""
+	if not url:
+		return None
+	site = frappe.utils.get_url()
+	if url != site and not url.startswith(f"{site}/"):
+		frappe.throw(_("The return address must be on {0}.").format(site), frappe.ValidationError)
+	return url
 
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=20, seconds=60 * 60, user_based=True)
-def confirm_card(payment_method: str | None = None) -> dict:
+def confirm_card(payment_method: str | None = None, payment_id: str | None = None) -> dict:
 	"""Confirm a card the customer saved in the console card dialog.
 
 	1. The caller must hold billing manage on the method's team.
@@ -132,13 +150,16 @@ def confirm_card(payment_method: str | None = None) -> dict:
 	   by the setup this method was opened with, never taken from the request.
 	3. A saved card runs the micro-charge validation and answers its confirmation.
 	4. A card the bank refused at setup answers why and what to do next, and the
-	   method stays Pending Validation. The setup webhook records the failure."""
+	   method stays Pending Validation. The setup webhook records the failure.
+	5. `payment_id` (Checkout.com Flow) only says which payment to read first; the
+	   adapter reads it from the gateway and uses it only if it carries this setup's
+	   reference."""
 	from central.billing.payments import payments
 
 	team = frappe.db.get_value("Payment Method", payment_method, "team")
 	_require_manage(team)
 	try:
-		return payments.confirm_payment_method(payment_method).get_confirmation()
+		return payments.confirm_payment_method(payment_method, payment_id=payment_id).get_confirmation()
 	except payments.CardDeclinedAtSetup as declined:
 		frappe.clear_last_message()  # the reason goes back in the answer, not as a second alert
 		return {"payment_method": payment_method, "status": "Pending Validation", "message": str(declined)}

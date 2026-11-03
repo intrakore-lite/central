@@ -1,5 +1,6 @@
 import type { StripeElementStyle } from '@stripe/stripe-js'
 import { brand } from '@/lib/brand'
+import type { CheckoutSetup } from '@/types/onboarding'
 
 // Hand a started order to the gateway's hosted element, resolve when the customer
 // finishes. Raw card/UPI data never touches our form — the gateway collects it.
@@ -57,11 +58,7 @@ export interface PaypalOrder extends GatewayOrderBase {
 /** Checkout.com Flow session (card verification or an on-session payment). */
 export interface CheckoutOrder extends GatewayOrderBase {
 	adapter_key: 'Checkout'
-	payment_session?: Record<string, unknown>
-	payment_session_id?: string
-	public_key?: string | null
-	environment?: 'sandbox' | 'production'
-	flow_script_url?: string
+	checkout?: CheckoutSetup
 	reference?: string
 	setup_intent_id?: string
 }

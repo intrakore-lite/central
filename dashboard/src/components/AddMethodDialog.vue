@@ -203,7 +203,6 @@ const checkoutEl = ref<HTMLElement | null>(null)
 const {
 	mount: mountCheckout,
 	destroy: destroyCheckout,
-	ready: checkoutReady,
 	submitting: checkoutSubmitting,
 	error: checkoutError,
 } = useAddCheckoutCard({ onDone: done })
@@ -319,9 +318,6 @@ watch(open, (isOpen) => {
 
 			<!-- Checkout.com card entry: Flow, drawn and run by Checkout.com. -->
 			<div v-else-if="checkoutMode" class="space-y-3">
-				<p v-if="!checkoutReady" class="text-p-sm text-ink-gray-6">
-					Loading secure card form…
-				</p>
 				<div ref="checkoutEl" />
 				<p class="text-p-sm text-ink-gray-6">
 					<template v-if="checkoutSubmitting">

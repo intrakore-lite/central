@@ -339,10 +339,12 @@ class GatewayAdapter(ABC):
 		"""`{id, status}` of the refund a verified webhook body carries, or None."""
 		return None
 
-	def read_saved_card(self, setup_reference: str) -> dict:
+	def read_saved_card(self, setup_reference: str, payment_id: str | None = None) -> dict:
 		"""The card a setup saved, read from the gateway, or `{}` while it is not finished.
 		Keys: payment_method, customer, mandate, brand, last4, exp_month, exp_year. A setup
-		the bank refused gives only `setup_error`, with its failure_code and decline_code."""
+		the bank refused gives only `setup_error`, with its failure_code and decline_code.
+		`payment_id` is a hint the browser sent (Checkout.com Flow's payment id); an adapter
+		that reads it must check that the payment belongs to `setup_reference`."""
 		raise GatewayUnsupported(f"{type(self).__name__} does not support read_saved_card")
 
 	def verify_payment(self, payment_id: str) -> VerifiedPayment:

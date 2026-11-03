@@ -141,27 +141,13 @@ def get(instrument: str, surface: str = MANDATE) -> dict:
 	return entry
 
 
-# Gateways that save a card in-app and charge it off-session. Stripe is the card rail
-# everywhere it is enabled, except where the currency's default gateway is another card
-# rail: AED defaults to Checkout.com.
-CARD_ADAPTERS = ("Stripe", "Checkout")
-
-
 def card_gateway(currency: str) -> str | None:
-	"""The enabled gateway that saves and charges cards in this currency, if any.
+	"""The enabled gateway that saves and charges cards in this currency, if any: Stripe
+	where it handles the currency, else the currency's default card gateway (Checkout.com
+	for AED). See `api.dashboard._shared._card_gateway`."""
+	from central.billing.api.dashboard._shared import _card_gateway
 
-	The currency's default gateway wins when it is a card rail, so an AED team saves its
-	card on Checkout.com. Otherwise Stripe, as before."""
-	from central.billing.api.dashboard._shared import _enabled_gateway_for_currency
-	from central.billing.gateways.registry import GatewayNotFound, resolve_gateway_for_currency
-
-	try:
-		default = resolve_gateway_for_currency(currency)
-	except GatewayNotFound:
-		default = None
-	if default and frappe.db.get_value("Payment Gateway", default, "adapter_key") in CARD_ADAPTERS:
-		return default
-	return _enabled_gateway_for_currency(currency, "Stripe")
+	return _card_gateway(currency)
 
 
 def gateway_for(instrument: str, currency: str, surface: str = MANDATE) -> str | None:

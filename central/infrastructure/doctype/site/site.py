@@ -142,9 +142,6 @@ class Site(Document):
 		BlockedDomain.validate_assignment(new_name)
 
 	def after_insert(self) -> None:
-		from central.signups.trial import Trial
-
-		Trial(self).convert_if_paid()
 		if self.subdomain:
 			frappe.enqueue_doc(
 				self.doctype, self.name, "route_subdomain", queue="short", enqueue_after_commit=True
