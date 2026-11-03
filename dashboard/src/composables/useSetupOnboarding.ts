@@ -1,5 +1,10 @@
 import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { API } from '@/api/methods'
+import {
+	resumeRedirect,
+	SETUP_DONE_PATH,
+} from '@/components/onboarding/setup/steps'
 import { useProduct } from '@/composables/useProduct'
 import { useTrialOnboarding } from '@/composables/useTrialOnboarding'
 import {
@@ -8,10 +13,12 @@ import {
 	methodUrl,
 	postFrappe,
 } from '@/lib/auth'
+import { carriedQuery } from '@/lib/authRedirect'
 import type {
 	Onboarding,
 	OnboardingProfile,
 	SeatQuote,
+	SetupProgress,
 } from '@/types/onboarding'
 
 export type ProfileAnswers = Pick<
@@ -34,8 +41,10 @@ export type BillingDetails = Pick<
 // One read shared by both steps, so step 2 opens on the answers step 1 just saved.
 const onboarding = ref<Onboarding | null>(null)
 
-/** The onboarding steps 1 and 2 of an invited owner: the team, its answers and its prices. */
+/** The onboarding steps of an invited owner: the team, its answers and its prices. */
 export function useSetupOnboarding() {
+	const route = useRoute()
+	const router = useRouter()
 	const { productKey } = useProduct()
 	const { team, prepareTeam } = useTrialOnboarding()
 	const loading = ref(false)
@@ -90,6 +99,27 @@ export function useSetupOnboarding() {
 		})
 	}
 
+	/** Send the owner to the step their progress belongs to. True when the page is left. */
+	async function resume(current: number): Promise<boolean> {
+		const progress = onboarding.value?.progress
+		const target = progress ? resumeRedirect(current, progress.step) : null
+		if (!target) return false
+		await router.replace(
+			target === SETUP_DONE_PATH
+				? target
+				: { path: target, query: carriedQuery(route.query) },
+		)
+		return true
+	}
+
+	async function finishTeamStep(): Promise<void> {
+		const progress = await postFrappe<SetupProgress>(
+			methodUrl(API.finishTeamStep),
+			{ team: team.value },
+		)
+		if (onboarding.value) onboarding.value.progress = progress
+	}
+
 	return {
 		team,
 		onboarding,
@@ -101,5 +131,7 @@ export function useSetupOnboarding() {
 		saveProfile,
 		saveBillingDetails,
 		startSite,
+		resume,
+		finishTeamStep,
 	}
 }

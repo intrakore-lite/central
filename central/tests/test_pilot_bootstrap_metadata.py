@@ -169,6 +169,32 @@ class TestPilotBootstrapMetadata(IntegrationTestCase):
 		self.assertLessEqual(len(config.encode()), METADATA_VALUE_BYTES)
 		self.assertTrue(assign.call_args.args[0].is_free_trial)
 
+	def test_a_site_creation_boots_with_its_onboarding_secret_within_the_cap(self):
+		request = pilot_request(is_free_trial=1)
+		request.resource_type = "Site"
+		request.name = f"action-{frappe.generate_hash(length=8)}"
+		mailbox, trial_key = Mock(), Mock()
+		mailbox.get_site_config.return_value = MAIL_CONFIG
+		trial_key.get_site_config.return_value = TRIAL_KEY_CONFIG
+		with (
+			patch(f"{PILOT}.get_telemetry_base_url", return_value=None),
+			patch(
+				COMMON_SITE_CONFIG,
+				return_value={"raven_push_notification_server_url": "https://relay.example.test"},
+			),
+			patch(f"{PILOT}.UserMailAccount.assign", return_value=mailbox),
+			patch(f"{PILOT}.AITrialKey.assign", return_value=trial_key),
+			patch(f"{BUDGET}.get_budget_usd", return_value=13.61),
+		):
+			config = _create_payload(request)["metadata"]["pilot-common-site-config"]
+
+		values = json.loads(config)
+		self.assertTrue(values["intrakore_onboarding_secret"])
+		self.assertEqual(values["intrakore_cloud_onboarding"], 1)
+		# The test team has no seats; a real one adds the seat cap too.
+		seat_cap = ', "max_system_users": 40'
+		self.assertLessEqual(len(config.encode()) + len(seat_cap), METADATA_VALUE_BYTES)
+
 	def test_a_paid_creation_gets_no_trial_key(self):
 		with patch(f"{PILOT}.get_telemetry_base_url", return_value=None):
 			metadata = _create_payload(pilot_request())["metadata"]

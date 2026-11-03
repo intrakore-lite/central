@@ -63,6 +63,19 @@ export interface TrustContent {
 	benefits: string[]
 	quote: TrustQuote | null
 	help: TrustLine
+	/** Steps 3 and 4. A null key shows nothing. */
+	team_badge: string | null
+	team_features: TrustLine[]
+	team_stat: TrustStat | null
+	team_caption: string | null
+	setup_footer_line: string | null
+}
+
+/** A figure shown on step 3, only once Central Settings gives a real one. */
+export interface TrustStat {
+	label: string
+	value: string
+	note?: string
 }
 
 export interface OnboardingProduct {
@@ -87,6 +100,69 @@ export interface Onboarding {
 	pricing: SeatPricing
 	trust: TrustContent
 	has_payment_method: boolean
+	progress: SetupProgress
+}
+
+/** The step the owner resumes at: 1 to 4, and 5 once onboarding is done. */
+export interface SetupProgress {
+	step: number
+	done: boolean
+}
+
+export type SiteStage =
+	| 'waiting'
+	| 'building'
+	| 'starting'
+	| 'setting_up'
+	| 'ready'
+	| 'failed'
+
+export interface SeatUsage {
+	/** Null when the site has no seat cap. */
+	cap: number | null
+	used: number
+	free: number | null
+}
+
+export interface ModuleSetupState {
+	done: boolean
+	at: string | null
+}
+
+/** central.api.onboarding.site_state */
+export interface SiteSetupState {
+	stage: SiteStage
+	/** A rough share of the wait, from 0 to 100. */
+	progress: number
+	message: string | null
+	site: { name: string; url: string } | null
+	seats: SeatUsage | null
+	company: string | null
+	master_setup: Record<'crm' | 'estimation', ModuleSetupState> | null
+}
+
+export interface InviteResult {
+	email: string
+	status: 'created' | 'enabled' | 'updated' | 'unchanged' | 'error'
+	roles: string[]
+	missing_roles?: string[]
+	email_sent: boolean
+	error?: string
+}
+
+/** central.api.onboarding.invite_members */
+export interface InviteResponse {
+	results: InviteResult[]
+	seats: SeatUsage
+}
+
+/** central.api.onboarding.apply_master_setup */
+export interface MasterSetupReport {
+	applied: Record<string, unknown>
+	/** Keys the site has no place for yet, with the reason. */
+	skipped: Record<string, string>
+	failed: Record<string, string>
+	site: string | null
 }
 
 /** What the card setup of the payment gateway hands the page. */
