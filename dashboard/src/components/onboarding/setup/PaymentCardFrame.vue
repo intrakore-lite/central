@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { LoadingIndicator } from 'frappe-ui'
-import { toRef, useTemplateRef, watch } from 'vue'
+import { computed, toRef, useTemplateRef, watch } from 'vue'
 import { useCardFrame } from '@/composables/useCardFrame'
 
 interface PaymentCardFrameProps {
@@ -25,6 +25,12 @@ watch(
 	{ immediate: true },
 )
 watch(frame.isSavedInFrame, (saved) => saved && emit('saved'))
+
+// Checkout Flow's own button would read "Pay" for a 0 AED check, so the slot draws this one.
+const saveCardLabel = computed(() => {
+	if (frame.isCheckoutCardSaved.value) return 'Card saved'
+	return frame.isSavingCheckoutCard.value ? 'Saving card…' : 'Save card'
+})
 
 function retry() {
 	frame.start(() => stripeElement.value)
@@ -83,6 +89,38 @@ defineExpose({ confirm: frame.confirm, isReady: frame.isReady })
 						: 'min-h-[220px]'
 				"
 			/>
+			<button
+				v-if="frame.mode.value === 'checkout'"
+				type="button"
+				class="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-ik-md bg-white px-4 text-ik-label font-semibold text-ik-ink shadow-ik-line transition-colors hover:bg-ik-canvas-soft focus-visible:shadow-ik-focus focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+				:disabled="
+					frame.isSavingCheckoutCard.value || frame.isCheckoutCardSaved.value
+				"
+				:aria-busy="frame.isSavingCheckoutCard.value || undefined"
+				@click="frame.saveCheckoutCard"
+			>
+				<LoadingIndicator
+					v-if="frame.isSavingCheckoutCard.value"
+					class="size-4"
+				/>
+				<span
+					v-else
+					:class="
+						frame.isCheckoutCardSaved.value
+							? 'lucide-circle-check text-ik-jade-ink'
+							: 'lucide-lock text-ik-primary'
+					"
+					class="size-4 shrink-0"
+					aria-hidden="true"
+				/>
+				{{ saveCardLabel }}
+			</button>
+			<p
+				v-if="frame.mode.value === 'checkout'"
+				class="mt-1.5 text-ik-body-sm text-ik-muted"
+			>
+				Nothing is charged. Your bank may ask you to confirm the card.
+			</p>
 			<p
 				v-if="frame.stripeError.value"
 				class="mt-1.5 text-ik-body-sm text-ik-error"

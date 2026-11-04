@@ -197,12 +197,14 @@ const {
 	submitting: stripeSubmitting,
 	error: stripeError,
 } = useAddStripeCard({ onDone: done })
-// Checkout.com draws its card form (Flow) in our dialog and has its own button.
+// Checkout.com draws its card form (Flow) in our dialog; our "Save card" button submits it.
 const checkoutMode = ref(false)
 const checkoutEl = ref<HTMLElement | null>(null)
 const {
 	mount: mountCheckout,
+	save: saveCheckout,
 	destroy: destroyCheckout,
+	saving: checkoutSaving,
 	submitting: checkoutSubmitting,
 	error: checkoutError,
 } = useAddCheckoutCard({ onDone: done })
@@ -443,6 +445,12 @@ watch(open, (isOpen) => {
 					label="Cancel"
 					:disabled="checkoutSubmitting"
 					@click="cancelCheckout"
+				/>
+				<Button
+					variant="solid"
+					:label="checkoutSubmitting ? 'Saving…' : 'Save card'"
+					:loading="checkoutSaving || checkoutSubmitting"
+					@click="saveCheckout"
 				/>
 			</div>
 			<div v-else class="flex items-center gap-2">

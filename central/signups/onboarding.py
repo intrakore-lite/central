@@ -103,8 +103,9 @@ def get_product_summary(team: str, product: str | None) -> dict | None:
 
 
 def get_product_modules(team: str, product: str) -> list[str]:
-	"""The product's own apps by title, from the app tags of its newest trial image. The signup
-	app alone when no region has an image."""
+	"""The product's own apps by title, from the app tags of its newest trial image, in bundle
+	order: the signup app and the apps the product names first, the dependencies and the
+	assistant last. The signup app alone when no region has an image."""
 	from central.signups.server_products import get_app_title, get_image_apps
 	from central.site_provisioning import preferred_image, signup_offering, trial_images, trial_regions
 
@@ -114,7 +115,8 @@ def get_product_modules(team: str, product: str) -> list[str]:
 		for region in trial_regions():
 			if images := trial_images(team, region, offering, signup_product):
 				tags = preferred_image(images).get("tags") or {}
-				return [app["title"] for app in get_image_apps(tags) if not app["is_core"]]
+				apps = get_image_apps(tags, signup_product)
+				return [app["title"] for app in apps if not app["is_core"]]
 	except Exception:
 		# The list only describes the plan. A region that does not answer must not block onboarding.
 		frappe.log_error(title=f"Onboarding modules of {product} not read")

@@ -3,7 +3,8 @@
 //
 // 1. initiate_card_setup opens a Flow payment session for amount 0 (a card
 //    verification that stores the card) and a pending Payment Method.
-// 2. Flow collects the card, runs 3DS and reports the payment complete.
+// 2. Flow collects the card. Its own "Pay" button is hidden: the dialog's "Save card"
+//    button calls save(), Flow runs 3DS and reports the payment complete.
 // 3. confirm_card: the backend reads the payment back from Checkout.com, stores the
 //    card and activates it. The browser sends the Payment Method name and Flow's
 //    payment id, which Central uses only if it carries the session's reference.
@@ -107,7 +108,10 @@ export function useAddCheckoutCard({
 
 	return {
 		mount,
+		save: flow.submit,
 		destroy,
+		/** Flow is sending the card (before Central confirms it). */
+		saving: flow.isSubmitting,
 		submitting,
 		error: computed(() => error.value || flow.error.value),
 	}
