@@ -218,3 +218,29 @@ test('the plan modules read in bundle order, never re-sorted', () => {
 	)
 	assert.equal(planModules.listModules(['CRM']), 'the CRM module')
 })
+
+test('a setting is noted as saved for later only when the site skipped it', () => {
+	assert.equal(setup.anySkipped({}, setup.PIPELINE_KEYS), false)
+	assert.equal(setup.anySkipped(undefined, setup.ESTIMATE_DEFAULT_KEYS), false)
+	assert.equal(
+		setup.anySkipped(
+			{ 'crm.pipeline_stages': 'older intrakore_crm' },
+			setup.PIPELINE_KEYS,
+		),
+		true,
+	)
+	assert.equal(
+		setup.anySkipped(
+			{ 'crm.pipeline_stages': 'older intrakore_crm' },
+			setup.ESTIMATE_DEFAULT_KEYS,
+		),
+		false,
+	)
+	assert.equal(
+		setup.anySkipped(
+			{ 'estimation.overhead_pct': 'older intrakore_estimation' },
+			setup.ESTIMATE_DEFAULT_KEYS,
+		),
+		true,
+	)
+})
