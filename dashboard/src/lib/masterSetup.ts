@@ -294,3 +294,20 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
 	next.splice(target, 0, item)
 	return next
 }
+
+// Settings an older CRM or Estimation app has no place for. The site applies them since
+// IKBUGS-190 and reports a key under `skipped` only when its apps are older.
+export const PIPELINE_KEYS = ['crm.pipeline_stages']
+export const ESTIMATE_DEFAULT_KEYS = [
+	'estimation.net_margin_pct',
+	'estimation.overhead_pct',
+	'estimation.labour_rate_base',
+]
+
+/** True when the site's apply report kept any of these keys for later. */
+export function anySkipped(
+	skipped: Record<string, string> | null | undefined,
+	keys: string[],
+): boolean {
+	return keys.some((key) => Boolean(skipped && key in skipped))
+}

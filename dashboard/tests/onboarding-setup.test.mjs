@@ -22,6 +22,7 @@ const plain = (value) => JSON.parse(JSON.stringify(value))
 const invites = load('../src/lib/teamInvites.ts')
 const setup = load('../src/lib/masterSetup.ts')
 const steps = load('../src/components/onboarding/setup/steps.ts')
+const planModules = load('../src/lib/planModules.ts')
 
 test('a CSV with a header imports its members', () => {
 	const { rows, errors } = invites.parseMembersCsv(
@@ -194,4 +195,52 @@ test('a returning owner resumes at the right step', () => {
 	assert.equal(steps.resumeRedirect(1, 2), null, 'step 1 stays editable')
 	assert.equal(steps.resumeRedirect(3, 4), null, 'step 3 can be revisited')
 	assert.equal(steps.resumeRedirect(4, 4), null)
+})
+
+test('the plan modules read in bundle order, never re-sorted', () => {
+	// Central sends the bundle's own apps first, dependencies and AI last.
+	const bundle = [
+		'CRM',
+		'Estimation',
+		'Procurement',
+		'Sales',
+		'Accounting',
+		'Inventory',
+		'AI',
+	]
+	assert.equal(
+		planModules.listModules(bundle),
+		'CRM, Estimation, Procurement and 4 more modules',
+	)
+	assert.equal(
+		planModules.listModules(['CRM', 'Estimation']),
+		'CRM & Estimation modules',
+	)
+	assert.equal(planModules.listModules(['CRM']), 'the CRM module')
+})
+
+test('a setting is noted as saved for later only when the site skipped it', () => {
+	assert.equal(setup.anySkipped({}, setup.PIPELINE_KEYS), false)
+	assert.equal(setup.anySkipped(undefined, setup.ESTIMATE_DEFAULT_KEYS), false)
+	assert.equal(
+		setup.anySkipped(
+			{ 'crm.pipeline_stages': 'older intrakore_crm' },
+			setup.PIPELINE_KEYS,
+		),
+		true,
+	)
+	assert.equal(
+		setup.anySkipped(
+			{ 'crm.pipeline_stages': 'older intrakore_crm' },
+			setup.ESTIMATE_DEFAULT_KEYS,
+		),
+		false,
+	)
+	assert.equal(
+		setup.anySkipped(
+			{ 'estimation.overhead_pct': 'older intrakore_estimation' },
+			setup.ESTIMATE_DEFAULT_KEYS,
+		),
+		true,
+	)
 })

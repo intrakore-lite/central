@@ -222,7 +222,7 @@ export function useCardFrame(team: Ref<string>) {
 		stripeCard.destroy()
 		checkoutFlow.destroy()
 	})
-	// Checkout Flow has its own pay button. Its success confirms the card like a framed page does.
+	// Our "Save card" button submits Checkout Flow. Its success confirms the card like a framed page does.
 	watch(checkoutFlow.completed, (completed) => {
 		if (completed) isSavedInFrame.value = true
 	})
@@ -237,8 +237,11 @@ export function useCardFrame(team: Ref<string>) {
 		isReady,
 		isConfirming,
 		isSavedInFrame,
+		isSavingCheckoutCard: checkoutFlow.isSubmitting,
+		isCheckoutCardSaved: checkoutFlow.completed,
 		start,
 		leaveForHostedPage,
+		saveCheckoutCard: checkoutFlow.submit,
 		confirm,
 	}
 }

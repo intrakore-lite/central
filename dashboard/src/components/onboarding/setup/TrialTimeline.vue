@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { money } from '@/lib/format'
+import { listModules } from '@/lib/planModules'
 
 interface TrialTimelineProps {
 	trialDays: number
 	currency: string
-	/** The product's own apps by title, such as CRM and Estimation. */
+	/** The product's apps by title, in bundle order: CRM, Estimation, then dependencies. */
 	modules: string[]
 	productTitle: string
 }
@@ -15,7 +16,7 @@ const props = defineProps<TrialTimelineProps>()
 const dueToday = computed(() => money(0, props.currency))
 const unlocked = computed(() =>
 	props.modules.length
-		? `Full access unlocked to ${listed(props.modules)}.`
+		? `Full access unlocked to ${listModules(props.modules)}.`
 		: `Full access unlocked to ${props.productTitle}.`,
 )
 const milestones = computed(() => [
@@ -37,15 +38,6 @@ const milestones = computed(() => [
 		tone: 'bg-ik-chip-hover text-ik-muted',
 	},
 ])
-
-// "CRM, Estimation & AI": a short list reads better than a comma chain.
-function listed(names: string[]): string {
-	const shown = names.slice(0, 3)
-	const rest = names.length - shown.length
-	if (rest > 0) return `${shown.join(', ')} and ${rest} more modules`
-	if (shown.length === 1) return `the ${shown[0]} module`
-	return `${shown.slice(0, -1).join(', ')} & ${shown[shown.length - 1]} modules`
-}
 </script>
 
 <template>

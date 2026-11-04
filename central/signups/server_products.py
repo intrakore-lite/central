@@ -1,3 +1,5 @@
+import re
+
 import frappe
 from frappe import _
 
@@ -49,7 +51,7 @@ def _get_choice(product: Product, offering: str, image: dict) -> dict:
 		"description": product.subtitle,
 		"offering": offering,
 		"image_id": image["id"],
-		"apps": get_image_apps(image.get("tags") or {}),
+		"apps": get_image_apps(image.get("tags") or {}, product),
 	}
 
 
@@ -58,11 +60,15 @@ CORE_APPS = frozenset({"frappe", "intrakore_master", "intrakore_ui"})
 # Words a person reads as an acronym, not as a capitalised word.
 ACRONYMS = frozenset({"ai", "boq", "crm", "hr", "ui", "vat"})
 APP_TAG_PREFIX = "app_"
+# Apps a bundle carries for its feature apps to post to. They follow the feature apps.
+FOUNDATION_APPS = frozenset({"intrakore_accounting", "intrakore_inventory"})
+# The assistant works across every app, so it closes the list.
+ASSISTANT_APPS = frozenset({"intrakore_ai"})
 
 
-def get_image_apps(tags: dict[str, str]) -> list[dict]:
-	"""The apps an image carries, from its `app_<name>=<version>` tags: the product's own
-	apps by title, then the core apps."""
+def get_image_apps(tags: dict[str, str], product: Product | None = None) -> list[dict]:
+	"""The apps an image carries, from its `app_<name>=<version>` tags, in the order a person
+	reads the bundle: see `app_order`. The core apps come last."""
 	apps = [
 		{
 			"app": tag.removeprefix(APP_TAG_PREFIX),
@@ -73,7 +79,40 @@ def get_image_apps(tags: dict[str, str]) -> list[dict]:
 		for tag, version in tags.items()
 		if tag.startswith(APP_TAG_PREFIX) and len(tag) > len(APP_TAG_PREFIX)
 	]
-	return sorted(apps, key=lambda app: (app["is_core"], app["title"]))
+	return sorted(apps, key=lambda app: app_order(app, product))
+
+
+def app_order(app: dict, product: Product | None = None) -> tuple:
+	"""Sort key of an image app: the bundle's own apps first, what they run on after.
+
+	1. The product's signup app.
+	2. The apps the product title names, in title order: "CRM + Estimation".
+	3. The other feature apps, by title.
+	4. The apps the feature apps depend on (Accounting, Inventory), by title.
+	5. The AI assistant.
+	6. The core apps.
+	"""
+	title = app["title"]
+	if app["is_core"]:
+		return (6, 0, title)
+	if product and app["app"] == product.signup_app:
+		return (1, 0, title)
+	# A product named after a dependency or the assistant still lists it first.
+	if (position := _title_position(title, product)) is not None:
+		return (2, position, title)
+	if app["app"] in ASSISTANT_APPS:
+		return (5, 0, title)
+	if app["app"] in FOUNDATION_APPS:
+		return (4, 0, title)
+	return (3, 0, title)
+
+
+def _title_position(app_title: str, product: Product | None) -> int | None:
+	"""Where the product title names an app, as a whole word: "CRM + Estimation" names CRM at 0."""
+	if not product or not product.title:
+		return None
+	match = re.search(rf"\b{re.escape(app_title)}\b", product.title, re.IGNORECASE)
+	return match.start() if match else None
 
 
 def get_app_title(app: str) -> str:

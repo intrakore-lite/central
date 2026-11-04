@@ -376,3 +376,43 @@ class TestProductApps(IntegrationTestCase):
 			],
 		)
 		self.assertEqual(apps[0]["app"], "intrakore_crm")
+
+	def test_a_bundle_lists_its_own_apps_before_what_they_run_on(self):
+		from central.signups.server_products import get_image_apps
+
+		product = frappe._dict(signup_app="intrakore_crm", title="CRM + Estimation")
+		tags = {
+			f"app_{app}": "1.0.0"
+			for app in (
+				"intrakore_ai",
+				"intrakore_accounting",
+				"intrakore_crm",
+				"intrakore_estimation",
+				"intrakore_inventory",
+				"intrakore_master",
+				"intrakore_procurement",
+				"intrakore_sales",
+				"intrakore_ui",
+			)
+		}
+
+		self.assertEqual(
+			[app["title"] for app in get_image_apps(tags, product)],
+			["CRM", "Estimation", "Procurement", "Sales", "Accounting", "Inventory", "AI", "Master", "UI"],
+		)
+
+	def test_the_signup_app_and_the_named_apps_lead_even_when_they_are_dependencies(self):
+		from central.signups.server_products import get_image_apps
+
+		product = frappe._dict(signup_app="intrakore_estimation", title="Accounting and Estimation")
+		tags = {
+			"app_intrakore_accounting": "1",
+			"app_intrakore_ai": "1",
+			"app_intrakore_estimation": "1",
+			"app_intrakore_inventory": "1",
+		}
+
+		self.assertEqual(
+			[app["title"] for app in get_image_apps(tags, product)],
+			["Estimation", "Accounting", "Inventory", "AI"],
+		)

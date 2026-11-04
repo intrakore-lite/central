@@ -10,14 +10,17 @@ import { useWorkspaceSetup } from '@/composables/useWorkspaceSetup'
 import { frappeErrorMessage } from '@/lib/auth'
 import { brand } from '@/lib/brand'
 import {
+	anySkipped,
 	CURRENCIES,
 	cloneSetup,
+	ESTIMATE_DEFAULT_KEYS,
 	GCC_PRESET,
 	LABOUR_RATE_BASES,
 	LEAD_SOURCES,
 	type MasterSetupForm,
 	matchesPreset,
 	NEUTRAL_SETUP,
+	PIPELINE_KEYS,
 	setupErrors,
 	TEMPLATES,
 	toMasterConfig,
@@ -37,7 +40,8 @@ const UOM_OPTIONS: { value: UomSystem; label: string; icon: string }[] = [
 		icon: 'lucide-ruler',
 	},
 ]
-// Keys the site keeps for later today (see intrakore_master NO_PLACE_YET). Shown, not refused.
+// Keys an older site keeps for later (intrakore_master NO_PLACE_YET). Noted only when the
+// apply report names them under `skipped`.
 const SAVED_FOR_LATER_NOTE = 'Kept with your setup; applied in a later release.'
 
 const { team, onboarding, loading, loadError, load, resume } =
@@ -57,6 +61,12 @@ const presetsOn = computed(() => matchesPreset(form.value, GCC_PRESET))
 const errors = computed(() => setupErrors(form.value))
 const failedItems = computed(() => Object.entries(report.value?.failed ?? {}))
 const skippedItems = computed(() => Object.keys(report.value?.skipped ?? {}))
+const pipelineSkipped = computed(() =>
+	anySkipped(report.value?.skipped, PIPELINE_KEYS),
+)
+const estimateDefaultsSkipped = computed(() =>
+	anySkipped(report.value?.skipped, ESTIMATE_DEFAULT_KEYS),
+)
 const trust = computed(() => onboarding.value?.trust ?? null)
 const ready = computed(() => isReady.value && !errors.value.length)
 const hasCrm = computed(() => moduleIncluded('crm'))
@@ -260,7 +270,10 @@ async function retrySetup(): Promise<void> {
 									</span>
 								</div>
 								<PipelineMilestones v-model="form.pipeline_stages" />
-								<p class="text-ik-label-sm text-ik-muted">
+								<p
+									v-if="pipelineSkipped"
+									class="text-ik-label-sm text-ik-muted"
+								>
 									{{ SAVED_FOR_LATER_NOTE }}
 								</p>
 							</div>
@@ -445,7 +458,10 @@ async function retrySetup(): Promise<void> {
 										Applied before commercial review
 									</p>
 								</div>
-								<p class="text-ik-label-sm text-ik-muted sm:col-span-2">
+								<p
+									v-if="estimateDefaultsSkipped"
+									class="text-ik-label-sm text-ik-muted sm:col-span-2"
+								>
 									Margin and overhead are set per estimate today.
 									{{ SAVED_FOR_LATER_NOTE }}
 								</p>
