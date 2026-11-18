@@ -98,6 +98,9 @@ jobs:
           # Same Frappe commit as the intrakore.cloud control bench, so upstream changes do not break CI.
           git -C "$HOME/frappe-bench/apps/frappe" fetch --depth 1 https://github.com/frappe/frappe "$FRAPPE_COMMIT"
           git -C "$HOME/frappe-bench/apps/frappe" checkout -q "$FRAPPE_COMMIT"
+          # bench init installed the node packages of Frappe's branch head. Install the ones of the pinned commit,
+          # or the asset build cannot find packages that the head removed (such as air-datepicker).
+          yarn --cwd "$HOME/frappe-bench/apps/frappe" install --frozen-lockfile
 
       - name: Install
         working-directory: /home/runner/frappe-bench
