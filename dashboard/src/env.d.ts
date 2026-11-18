@@ -37,6 +37,9 @@ interface Window {
 		logo_url?: string | null
 		policies_url?: string | null
 	}
+	/** The trust line of the auth pages, as plain text. Null hides it.
+	 *  See get_auth_trust_line in central/signups/onboarding.py. */
+	auth_trust_line?: string | null
 	/** The free trial the sign-in page offers. See central/signups/trial_offer.py. */
 	trial_offer?: {
 		product: string

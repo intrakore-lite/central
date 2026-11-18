@@ -7,6 +7,7 @@ from frappe.sessions import get_csrf_token
 from central.branding import get_brand
 from central.iam import is_managed_customer
 from central.identity.doctype.team_invitation.team_invitation import get_expiry_days
+from central.signups.onboarding import get_auth_trust_line
 from central.signups.trial_offer import get_trial_offer
 
 no_cache = 1
@@ -29,6 +30,7 @@ def get_context(context):
 	boot["help_links"] = settings.help_links()
 	boot["brand"] = get_brand()
 	boot["trial_offer"] = get_trial_offer()
+	boot["auth_trust_line"] = get_auth_trust_line()
 	boot["invitation_expiry_days"] = get_expiry_days()
 	boot.update(build_auth_context())
 	# Development benches expose Socket.IO directly; production proxies it.

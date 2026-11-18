@@ -16,9 +16,15 @@ MAX_SEATS = 40
 ORGANISATION_FIELDS = ("business_type", "headcount_bracket", "turnover_band")
 SUBDOMAIN_LENGTH = 30
 
+# The line under the showcase of the sign-in, signup and activation pages. It keeps the text
+# these pages showed before it became configurable (IKBUGS-188), until an operator replaces it.
+AUTH_TRUST_LINE = "Trusted by 500+ construction customers across the UAE"
+
 # Every claim here must be true for this platform today. Central Settings > Onboarding Trust Content
 # replaces a key with real figures, a real quote or a certification once it exists.
 DEFAULT_TRUST_CONTENT = {
+	# Plain text. A line break starts a new line. None or "" hides the line.
+	"auth_trust_line": AUTH_TRUST_LINE,
 	"profile_badge": "30 days free",
 	"profile_footer": ["Encrypted in transit (TLS 1.2+)", "Hosted in Frankfurt, EU"],
 	"profile_trust_line": "Zero charge today — cancel before day 30",
@@ -212,6 +218,17 @@ def get_trust_content() -> dict:
 		**DEFAULT_TRUST_CONTENT,
 		**{key: configured[key] for key in DEFAULT_TRUST_CONTENT if key in configured},
 	}
+
+
+def get_auth_trust_line() -> str | None:
+	"""The trust line of the auth pages, as plain text. None hides it. A value that is not text
+	falls back to the default, so a malformed setting cannot break a guest page."""
+	line = get_trust_content()["auth_trust_line"]
+	if line is None:
+		return None
+	if not isinstance(line, str):
+		return AUTH_TRUST_LINE
+	return line.strip() or None
 
 
 def save_profile(team: str, profile: dict) -> dict:

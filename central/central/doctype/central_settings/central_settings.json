@@ -606,7 +606,7 @@
    "options": "seat_price_currency"
   },
   {
-   "description": "The badges, benefit lines and quote of the onboarding pages. Only true claims. Leave empty to use the defaults in central/signups/onboarding.py. A key set here replaces the default of that key.",
+   "description": "The badges, benefit lines and quote of the onboarding pages, and the trust line of the sign-in, signup and activation pages (key auth_trust_line: plain text, a line break starts a new line, null hides it). Only true claims. Leave empty to use the defaults in central/signups/onboarding.py. A key set here replaces the default of that key.",
    "fieldname": "trust_content_section",
    "fieldtype": "Section Break",
    "label": "Trust Content"
@@ -750,7 +750,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 02:00:51.026350",
+ "modified": "2026-11-18 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Central",
  "name": "Central Settings",
