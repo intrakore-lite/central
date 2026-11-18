@@ -22,7 +22,7 @@ function loadBrand(window) {
 	return exports
 }
 
-const DEFAULT_LINE = 'Trusted by 500+ construction customers across the UAE'
+const DEFAULT_LINE = 'Built for construction companies in the GCC'
 
 test('the auth pages keep the default line when the boot has none', () => {
 	assert.equal(loadBrand({}).trustLine, DEFAULT_LINE)

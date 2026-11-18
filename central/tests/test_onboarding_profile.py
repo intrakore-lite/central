@@ -158,10 +158,7 @@ class TestOnboardingContent(IntegrationTestCase):
 		frappe.clear_document_cache("Central Settings")
 
 	def test_defaults_make_no_claim_the_platform_cannot_back(self):
-		# auth_trust_line keeps the text the auth pages showed before IKBUGS-188 until an operator
-		# replaces it in Central Settings, so it is not part of this check.
-		defaults = {k: v for k, v in onboarding.DEFAULT_TRUST_CONTENT.items() if k != "auth_trust_line"}
-		text = json.dumps(defaults)
+		text = json.dumps(onboarding.DEFAULT_TRUST_CONTENT)
 
 		for claim in ("SOC 2", "DIFC", "ADGM", "500+", "14B", "Farhan"):
 			self.assertNotIn(claim, text)

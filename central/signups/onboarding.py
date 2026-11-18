@@ -16,9 +16,8 @@ MAX_SEATS = 40
 ORGANISATION_FIELDS = ("business_type", "headcount_bracket", "turnover_band")
 SUBDOMAIN_LENGTH = 30
 
-# The line under the showcase of the sign-in, signup and activation pages. It keeps the text
-# these pages showed before it became configurable (IKBUGS-188), until an operator replaces it.
-AUTH_TRUST_LINE = "Trusted by 500+ construction customers across the UAE"
+# The line under the showcase of the sign-in, signup and activation pages.
+AUTH_TRUST_LINE = "Built for construction companies in the GCC"
 
 # Every claim here must be true for this platform today. Central Settings > Onboarding Trust Content
 # replaces a key with real figures, a real quote or a certification once it exists.
