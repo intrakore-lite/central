@@ -54,6 +54,8 @@ export interface TrustQuote {
 /** Central Settings > Onboarding Trust Content over its true defaults.
  *  See DEFAULT_TRUST_CONTENT in central/signups/onboarding.py. */
 export interface TrustContent {
+	/** The sign-in, signup and activation pages. Plain text; null hides it. */
+	auth_trust_line: string | null
 	profile_badge: string
 	profile_footer: string[]
 	profile_trust_line: string

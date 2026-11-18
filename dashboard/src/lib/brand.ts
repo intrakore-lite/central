@@ -53,7 +53,20 @@ export interface AuthShowcase {
 
 // The marketing copy beside the auth forms, in the words of intrakore.com. Keep every claim
 // true for this platform: it does not run in the UAE, so never say "Hosted in the UAE".
-export const trustLine = 'Trusted by 500+ construction customers across the UAE'
+/** The text the auth pages show when the boot data has no trust line, as on the vite dev
+ *  server. Keep it equal to AUTH_TRUST_LINE in central/signups/onboarding.py. */
+const DEFAULT_TRUST_LINE = 'Built for construction companies in the GCC'
+
+/** The line under the auth showcase, from Central Settings > Onboarding Trust Content
+ *  (key auth_trust_line). Plain text. Null hides the line. */
+export function resolveTrustLine(
+	value: string | null | undefined,
+): string | null {
+	if (value === undefined) return DEFAULT_TRUST_LINE
+	return value?.trim() || null
+}
+
+export const trustLine = resolveTrustLine(window.auth_trust_line)
 
 export const signInShowcase: AuthShowcase = {
 	eyebrow: 'Construction Management Software',

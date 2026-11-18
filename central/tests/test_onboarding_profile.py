@@ -128,6 +128,35 @@ class TestOnboardingContent(IntegrationTestCase):
 		self.assertEqual(content["benefits"], onboarding.DEFAULT_TRUST_CONTENT["benefits"])
 		self.assertNotIn("unknown", content)
 
+	def test_auth_trust_line_comes_from_settings(self):
+		self.assertEqual(onboarding.get_auth_trust_line(), onboarding.AUTH_TRUST_LINE)
+
+		for configured, shown in (
+			("  ISO 9001 certified\nHosted in Frankfurt  ", "ISO 9001 certified\nHosted in Frankfurt"),
+			("<script>alert(1)</script>", "<script>alert(1)</script>"),
+			(None, None),
+			("   ", None),
+			(["not", "text"], onboarding.AUTH_TRUST_LINE),
+		):
+			with self.subTest(configured=configured):
+				self.set_trust_content({"auth_trust_line": configured})
+				self.assertEqual(onboarding.get_auth_trust_line(), shown)
+
+	def test_auth_pages_boot_the_trust_line(self):
+		from central.www.dashboard import get_context
+
+		self.set_trust_content({"auth_trust_line": "Hosted in Frankfurt"})
+		frappe.set_user("Guest")
+		self.addCleanup(frappe.set_user, "Administrator")
+
+		boot = get_context(frappe._dict()).boot
+
+		self.assertEqual(boot["auth_trust_line"], "Hosted in Frankfurt")
+
+	def set_trust_content(self, content: dict) -> None:
+		frappe.db.set_single_value("Central Settings", "onboarding_trust_content", json.dumps(content))
+		frappe.clear_document_cache("Central Settings")
+
 	def test_defaults_make_no_claim_the_platform_cannot_back(self):
 		text = json.dumps(onboarding.DEFAULT_TRUST_CONTENT)
 

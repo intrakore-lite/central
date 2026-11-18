@@ -48,9 +48,14 @@ const showcase = computed(() => {
 			/>
 		</div>
 
-		<p class="flex items-center gap-2 text-p-base-medium text-blueprint-800">
+		<!-- Plain text from Central Settings: interpolation escapes it, and a line break in the
+		     setting starts a new line. -->
+		<p
+			v-if="trustLine"
+			class="flex items-center gap-2 text-p-base-medium text-blueprint-800"
+		>
 			<span class="lucide-shield-check size-4 shrink-0" aria-hidden="true" />
-			{{ trustLine }}
+			<span class="whitespace-pre-line">{{ trustLine }}</span>
 		</p>
 	</aside>
 </template>
